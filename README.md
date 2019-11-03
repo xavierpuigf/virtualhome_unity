@@ -10,6 +10,7 @@ Paid assets aren't compatible with our code out of the box.
 * __Complete Home Interior Pack__: Some Prefabs need to be relocated/renamed. Run a script by executing __top menu__ > __Patch__ > __CHIP__. Wait few minuties to complete.
 * __FInal IK__: Few lines of code needs some modification as of version. Refer to [this](doc/final_ik_mod.md)
 * __Modern House Interior Pack__:
+  * Importing the asset modifies contents of `Assets/PostProcessing`, leading to compile error. Use `git checkout Assets/PostProcessing/Editor/PropertyDrawers/MinDrawer.cs` to revert the change.
   * Some Prefabs need to be relocated/renamed. Run a script by executing __top menu__ > __Patch__ > __MHIP__. Wait few minuties to complete.
   * __NOTE__: Many of the newly introduced prefabs aren't being used in our code. You can modify `Assets/Resources/Data/object_prefab.json` to add more prefabs to each object class.
 
