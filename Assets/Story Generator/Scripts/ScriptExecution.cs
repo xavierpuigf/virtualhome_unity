@@ -1,0 +1,2811 @@
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+using UnityEngine.AI;
+using StoryGenerator;
+using StoryGenerator.ChairProperties;
+using StoryGenerator.CharInteraction;
+using StoryGenerator.Recording;
+using StoryGenerator.Rendering;
+using StoryGenerator.SceneState;
+using System.Text.RegularExpressions;
+using RootMotion.FinalIK;
+using StoryGenerator.Scripts;
+using System.Text;
+using StoryGenerator.DoorProperties;
+
+namespace StoryGenerator.Utilities
+{
+
+    public class ObjectData
+    {
+        public GameObject GameObject { get; protected set; }
+        public Vector3 Position { get; protected set; }       // Position of the object: can be GameObject.transform.position or new position if it was moved
+
+        public ObjectData(GameObject gameObject, Vector3 position)
+        {
+            GameObject = gameObject;
+            Position = position;
+        }
+
+    }
+
+    public enum OpenStatus
+    {
+        UNKNOWN,    // Not known if openable
+        OPEN,
+        CLOSED
+    }
+
+    public class ScriptObjectData : ObjectData
+    {
+        public bool Grabbed { get; private set; }                   // true if object is in one of the hands, in this case Position property is position from where it was grabbed
+        public OpenStatus OpenStatus { get; private set; }          // open/closed or unknown (status is unknown until it is not important to know the status)
+        public Vector3 InteractionPosition { get; private set; }    // Interaction position of character at most recent manipulation
+
+        public ScriptObjectData(GameObject gameObject, Vector3 position, Vector3 interactionPosition, bool grabbed, OpenStatus openStatus) :
+            base(gameObject, position)
+        {
+            InteractionPosition = interactionPosition;
+            Grabbed = grabbed;
+            OpenStatus = openStatus;
+        }
+    }
+
+    public class ProcessingReport
+    {
+        private List<string> messageList = new List<string>();
+        private List<string> processingMessageList = new List<string>();
+
+        public ProcessingReport()
+        {
+        }
+
+        public bool Success { get { return messageList.Count == 0 && processingMessageList.Count == 0; } }
+
+        public override string ToString()
+        {
+            if (Success) return "";
+            else {
+                StringBuilder sb = new StringBuilder();
+
+                foreach (string msg in messageList) {
+                    sb.Append(msg); sb.Append('\n');
+                }
+                foreach (string msg in processingMessageList) {
+                    sb.Append(msg); sb.Append('\n');
+                }
+                return sb.ToString();
+            }
+        }
+
+        public void Reset()
+        {
+            messageList.Clear();
+            processingMessageList.Clear();
+        }
+
+        public void ResetProcessingMessage()
+        {
+            processingMessageList.Clear();
+        }
+
+        public void AddItem(string key, string value)
+        {
+            string msg = string.Format("{0}: {1}", key, value);
+
+            if (!messageList.Contains(msg))
+                messageList.Add(msg);
+        }
+
+        public void AddItem(string key, IEnumerable<string> value)
+        {
+            AddItem(key, string.Join(", ", value.ToArray()));
+        }
+
+        public void AddItem(string key, params string[] values)
+        {
+            AddItem(key, string.Join(", ", values));
+        }
+
+        public void AddProcessingItem(string key, string value)
+        {
+            processingMessageList.Add(string.Format("{0}: {1}", key, value));
+        }
+
+        public void AddProcessingItem(string key, params string[] values)
+        {
+            AddProcessingItem(key, string.Join(", ", values));
+        }
+    }
+
+    #region Actions
+
+    public class GotoAction : IAction
+    {
+        public IObjectSelector Selector { get; private set; }
+        public ScriptObjectName Name { get; private set; }
+        public int ScriptLine { get; private set; }
+        public InteractionType Intention { get; private set; }
+        public bool Run { get; private set; }
+
+        public GotoAction(int scriptLine, IObjectSelector selector, string name, int instance, bool run = false, InteractionType intention = InteractionType.UNSPECIFIED)
+        {
+            ScriptLine = scriptLine;
+            Selector = selector;
+            Name = new ScriptObjectName(name, instance);
+            Intention = intention;
+            Run = run;
+        }
+    }
+
+    //// Find object and walk to it, if not close
+    //public class FindAction : IAction
+    //{
+    //    public IObjectSelector Selector { get; private set; }
+    //    public string SelectorName { get; private set; }
+    //    public string Name { get; private set; }
+    //    public int ScriptLine { get; private set; }
+    //    public InteractionType Intention { get; private set; }
+
+    //    public FindAction(int scriptLine, IObjectSelector selector, string selectorName, string name, InteractionType intention = InteractionType.UNSPECIFIED)
+    //    {
+    //        ScriptLine = scriptLine;
+    //        Selector = selector;
+    //        Name = name;
+    //        SelectorName = selectorName;
+    //        Intention = intention;
+    //    }
+    //}
+
+    public class WatchAction : IAction
+    {
+        public const float ShortDuration = 0.5f;
+        public const float MediumDuration = 2.0f;
+        public const float LongDuration = 6.0f;
+
+        public IObjectSelector Selector { get; private set; }
+        public ScriptObjectName Name { get; private set; }
+        public int ScriptLine { get; private set; }
+        public float Duration { get; private set; }   // Duration in seconds
+
+        public WatchAction(int scriptLine, IObjectSelector selector, string name, int instance, float duration)
+        {
+            ScriptLine = scriptLine;
+            Selector = selector;
+            Name = new ScriptObjectName(name, instance);
+            Duration = duration;
+        }
+    }
+
+    public class SitAction : IAction
+    {
+        public ScriptObjectName Name { get; private set; }
+        public int ScriptLine { get; private set; }
+
+        public SitAction(int scriptLine, string name, int instance)
+        {
+            ScriptLine = scriptLine;
+            Name = new ScriptObjectName(name, instance);
+        }
+    }
+
+    public class StandupAction : IAction
+    {
+        public ScriptObjectName Name { get { return new ScriptObjectName("", 0); } }
+        public int ScriptLine { get; private set; }
+
+        public StandupAction(int scriptLine)
+        {
+            ScriptLine = scriptLine;
+        }
+
+    }
+
+    public class GrabAction : IAction
+    {
+        public ScriptObjectName Name { get; private set; }
+        public int ScriptLine { get; private set; }
+
+        public GrabAction(int scriptLine, string name, int instance)
+        {
+            ScriptLine = scriptLine;
+            Name = new ScriptObjectName(name, instance);
+        }
+    }
+
+    public class DrinkAction : IAction
+    {
+        public ScriptObjectName Name { get; private set; }
+        public int ScriptLine { get; private set; }
+
+        public DrinkAction(int scriptLine, string name, int instance)
+        {
+            ScriptLine = scriptLine;
+            Name = new ScriptObjectName(name, instance);
+        }
+    }
+
+    public class PhoneAction : IAction
+    {
+        public enum PhoneActionType { TALK, TEXT };
+
+        public ScriptObjectName Name { get; private set; }
+        public int ScriptLine { get; private set; }
+        public PhoneActionType ActionType { get; private set; }
+
+        public PhoneAction(int scriptLine, string name, int instance, PhoneActionType actionType)
+        {
+            ScriptLine = scriptLine;
+            Name = new ScriptObjectName(name, instance);
+            ActionType = actionType;
+        }
+    }
+
+    public class TouchAction : IAction
+    {
+        public ScriptObjectName Name { get; private set; }
+        public int ScriptLine { get; private set; }
+
+        public TouchAction(int scriptLine, string name, int instance)
+        {
+            ScriptLine = scriptLine;
+            Name = new ScriptObjectName(name, instance);
+        }
+    }
+
+    public class PutAction : IAction
+    {
+        public ScriptObjectName Name { get; private set; }
+        public ScriptObjectName DestName { get; private set; }
+        public int ScriptLine { get; private set; }
+        public bool PutInside { get; private set; }
+
+        public PutAction(int scriptLine, string name, int instance, string destName, int destInstance, bool putInside)
+        {
+            ScriptLine = scriptLine;
+            Name = new ScriptObjectName(name, instance);
+            DestName = new ScriptObjectName(destName, destInstance);
+            PutInside = putInside;
+        }
+    }
+
+    public class PutBackAction : IAction
+    {
+        public ScriptObjectName Name { get; private set; }
+        public int ScriptLine { get; private set; }
+
+        public PutBackAction(int scriptLine, string name, int instance)
+        {
+            ScriptLine = scriptLine;
+            Name = new ScriptObjectName(name, instance);
+        }
+    }
+
+
+    // Switch on or off
+    public class SwitchOnAction : IAction
+    {
+        public ScriptObjectName Name { get; private set; }
+        public int ScriptLine { get; private set; }
+        public bool Off { get; private set; }
+
+        public SwitchOnAction(int scriptLine, string name, int instance, bool off)
+        {
+            ScriptLine = scriptLine;
+            Name = new ScriptObjectName(name, instance);
+            Off = off;
+        }
+    }
+
+    public class OpenAction : IAction
+    {
+        public ScriptObjectName Name { get; private set; }
+        public int ScriptLine { get; private set; }
+        public bool Close { get; private set; }
+
+        public OpenAction(int scriptLine, string name, int instance, bool close)
+        {
+            ScriptLine = scriptLine;
+            Name = new ScriptObjectName(name, instance);
+            Close = close;
+        }
+    }
+
+
+    #endregion
+
+    interface IStateGroup : IEnumerable<State>
+    {
+        int Count { get; }
+        State Last();
+    }
+
+
+    /*
+     *  State variables: 
+     *  GOTO_SIT_LOOK_AT_OBJECT (GameObject)  set in goto action if next action is sit (direction to turn character to)
+     *  GOTO_SIT_TARGET (GameObject)          set in goto action if next action is sit (positin to sit to)
+     *  CHARACTER_STATE (string)              null if not specified (standing), "SITTING"         
+     *  ROOM_CONSTRAINT (string)              canonical name of room we are allowed to enter in the next step, null if no restrictions
+     *  RIGHT_HAND_OBJECT (GameObject)        object in right hand
+     *  LEFT_HAND_OBJECT (GameObject)         object in left hand
+     *  PUT_POSITION (Vector3)                where to put object
+     *  TOUCH_POSITION (Vector3)              where to touch object
+     *  
+     *  Action flags:
+     *  GOTO_TURN                             turn at the end of walk
+     *  STANDUP                               stand up before walking
+     */
+    class State : IStateGroup
+    {
+        public class ObjectPositionData
+        {
+            public bool grabbed;                  // true if object is in one of the hands
+            public Vector3 position;              // Position of the object: current or from where it was grabbed (see grabbed field)
+            public Vector3 interactionPosition;   // Interaction position of character at grab or put action (see grabbed field)
+
+            public ObjectPositionData(bool grabbed, Vector3 position, Vector3 interactionPosition)
+            {
+                this.grabbed = grabbed;
+                this.position = position;
+                this.interactionPosition = interactionPosition;
+            }
+
+            public ObjectPositionData(Vector3 interactionPosition)
+            {
+                grabbed = true;
+                this.interactionPosition = interactionPosition;
+            }
+
+            public ObjectPositionData(ObjectPositionData opd)
+            {
+                grabbed = opd.grabbed;
+                position = opd.position;
+                interactionPosition = opd.interactionPosition;
+            }
+
+        }
+
+        public State Previous { get; private set; }                 // Prevoius state, null if first
+        public IAction Action { get; set; }                         // Action which produced this state
+        public Vector3 InteractionPosition { get; set; }            // Position of the character after execution of the action
+        public Func<State, IEnumerator> ActionMethod { get; set; }  // Unity action executor (Walk to, Grab, etc.)
+        private HashSet<string> actionFlags;                        // Action flags map, accessed via AddActionFlag and HasActionFlag methods
+        private IDictionary<string, object> temporaryVariables;     // Variable map, accessed via AddTempAAAA and GetTempAAAA methods, not copied to the next state
+        private IDictionary<string, object> variables;              // Variable map, accessed via AddAAAA and GetAAAA methods, copied to the next state
+        private IDictionary<Tuple<string, int>, ScriptObjectData> scriptObjects;  // Map from name (= name, instance pair) to list of (instance number, game object) pairs
+                                                                                  // Access with Get/AddScriptGameObject
+
+
+        public State(Vector3 ip)
+        {
+            Previous = null;
+            InteractionPosition = ip;
+            ActionMethod = DummyActionMethod;
+            actionFlags = new HashSet<string>();
+            temporaryVariables = new Dictionary<string, object>();
+            variables = new Dictionary<string, object>();
+            scriptObjects = new Dictionary<Tuple<string, int>, ScriptObjectData>();
+        }
+
+        public State(State prev, IAction action, Vector3 ip, Func<State, IEnumerator> am)
+        {
+            Previous = prev;
+            Action = action;
+            InteractionPosition = ip;
+            ActionMethod = am;
+            actionFlags = new HashSet<string>();
+            temporaryVariables = new Dictionary<string, object>();
+            variables = new Dictionary<string, object>(prev.variables);
+            scriptObjects = new Dictionary<Tuple<string, int>, ScriptObjectData>(prev.scriptObjects);
+        }
+
+        public void AddActionFlag(string name)
+        {
+            actionFlags.Add(name);
+        }
+
+        public bool HasActionFlag(string name)
+        {
+            return actionFlags.Contains(name);
+        }
+
+        public void AddTempObject(string name, object o)
+        {
+            temporaryVariables[name] = o;
+        }
+
+        public object GetTempObject(string name)
+        {
+            object o;
+
+            if (temporaryVariables.TryGetValue(name, out o)) return o; else return null;
+        }
+
+        public IEnumerable<T> GetTempEnumerable<T>(string name)
+        {
+            return (IEnumerable<T>)GetTempObject(name) ?? new T[] { };
+        }
+
+        public IEnumerable<T> GetTempEnumerable<T>(string name, T defVal)
+        {
+            return (IEnumerable<T>)GetTempObject(name) ?? new T[] { defVal };
+        }
+
+        public void AddObject(string name, object o)
+        {
+            variables[name] = o;
+        }
+
+        public object GetObject(string name)
+        {
+            object o;
+
+            if (variables.TryGetValue(name, out o)) return o; else return null;
+        }
+
+        public void AddGameObject(string name, GameObject go)
+        {
+            variables[name] = go;
+        }
+
+        public GameObject GetGameObject(string name)
+        {
+            object o;
+
+            if (variables.TryGetValue(name, out o) && o is GameObject) return o as GameObject; else return null;
+        }
+
+        public string GetString(string name)
+        {
+            return (string)GetObject(name);
+        }
+
+        public bool GetBool(string name)
+        {
+            return (bool)(GetObject(name) ?? false);
+        }
+
+        //public IEnumerable<T> GetEnumerable<T>(string name)
+        //{
+        //    return (IEnumerable<T>)GetObject(name) ?? new T[] { };
+        //}
+
+        //public IEnumerable<T> GetEnumerable<T>(string name, T defVal)
+        //{
+        //    return (IEnumerable<T>)GetObject(name) ?? new T[] { defVal };
+        //}
+
+        public ScriptObjectData AddScriptGameObject(string name, int instance, GameObject go, Vector3 pos, Vector3 intPos, bool grabbed = false,
+            OpenStatus openStatus = OpenStatus.UNKNOWN)
+        {
+            var sod = new ScriptObjectData(go, pos, intPos, grabbed, openStatus);
+
+            scriptObjects[Tuple.Create(name, instance)] = sod;
+            return sod;
+        }
+
+        public ScriptObjectData AddScriptGameObject(ScriptObjectName name, GameObject go, Vector3 pos, Vector3 intPos, bool grabbed = false,
+            OpenStatus openStatus = OpenStatus.UNKNOWN)
+        {
+            return AddScriptGameObject(name.Name, name.Instance, go, pos, intPos, grabbed, openStatus);
+        }
+
+        public GameObject GetScriptGameObject(ScriptObjectName name)
+        {
+            return GetScriptGameObject(name.Name, name.Instance);
+        }
+
+        public GameObject GetScriptGameObject(string name, int instance)
+        {
+            ScriptObjectData sod;
+
+            if (GetScriptGameObjectData(name, instance, out sod)) return sod.GameObject;
+            else return null;
+        }
+
+        public IEnumerable<GameObject> GetScriptGameObjects()
+        {
+            return scriptObjects.Values.Select(sod => sod.GameObject);
+        }
+
+        public bool GetScriptGameObjectData(ScriptObjectName name, out ScriptObjectData sod)
+        {
+            return GetScriptGameObjectData(name.Name, name.Instance, out sod);
+        }
+
+        public bool GetScriptGameObjectData(string name, int instance, out ScriptObjectData sod)
+        {
+            return scriptObjects.TryGetValue(Tuple.Create(name, instance), out sod);
+        }
+
+        public void RemoveObject(string name)
+        {
+            variables.Remove(name);
+        }
+
+        private IEnumerator DummyActionMethod(State s)
+        {
+            yield return null;
+        }
+
+        public IEnumerator<State> GetEnumerator()
+        {
+            yield return this;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            yield return this;
+        }
+
+        public int Count { get { return 1; } }
+
+        public State Last()
+        {
+            return this;
+        }
+
+    }
+
+    class StateList : IStateGroup
+    {
+        public static readonly StateList Empty = new StateList();
+
+        private IList<IStateGroup> enumerators;
+        int count;
+
+        public int Count { get { return count; } }
+
+        public StateList()
+        {
+            enumerators = new List<IStateGroup>();
+            count = 0;
+        }
+
+        public StateList(params IStateGroup[] groups)
+        {
+            enumerators = new List<IStateGroup>(groups);
+            count = enumerators.Sum(grp => grp.Count);
+        }
+
+        public StateList(StateList sl)
+        {
+            enumerators = new List<IStateGroup>(sl.enumerators);
+            count = sl.count;
+        }
+
+        public State Last()
+        {
+            return enumerators.Last().Last();
+        }
+
+        public void Add(IStateGroup se)
+        {
+            enumerators.Add(se);
+            count += se.Count;
+        }
+
+        IEnumerator<State> IEnumerable<State>.GetEnumerator()
+        {
+            foreach (IStateGroup se in enumerators) {
+                foreach (State s in se) {
+                    yield return s;
+                }
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            foreach (IStateGroup se in enumerators) {
+                foreach (State s in se) {
+                    yield return s;
+                }
+            }
+        }
+    }
+
+
+    class ScriptPair
+    {
+        public IAction Action { get; set; }
+        public Func<IAction, State, IEnumerable<IStateGroup>> ProcessMethod { get; set; }  // (action, state) -> enumerator of next admissible states
+    }
+
+
+
+    public class ScriptExecutor
+    {
+        private List<GameObject> nameList;                          // Cache GameObjects in scene; map is path_name -> object
+        private RoomSelector roomSelector;
+        private IObjectSelectorProvider objectSelectorProvider;
+        private IGameObjectPropertiesCalculator propCalculator;     // Class which can caclulate interaction positions
+        private List<ScriptPair> script;                            // Script (filled with subsequent calls of AddAction)
+        private CharacterControl characterControl;                  // Class which can execute actions (Walk, Grab, etc.)
+        private ICameraControl cameraControl;                        // Camera control class
+        private int gotoExecDepth;
+        private System.Diagnostics.Stopwatch execStartTime;
+        private ProcessingReport report;
+        private bool randomizeExecution;                            // Randomize selection of interaction position
+        private Recorder recorder;
+        private int processingTimeLimit = 20 * 1000;                // Max search time for admissible solution (in milliseconds)
+
+
+        public ScriptExecutor(IList<GameObject> nameList, RoomSelector roomSelector,
+            IObjectSelectorProvider objectSelectorProvider, Recorder rcdr)
+        {
+            this.nameList = new List<GameObject>(nameList);
+            this.roomSelector = roomSelector;
+            this.objectSelectorProvider = objectSelectorProvider;
+            propCalculator = new DefaultGameObjectPropertiesCalculator();
+            script = new List<ScriptPair>();
+            recorder = rcdr;
+            report = new ProcessingReport();
+        }
+
+        public bool SkipExecution { get; set; }
+        public bool AutoDoorOpening { get; set; }
+
+        public bool RandomizeExecution
+        {
+            get { return randomizeExecution; }
+            set {
+                randomizeExecution = value;
+                if (randomizeExecution) RandomUtils.PermuteHead(nameList, nameList.Count);
+            }
+        }
+
+        public int ProcessingTimeLimit { get { return processingTimeLimit / 1000; } set { processingTimeLimit = value * 1000; } }   // in seconds
+
+        public bool Success { get { return report.Success; } }
+
+
+
+
+        public void Initialize(CharacterControl chc, ICameraControl cac)
+        {
+            characterControl = chc;
+            cameraControl = cac;
+            script.Clear();
+        }
+
+        private IEnumerable<GameObject> SelectObjects(IObjectSelector selector)
+        {
+            foreach (var kv in nameList) {
+                if (selector.IsSelectable(kv))
+                    yield return kv;
+            }
+        }
+
+        private IEnumerable<GameObject> SelectObjects(IObjectSelector selector, Func<GameObject, bool> filter)
+        {
+            foreach (GameObject kv in nameList) {
+                if (selector.IsSelectable(kv) && filter(kv))
+                    yield return kv;
+            }
+        }
+
+        private IEnumerable<ObjectData> SelectObjects(ScriptObjectName name, IObjectSelector selector, State current)
+        {
+            ScriptObjectData sod;
+
+            if (current.GetScriptGameObjectData(name, out sod)) {
+                yield return sod;
+            } else {
+                HashSet<GameObject> scriptGOs = new HashSet<GameObject>(current.GetScriptGameObjects());
+
+                foreach (GameObject go in SelectObjects(selector)) {
+                    if (!scriptGOs.Contains(go))
+                        yield return new ObjectData(go, go.transform.position);
+                }
+            }
+        }
+
+        #region AddAction methods for different actions
+
+        public void AddAction(GotoAction a, bool find)
+        {
+            if (find)
+                script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessFind((GotoAction)ac, s)) });
+            else
+                script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessWalk((GotoAction)ac, s)) });
+        }
+
+        public void AddAction(WatchAction a)
+        {
+            script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessWatch((WatchAction)ac, s)) });
+        }
+
+        public void AddAction(SitAction a)
+        {
+            script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessSit((SitAction)ac, s)) });
+        }
+
+        public void AddAction(StandupAction a)
+        {
+            script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessStandup((StandupAction)ac, s)) });
+        }
+
+        public void AddAction(SwitchOnAction a)
+        {
+            script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessSwitchOn((SwitchOnAction)ac, s)) });
+        }
+
+        public void AddAction(GrabAction a)
+        {
+            script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessGrab((GrabAction)ac, s)) });
+        }
+
+        public void AddAction(DrinkAction a)
+        {
+            script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessDrink((DrinkAction)ac, s)) });
+        }
+
+        public void AddAction(PhoneAction a)
+        {
+            script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessPhone((PhoneAction)ac, s)) });
+        }
+
+        public void AddAction(TouchAction a)
+        {
+            script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessTouch((TouchAction)ac, s)) });
+        }
+
+        public void AddAction(PutAction a)
+        {
+            script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessPut((PutAction)ac, s)) });
+        }
+
+        public void AddAction(PutBackAction a)
+        {
+            script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessPutBack((PutBackAction)ac, s)) });
+        }
+
+        public void AddAction(OpenAction a)
+        {
+            script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessOpen((OpenAction)ac, s)) });
+        }
+
+        #endregion
+
+
+        #region Process**** methods (create a state)
+
+        private IEnumerable<IStateGroup> ProcessWalk(GotoAction a, State current)
+        {
+            foreach (State s in ProcessWalkAction(a, current, 0.5f, float.MaxValue, false))
+                yield return s;
+            foreach (State s in ProcessWalkAction(a, current, 0.0f, 0.5f, true))
+                yield return s;
+        }
+
+        private IEnumerable<IStateGroup> ProcessFind(GotoAction a, State current)
+        {
+            foreach (State s in ProcessFindAction(a, current, false))
+                yield return s;
+            foreach (State s in ProcessWalkAction(a, current, 0.0f, float.MaxValue, true))
+                yield return s;
+        }
+
+        // Process Walk action; new interaction position must be at least minIPDelta and at most
+        // maxIPDelta from the currrent one
+        private IEnumerable<IStateGroup> ProcessWalkAction(GotoAction a, State current, float minIPDelta, float maxIPDelta, bool addReportItem)
+        {
+            bool canSelect = false;
+
+            foreach (ObjectData god in SelectObjects(a.Name, a.Selector, current)) {
+                GameObject go = god.GameObject;
+                ScriptObjectData opd;
+                Vector3 goPos;
+                Vector3? intPos;
+
+                if (!current.GetScriptGameObjectData(a.Name, out opd)) {
+                    goPos = go.transform.position;
+                    intPos = null;
+                } else {
+                    if (opd.Grabbed)
+                        continue;
+                    goPos = opd.Position;
+                    intPos = opd.InteractionPosition;
+                }
+
+                string allowedRoom = current.GetString("ROOM_CONSTRAINT");
+
+                if (allowedRoom != null && allowedRoom != roomSelector.ExtractRoomName(go.RoomName()))
+                    continue;
+
+                if (roomSelector.IsRoomName(a.Name.Name)) {
+                    if (!go.IsRoom())
+                        continue;
+
+                    State s = new State(current, a, current.InteractionPosition, ExecuteNone);
+                    s.AddObject("ROOM_CONSTRAINT", roomSelector.ExtractRoomName(go.name));
+                    canSelect = true;
+                    yield return s;
+                } else if (a.Intention == InteractionType.SIT) {
+                    var pc = go.GetComponent<Properties_chair>();
+
+                    if (pc != null) {
+                        List<Properties_chair.SittableUnit> suList = pc.GetSittableUnits();
+                        if (RandomizeExecution)
+                            RandomUtils.PermuteHead(suList, suList.Count);
+
+                        foreach (var su in suList) {
+                            Transform pi = su.GetTsfm_positionInteraction();
+
+                            float ipDist = (current.InteractionPosition - new Vector3(pi.position.x, 0, pi.position.z)).magnitude;
+
+                            if (ipDist < minIPDelta || ipDist > maxIPDelta)
+                                continue;
+
+                            GameObject lookAtGo = su.GetTsfm_lookAtBody().gameObject;
+                            Transform target = su.tsfm_group;
+                            Vector3 newIP = new Vector3(pi.position.x, 0, pi.position.z);
+                            State s = new State(current, a, newIP, ExecuteGoto);
+
+                            s.AddScriptGameObject(a.Name, go, goPos, newIP);
+                            s.AddGameObject("GOTO_SIT_LOOK_AT_OBJECT", lookAtGo);
+                            s.AddGameObject("GOTO_SIT_TARGET", target.gameObject);
+                            s.RemoveObject("ROOM_CONSTRAINT");
+                            if (current.GetString("CHARACTER_STATE") == "SITTING") {
+                                s.RemoveObject("CHARACTER_STATE");
+                                s.AddActionFlag("STANDUP");
+                            }
+                            canSelect = true;
+                            yield return s;
+                        }
+                    }
+                } else if (a.Intention == InteractionType.CLOSE || a.Intention == InteractionType.OPEN) {
+                    IList<Vector3> intPositions;
+
+                    if (IsOpenable(Vector3.zero, opd, go, out intPositions, false, a.Intention)) {
+                        List<Vector3> filteredIPs = new List<Vector3>();
+
+                        List<int> filteredIdxes = new List<int> ();
+                        for (int i = 0; i < intPositions.Count; i++) {
+                            Vector3 newIP = intPositions[i];
+                        float ipDist = (current.InteractionPosition - new Vector3(newIP.x, 0, newIP.z)).magnitude;
+
+                            if (minIPDelta <= ipDist && ipDist <= maxIPDelta) {
+                            filteredIPs.Add(newIP);
+                                filteredIdxes.Add(i);
+                        }
+                        }
+                        if (filteredIPs.Count > 0) {
+                            State s = new State(current, a, filteredIPs[0], ExecuteGoto);
+
+                            Properties_door pd = go.GetComponent<Properties_door> ();
+                            if (pd != null && a.Intention == InteractionType.OPEN) {
+                                Vector3[] lookAts = new Vector3[] {pd.lookAtPush, pd.lookAtPull};
+                                List<Vector3> filteredLookAts = new List<Vector3> ();
+                                for (int i = 0; i < filteredIdxes.Count; i++) {
+                                    filteredLookAts.Add(lookAts[filteredIdxes[i]]);
+                                }
+                                s.AddTempObject("ALTERNATIVE_LOOK_AT", lookAts);
+                            }
+
+                            s.AddScriptGameObject(a.Name, go, goPos, filteredIPs[0]);
+                            s.AddTempObject("ALTERNATIVE_IPS", filteredIPs);
+                        s.RemoveObject("ROOM_CONSTRAINT");
+                        s.AddActionFlag("GOTO_TURN");
+                        if (current.GetString("CHARACTER_STATE") == "SITTING") {
+                            s.RemoveObject("CHARACTER_STATE");
+                            s.AddActionFlag("STANDUP");
+                        }
+                        canSelect = true;
+
+                        //DebugCalcPath(a.Name.Name, current.InteractionPosition, newIP);                        
+
+                        yield return s;
+                    }
+                    }
+                } else if (a.Intention == InteractionType.SWITCHON || a.Intention == InteractionType.SWITCHOFF) {
+                    Vector3 switchPos;
+
+                    if (IsSwitchable(Vector3.zero, go, out switchPos, false)) {
+                        Vector3 newIP = switchPos + 0.75f * go.transform.right;
+                        float ipDist = (current.InteractionPosition - new Vector3(newIP.x, 0, newIP.z)).magnitude;
+
+                        if (ipDist < minIPDelta || ipDist > maxIPDelta)
+                            continue;
+
+                        State s = new State(current, a, newIP, ExecuteGoto);
+
+                        s.AddScriptGameObject(a.Name, go, goPos, newIP);
+                        s.RemoveObject("ROOM_CONSTRAINT");
+                        s.AddActionFlag("GOTO_TURN");
+                        if (current.GetString("CHARACTER_STATE") == "SITTING") {
+                            s.RemoveObject("CHARACTER_STATE");
+                            s.AddActionFlag("STANDUP");
+                        }
+                        canSelect = true;
+                        yield return s;
+                    }
+                } else {
+                    IInteractionArea area = propCalculator.GetInteractionArea(goPos, a.Intention);
+                    List<Vector3> ipl = intPos.HasValue ? new List<Vector3> { intPos.Value } : CalculateInteractionPositions(go, area);
+
+                    if (RandomizeExecution)
+                        RandomUtils.PermuteHead(ipl, 5); // permute 5 closest positions
+
+                    foreach (Vector3 pos in ipl) {
+                        float ipDistance = (current.InteractionPosition - new Vector3(pos.x, 0, pos.z)).magnitude;
+
+                        if (ipDistance < minIPDelta)
+                            continue;
+
+                        State s = new State(current, a, pos, ExecuteGoto);
+
+                        s.AddScriptGameObject(a.Name, go, goPos, pos);
+                        s.RemoveObject("ROOM_CONSTRAINT");
+                        s.AddActionFlag("GOTO_TURN");
+                        if (current.GetString("CHARACTER_STATE") == "SITTING") {
+                            s.RemoveObject("CHARACTER_STATE");
+                            s.AddActionFlag("STANDUP");
+                        }
+                        canSelect = true;
+
+                        //DebugCalcPath(a.Name.Name, current.InteractionPosition, pos);
+
+                        yield return s;
+                    }
+                }
+            }
+            if (!canSelect && addReportItem) {
+                report.AddItem("PROCESS WALK", $"Can not select object: {a.Name.Name}");
+            }
+        }
+
+        // Process find close action
+        private IEnumerable<IStateGroup> ProcessFindAction(GotoAction a, State current, bool addReportItem)
+        {
+            bool canSelect = false;
+
+            foreach (ObjectData god in SelectObjects(a.Name, a.Selector, current)) {
+                GameObject go = god.GameObject;
+                ScriptObjectData sod;
+                Vector3 goPos;
+                Vector3? intPos;
+
+                if (!current.GetScriptGameObjectData(a.Name, out sod)) {
+                    goPos = go.transform.position;
+                    intPos = null;
+                } else {
+                    if (sod.Grabbed)
+                        continue;
+                    goPos = sod.Position;
+                    intPos = sod.InteractionPosition;
+                }
+
+                if (a.Intention == InteractionType.SIT) {
+                    var pc = go.GetComponent<Properties_chair>();
+
+                    if (pc != null) {
+                        List<Properties_chair.SittableUnit> suList = pc.GetSittableUnits();
+
+                        foreach (var su in suList) {
+                            Transform pi = su.GetTsfm_positionInteraction();
+
+                            if ((current.InteractionPosition - new Vector3(pi.position.x, 0, pi.position.z)).magnitude < 0.3f) {
+                                State s = new State(current, a, current.InteractionPosition, ExecuteNone);
+                                s.AddScriptGameObject(a.Name, go, goPos, current.InteractionPosition);
+                                canSelect = true;
+                                yield return s;
+                            }
+                        }
+                    }
+                } else if (a.Intention == InteractionType.CLOSE || a.Intention == InteractionType.OPEN) {
+                    IList<Vector3> switchPositions;
+
+                    if (IsOpenable(current.InteractionPosition, sod, go, out switchPositions, true, a.Intention)) {
+                        State s = new State(current, a, current.InteractionPosition, ExecuteNone);
+                        s.AddScriptGameObject(a.Name, go, goPos, current.InteractionPosition);
+                        canSelect = true;
+                        yield return s;
+                    }
+                } else {
+                    IInteractionArea area = propCalculator.GetInteractionArea(goPos, a.Intention);
+                    if (area.ContainsPoint(new Vector2(current.InteractionPosition.x, current.InteractionPosition.z))) {
+                        State s = new State(current, a, current.InteractionPosition, ExecuteNone);
+                        s.AddScriptGameObject(a.Name, go, goPos, current.InteractionPosition);
+                        canSelect = true;
+                        yield return s;
+                    }
+                }
+            }
+            if (!canSelect && addReportItem) {
+                report.AddItem("PROCESS FIND", $"Can not select object: {a.Name.Name}");
+            }
+        }
+
+        private IEnumerable<IStateGroup> ProcessWatch(WatchAction a, State current)
+        {
+            Vector3 ip = new Vector3(current.InteractionPosition.x, 0.5f, current.InteractionPosition.z);
+
+            if (current.GetString("CHARACTER_STATE") == "SITTING") {    // Cannot turn
+                Vector3 sittingPos = current.GetGameObject("GOTO_SIT_TARGET").transform.position;
+                Vector3 lookDir = current.GetGameObject("GOTO_SIT_LOOK_AT_OBJECT").transform.position - sittingPos;
+
+                lookDir.y = 0.0f;
+
+                ScriptObjectData sod;
+
+                if (!current.GetScriptGameObjectData(a.Name, out sod)) {
+                    report.AddItem("PROCESS WATCH", $"Not found object: {a.Name}");
+                } else {
+                    GameObject go = sod.GameObject;
+
+                    if (IsVisibleFromSegment(go, sittingPos, 1.0f, 1.8f, 0.2f, true)) {
+                        Vector3 targetDir = go.transform.position - sittingPos;
+
+                        targetDir.y = 0.0f;
+                        if (Mathf.Abs(Vector3.Angle(targetDir, lookDir)) < 20 /* degrees */ &&
+                                (sittingPos - go.transform.position).magnitude < 6.0f) {
+                            State s = new State(current, a, current.InteractionPosition, ExecuteWatch);
+                            s.AddScriptGameObject(a.Name, go, sod.Position, current.InteractionPosition);
+                            yield return s;
+                        }
+                    } else {
+                        report.AddItem("PROCESS WATCH", $"Object {a.Name.Name} is not visible from sitting position");
+                    }
+                }
+            } else { // Can turn
+                bool canSelect = false;
+
+                foreach (ObjectData god in SelectObjects(a.Name, a.Selector, current)) {
+                    GameObject go = god.GameObject;
+                    IInteractionArea area = propCalculator.GetInteractionArea(god.Position, InteractionType.WATCH);
+
+                    if (area.ContainsPoint(new Vector2(ip.x, ip.z))) {
+                        if (IsVisibleFromSegment(go, ip, 1.0f, 1.8f, 0.2f, true)) {
+                            State s = new State(current, a, current.InteractionPosition, ExecuteTurn);
+                            s.AddScriptGameObject(a.Name, go, god.Position, current.InteractionPosition);
+                            canSelect = true;
+                            yield return s;
+                        }
+                    }
+                }
+                if (!canSelect) {
+                    report.AddItem("PROCESS WATCH", $"Can not select object to watch: {a.Name.Name}");
+                }
+            }
+        }
+
+        private IEnumerable<IStateGroup> ProcessSit(SitAction a, State current)
+        {
+            GameObject go = current.GetScriptGameObject(a.Name);
+
+            if (go == null) {
+                report.AddItem("PROCESS SIT", $"Not found object: {a.Name}");
+            } else if (go.GetComponent<Properties_chair>() == null) {
+                report.AddItem("PROCESS SIT", $"Object {a.Name} has no Properties_chair component");
+            } else {
+                State s = new State(current, a, current.InteractionPosition, ExecuteSit);
+                s.AddObject("CHARACTER_STATE", "SITTING");
+                yield return s;
+            }
+        }
+
+        private IEnumerable<IStateGroup> ProcessStandup(StandupAction a, State current)
+        {
+            if ((string)current.GetObject("CHARACTER_STATE") == "SITTING") {
+                State s = new State(current, a, current.InteractionPosition, ExecuteStandup);
+                s.RemoveObject("CHARACTER_STATE");
+                yield return s;
+            } else {
+                State s = new State(current, a, current.InteractionPosition, ExecuteNone);
+                yield return s;
+            }
+        }
+
+        private IEnumerable<IStateGroup> ProcessOpen(OpenAction a, State current)
+        {
+            ScriptObjectData sod;
+
+            if (!current.GetScriptGameObjectData(a.Name, out sod)) {
+                report.AddItem("PROCESS OPEN", $"Not found object: {a.Name.Name}");
+            } else {
+                if (!sod.Grabbed) {
+                    if (IsInteractionPosition(current.InteractionPosition, sod, sod.Position, a.Close ? InteractionType.CLOSE : InteractionType.OPEN, 0.5f)) {
+                        return ProcessOpenAction(a, current);
+                    } else {
+                        GotoAction ga = new GotoAction(a.ScriptLine, EmptySelector.Instance, a.Name.Name, a.Name.Instance, false, 
+                            a.Close ? InteractionType.CLOSE : InteractionType.OPEN);
+                        return CreateStateGroup(current, s => ProcessWalkAction(ga, s, 0, float.MaxValue, true), s => ProcessOpenAction(a, s));
+                    }
+                }
+            }
+            return StateList.Empty;
+        }
+
+        private IEnumerable<IStateGroup> ProcessOpenAction(OpenAction a, State current)
+        {
+            ScriptObjectData sod;
+
+            if (!current.GetScriptGameObjectData(a.Name, out sod)) {
+                report.AddItem("PROCESS OPEN", $"Not found object: {a.Name.Name}");
+            } else {
+                GameObject go = sod.GameObject;
+                IList<Vector3> switchPositions;
+
+                if (IsOpenable(current.InteractionPosition, sod, out switchPositions, true, a.Close ? InteractionType.CLOSE : InteractionType.OPEN)) {
+                    State s = new State(current, a, current.InteractionPosition, ExecuteOpen);
+
+                    if (s.GetGameObject("RIGHT_HAND_OBJECT") == null) {
+                        s.AddObject("INTERACTION_HAND", FullBodyBipedEffector.RightHand);
+                        s.AddScriptGameObject(a.Name, sod.GameObject, sod.Position, current.InteractionPosition,
+                            sod.Grabbed, a.Close ? OpenStatus.CLOSED : OpenStatus.OPEN);
+                        yield return s;
+                    } else if (s.GetGameObject("LEFT_HAND_OBJECT") == null) {
+                        s.AddObject("INTERACTION_HAND", FullBodyBipedEffector.LeftHand);
+                        s.AddScriptGameObject(a.Name, sod.GameObject, sod.Position, current.InteractionPosition,
+                            sod.Grabbed, a.Close ? OpenStatus.CLOSED : OpenStatus.OPEN);
+                        yield return s;
+                    }
+                }
+            }
+        }
+
+        private IEnumerable<IStateGroup> ProcessGrab(GrabAction a, State current)
+        {
+            ScriptObjectData sod;
+
+            if (!current.GetScriptGameObjectData(a.Name, out sod)) {
+                report.AddItem("PROCESS GRAB", $"Not found object: {a.Name.Name}");
+            } else {
+                if (!sod.Grabbed) {
+                    if (IsInteractionPosition(current.InteractionPosition, sod, sod.Position, InteractionType.GRAB, 0)) {
+                        return ProcessGrabAction(a, current);
+                    } else {
+                        GotoAction ga = new GotoAction(a.ScriptLine, EmptySelector.Instance, a.Name.Name, a.Name.Instance, false, InteractionType.GRAB);
+                        return CreateStateGroup(current, s => ProcessWalkAction(ga, s, 0, float.MaxValue, true), s => ProcessGrabAction(a, s));
+                    }
+                }
+            }
+            return StateList.Empty;
+        }
+
+        private IEnumerable<IStateGroup> ProcessGrabAction(GrabAction a, State current)
+        {
+            ScriptObjectData sod;
+
+            if (!current.GetScriptGameObjectData(a.Name, out sod)) {
+                report.AddItem("PROCESS GRAB", $"Not found object: {a.Name.Name}");
+            } else {
+                // We can grab an object if:
+                // - scripts are attached to it,
+                // - no scripts but dimensions are ok (IsGrabbable)
+                // TODO: check height of go, not only shape
+                GameObject go = sod.GameObject;
+                var hi = go.GetComponent<HandInteraction>();
+
+                if ((hi == null && IsGrabbable(go)) || (hi != null && hi.allowPickUp)) {
+                    State s = new State(current, a, current.InteractionPosition, ExecuteGrab);
+                    if (s.GetGameObject("RIGHT_HAND_OBJECT") == null) {
+                        s.AddObject("INTERACTION_HAND", FullBodyBipedEffector.RightHand);
+                        s.AddGameObject("RIGHT_HAND_OBJECT", go);
+                        s.AddScriptGameObject(a.Name, sod.GameObject, sod.Position, current.InteractionPosition, true);
+                        yield return s;
+                    } else if (s.GetGameObject("LEFT_HAND_OBJECT") == null) {
+                        s.AddObject("INTERACTION_HAND", FullBodyBipedEffector.LeftHand);
+                        s.AddGameObject("LEFT_HAND_OBJECT", go);
+                        s.AddScriptGameObject(a.Name, sod.GameObject, sod.Position, current.InteractionPosition, true);
+                        yield return s;
+                    }
+                }
+            }
+        }
+
+        // Grab (if necessary) + drink
+        private IEnumerable<IStateGroup> ProcessDrink(DrinkAction a, State current)
+        {
+            GameObject go = current.GetScriptGameObject(a.Name);
+
+            if (go == null) {
+                report.AddItem("PROCESS DRINK", $"Not found object: {a.Name.Name}");
+            } else if (go == current.GetGameObject("RIGHT_HAND_OBJECT") || go == current.GetGameObject("LEFT_HAND_OBJECT")) {
+                return ProcessDrinkAction(a, current);
+            } else {
+                GrabAction ga = new GrabAction(a.ScriptLine, a.Name.Name, a.Name.Instance);
+                return CreateStateGroup(current, s => ProcessGrab(ga, s), s => ProcessDrinkAction(a, s));
+            }
+            return StateList.Empty;
+        }
+
+        // Grab (if necessary) + phone action (talk, text)
+        private IEnumerable<IStateGroup> ProcessPhone(PhoneAction a, State current)
+        {
+            GameObject go = current.GetScriptGameObject(a.Name);
+
+            if (go == null) {
+                report.AddItem("PROCESS PHONE", $"Not found object: {a.Name.Name}");
+            } else if (go == current.GetGameObject("RIGHT_HAND_OBJECT") || go == current.GetGameObject("LEFT_HAND_OBJECT")) {
+                return ProcessPhoneAction(a, current);
+            } else {
+                GrabAction ga = new GrabAction(a.ScriptLine, a.Name.Name, a.Name.Instance);
+                return CreateStateGroup(current, s => ProcessGrab(ga, s), s => ProcessPhoneAction(a, s));
+            }
+            return StateList.Empty;
+        }
+
+        private IEnumerable<IStateGroup> CreateStateGroup(State s0, Func<State, IEnumerable<IStateGroup>> procF1,
+            Func<State, IEnumerable<IStateGroup>> procF2)
+        {
+            foreach (IStateGroup sg1 in procF1(s0)) {
+                State s1 = sg1.Last();
+                foreach (IStateGroup s2 in procF2(s1)) {
+                    yield return new StateList(s1, s2);
+                }
+            }
+        }
+
+        private IEnumerable<IStateGroup> ProcessDrinkAction(DrinkAction a, State current)
+        {
+            GameObject go = current.GetScriptGameObject(a.Name);
+
+            if (go == null) {
+                report.AddItem("PROCESS DRINK", $"Not found object: {a.Name.Name}");
+            } else if (go == current.GetGameObject("RIGHT_HAND_OBJECT")) {
+                State s = new State(current, a, current.InteractionPosition, ExecuteDrink);
+                s.AddObject("INTERACTION_HAND", FullBodyBipedEffector.RightHand);
+                yield return s;
+            } else if (go == current.GetGameObject("LEFT_HAND_OBJECT")) {
+                State s = new State(current, a, current.InteractionPosition, ExecuteDrink);
+                s.AddObject("INTERACTION_HAND", FullBodyBipedEffector.LeftHand);
+                yield return s;
+            }
+        }
+
+        private IEnumerable<IStateGroup> ProcessPhoneAction(PhoneAction a, State current)
+        {
+            GameObject go = current.GetScriptGameObject(a.Name);
+
+            if (go == null) {
+                report.AddItem("PROCESS PHONE ACTION", $"Not found object: {a.Name.Name}");
+            } else if (go == current.GetGameObject("RIGHT_HAND_OBJECT")) {
+                State s = new State(current, a, current.InteractionPosition, ExecutePhoneAction);
+                s.AddObject("INTERACTION_HAND", FullBodyBipedEffector.RightHand);
+                yield return s;
+            } else if (go == current.GetGameObject("LEFT_HAND_OBJECT")) {
+                State s = new State(current, a, current.InteractionPosition, ExecutePhoneAction);
+                s.AddObject("INTERACTION_HAND", FullBodyBipedEffector.LeftHand);
+                yield return s;
+            }
+        }
+
+        private IEnumerable<IStateGroup> ProcessPut(PutAction a, State current)
+        {
+            ScriptObjectData sod;
+            ScriptObjectData sodDest;
+
+            if (!current.GetScriptGameObjectData(a.Name, out sod)) {
+                report.AddItem("PROCESS PUT", $"Not found source object: {a.Name.Name}");
+            } else if (!current.GetScriptGameObjectData(a.DestName, out sodDest)) {
+                report.AddItem("PROCESS PUT", $"Not found destination object: {a.DestName.Name}");
+            } else {
+                if (sod.Grabbed) {
+                    if (IsInteractionPosition(current.InteractionPosition, sodDest, sodDest.Position, InteractionType.PUT, 0)) {
+                        return ProcessPutAction(a, current);
+                    } else {
+                        GotoAction ga = new GotoAction(a.ScriptLine, EmptySelector.Instance, a.DestName.Name, a.DestName.Instance, false, InteractionType.PUT);
+                        return CreateStateGroup(current, s => ProcessWalkAction(ga, s, 0, float.MaxValue, true), s => ProcessPutAction(a, s));
+                    }
+                }
+            }
+            return StateList.Empty;
+        }
+
+        private IEnumerable<IStateGroup> ProcessPutAction(PutAction a, State current)
+        {
+            ScriptObjectData sod;
+            ScriptObjectData sodDest;
+
+            if (!current.GetScriptGameObjectData(a.Name, out sod)) {
+                report.AddItem("PROCESS PUT", $"Not found source object: {a.Name.Name}");
+            } else if (!current.GetScriptGameObjectData(a.DestName, out sodDest)) {
+                report.AddItem("PROCESS PUT", $"Not found destination object: {a.DestName.Name}");
+            } else {
+                FullBodyBipedEffector? fbbe = null;
+
+                if (sod.GameObject == current.GetGameObject("RIGHT_HAND_OBJECT"))
+                    fbbe = FullBodyBipedEffector.RightHand;
+                else if (sod.GameObject == current.GetGameObject("LEFT_HAND_OBJECT"))
+                    fbbe = FullBodyBipedEffector.LeftHand;
+
+                if (fbbe != null) {
+                    // We need to calculate putback position
+                    foreach (Vector3 pos in GameObjectUtils.CalculatePutPositions(current.InteractionPosition, sod.GameObject, sodDest.GameObject, a.PutInside, false)) {
+                        State s = new State(current, a, current.InteractionPosition, ExecutePut);
+                        s.AddScriptGameObject(a.Name, sod.GameObject, pos, current.InteractionPosition, false);
+                        s.AddObject("PUT_POSITION", pos);
+                        s.AddObject("INTERACTION_HAND", fbbe);
+                        if (fbbe == FullBodyBipedEffector.RightHand)
+                            s.RemoveObject("RIGHT_HAND_OBJECT");
+                        else if (fbbe == FullBodyBipedEffector.LeftHand)
+                            s.RemoveObject("LEFT_HAND_OBJECT");
+                        yield return s;
+                    }
+                }
+            }
+        }
+
+        private bool IsInteractionPosition(Vector3 pos, ScriptObjectData sod, Vector3 goPos, InteractionType intention, float maxIPDelta)
+        {
+            GameObject go = sod.GameObject;
+
+            if (intention == InteractionType.SIT) {
+                var pc = go.GetComponent<Properties_chair>();
+
+                if (pc == null)
+                    return false;
+
+                List<Properties_chair.SittableUnit> suList = pc.GetSittableUnits();
+
+                foreach (var su in suList) {
+                    Transform pi = su.GetTsfm_positionInteraction();
+                    float ipDist = (pos - new Vector3(pi.position.x, 0, pi.position.z)).magnitude;
+
+                    if (ipDist <= maxIPDelta) {
+                        // check if object is visible from interaction position
+                        if (IsVisible(go, new Vector3(pi.position.x, 0.5f, pi.position.z)))
+                            return true;
+                    }
+                }
+            } else if (intention == InteractionType.CLOSE || intention == InteractionType.OPEN) {
+                IList<Vector3> intPositions;
+
+                if (IsOpenable(Vector3.zero, sod, out intPositions, false, intention)) {
+                    foreach (Vector3 newIP in intPositions) {
+                        //Vector3 newIP = switchPos + 0.75f * go.transform.right;
+                    float ipDist = (pos - newIP).magnitude;
+
+                    return ipDist <= maxIPDelta;
+                }
+                }
+            } else if (intention == InteractionType.SWITCHON || intention == InteractionType.SWITCHOFF) {
+                Vector3 switchPos;
+
+                if (IsSwitchable(Vector3.zero, go, out switchPos, false)) {
+                    Vector3 newIP = switchPos + 0.75f * go.transform.right;
+                    float ipDist = (pos - newIP).magnitude;
+
+                    return ipDist <= maxIPDelta;
+                }
+            } else {
+                IInteractionArea area = propCalculator.GetInteractionArea(goPos, intention);
+
+                return area.ContainsPoint(new Vector2(pos.x, pos.z));
+            }
+            return false;
+        }
+
+        private IEnumerable<IStateGroup> ProcessPutBack(PutBackAction a, State current)
+        {
+            ScriptObjectData sod;
+
+            if (!current.GetScriptGameObjectData(a.Name, out sod)) {
+                report.AddItem("PROCESS PUTBACK", $"Not found object: {a.Name.Name}");
+            } else if (!sod.Grabbed) {
+                report.AddItem("PROCESS PUTBACK", $"Object {a.Name.Name} not grabbed");
+            } else {
+                FullBodyBipedEffector? fbbe = null;
+                GameObject go = sod.GameObject;
+
+                if (go == current.GetGameObject("RIGHT_HAND_OBJECT"))
+                    fbbe = FullBodyBipedEffector.RightHand;
+                else if (go == current.GetGameObject("LEFT_HAND_OBJECT"))
+                    fbbe = FullBodyBipedEffector.LeftHand;
+
+                if (fbbe != null) {
+                    State s = new State(current, a, sod.InteractionPosition, ExecutePutBack);
+
+                    s.AddObject("PUT_POSITION", sod.Position);
+                    s.AddObject("INTERACTION_HAND", fbbe);
+                    s.AddScriptGameObject(a.Name, go, sod.Position, sod.InteractionPosition, false);
+                    s.RemoveObject("ROOM_CONSTRAINT");
+                    if (current.GetString("CHARACTER_STATE") == "SITTING") {
+                        s.RemoveObject("CHARACTER_STATE");
+                        s.AddActionFlag("STANDUP");
+                    }
+                    yield return s;
+                }
+            }
+
+        }
+
+        private IEnumerable<State> ProcessTouch(TouchAction a, State current)
+        {
+            GameObject go = current.GetScriptGameObject(a.Name);
+
+            if (go == null) {
+                report.AddProcessingItem("PROCESS TOUCH", $"Not found object: {a.Name.Name}");
+            } else {
+                Vector3 touchPos;
+                //Vector3? goPos;
+                //Vector3? intPos;
+
+                //current.GetObjectAndInteractionPosition(go, out goPos, out intPos);
+                //if (intPos.HasValue && IsTouchable(intPos.Value, go, out touchPos)) {
+                if (IsTouchable(current.InteractionPosition, go, out touchPos)) {
+                    State s = new State(current, a, current.InteractionPosition, ExecuteTouch);
+                    if (s.GetGameObject("RIGHT_HAND_OBJECT") == null) {
+                        s.AddObject("INTERACTION_HAND", FullBodyBipedEffector.RightHand);
+                        s.AddObject("TOUCH_POSITION", touchPos);
+                        yield return s;
+                    } else if (s.GetGameObject("LEFT_HAND_OBJECT") == null) {
+                        s.AddObject("INTERACTION_HAND", FullBodyBipedEffector.LeftHand);
+                        s.AddObject("TOUCH_POSITION", touchPos);
+                        yield return s;
+                    }
+                }
+            }
+        }
+
+        private IEnumerable<State> ProcessSwitchOn(SwitchOnAction a, State current)
+        {
+            GameObject go = current.GetScriptGameObject(a.Name);
+
+            if (go == null) {
+                report.AddItem("PROCESS SWITCH ON", $"Not found object: {a.Name}");
+            } else {
+                var hi = go.GetComponent<HandInteraction>();
+
+                if (hi != null && hi.SwitchIndex(HandInteraction.ActivationAction.SwitchOn) >= 0) {
+                    State s = new State(current, a, current.InteractionPosition, ExecuteSwitchOnPrefab);
+                    if (s.GetGameObject("RIGHT_HAND_OBJECT") == null) {
+                        s.AddObject("INTERACTION_HAND", FullBodyBipedEffector.RightHand);
+                        yield return s;
+                    } else if (s.GetGameObject("LEFT_HAND_OBJECT") == null) {
+                        s.AddObject("INTERACTION_HAND", FullBodyBipedEffector.LeftHand);
+                        yield return s;
+                    }
+                }
+            }
+        }
+
+
+        #endregion
+
+        #region Execute**** methods
+
+        private IEnumerator ExecuteNone(State s)
+        {
+            yield return null;
+        }
+
+        private IEnumerator ExecuteWatch(State s)
+        {
+            WatchAction wa = (WatchAction)s.Action;
+
+            recorder.MarkActionStart(InteractionType.WATCH, wa.ScriptLine);
+            yield return new WaitForSeconds(wa.Duration);
+        }
+
+        private IEnumerator ExecuteGoto(State s)
+        {
+            GotoAction ga = (GotoAction)s.Action;
+
+            if (s.HasActionFlag("GOTO_TURN"))
+                yield return ExecuteWalkOrRun(s, ga.Run, ga.Name);
+            else
+                yield return ExecuteWalkOrRun(s, ga.Run, null);
+        }
+
+        private IEnumerator ExecuteWalkOrRun(State s, bool run, ScriptObjectName? turnToObjectName)
+        {
+            if (s.HasActionFlag("STANDUP"))
+                yield return ExecuteStandup(s);
+            recorder.MarkActionStart(run ? InteractionType.RUN : InteractionType.WALK, s.Action.ScriptLine);
+            
+            IEnumerable<Vector3> lookAt = s.GetTempEnumerable<Vector3>("ALTERNATIVE_LOOK_AT");
+
+            if (lookAt.Count() == 0) {
+                List<Vector3> temp = new List<Vector3> ();
+                if (turnToObjectName.HasValue) {
+                    GameObject go = s.GetScriptGameObject(turnToObjectName.Value);
+                    if (go != null) {
+                        temp.Add(go.transform.position);
+        }
+                }
+                lookAt = temp;
+            }
+            if (AutoDoorOpening) {
+                yield return characterControl.StartCoroutine(characterControl.walkOrRunToWithDoorOpening(recorder,
+                    s.Action.ScriptLine, !run, s.GetTempEnumerable("ALTERNATIVE_IPS", s.InteractionPosition), lookAt));
+            } else {
+                yield return characterControl.StartCoroutine(characterControl.walkOrRunTo(!run, 
+                    s.GetTempEnumerable("ALTERNATIVE_IPS", s.InteractionPosition), lookAt));
+            }
+        }
+
+        private IEnumerator ExecuteTurn(State s)
+        {
+            recorder.MarkActionStart(InteractionType.TURNTO, s.Action.ScriptLine);
+            WatchAction wa = (WatchAction)s.Action;
+            yield return characterControl.StartCoroutine(characterControl.Turn(s.GetScriptGameObject(wa.Name).transform.position));
+        }
+
+        private IEnumerator ExecuteSit(State s)
+        {
+            recorder.MarkActionStart(InteractionType.SIT, s.Action.ScriptLine);
+            SitAction wa = (SitAction)s.Action;
+            yield return characterControl.StartCoroutine(characterControl.Sit(s.GetScriptGameObject(wa.Name),
+                s.GetGameObject("GOTO_SIT_LOOK_AT_OBJECT"), s.GetGameObject("GOTO_SIT_TARGET")));
+        }
+
+        private IEnumerator ExecuteStandup(State s)
+        {
+            yield return new WaitForSeconds(0.5f);
+            recorder.MarkActionStart(InteractionType.STANDUP, s.Action.ScriptLine);
+            yield return characterControl.StartCoroutine(characterControl.Stand());
+        }
+
+        private IEnumerator ExecuteOpen(State s)
+        {
+            OpenAction ga = (OpenAction)s.Action;
+            GameObject go = s.GetScriptGameObject(ga.Name);
+            Bounds goBounds = GameObjectUtils.GetBounds(go);
+            HandInteraction hi = go.GetComponent<HandInteraction>();
+            Properties_door pd = go.GetComponent<Properties_door>();
+
+            if (s.InteractionPosition != s.Previous.InteractionPosition)
+                yield return ExecuteWalkOrRun(s, false, ga.Name);
+
+            recorder.MarkActionStart(ga.Close ? InteractionType.CLOSE : InteractionType.OPEN, ga.ScriptLine);
+            //
+            goBounds.Encapsulate(GameObjectUtils.GetBounds(characterControl.gameObject));
+            cameraControl.SetFocusArea(goBounds);
+            if (pd == null) {
+            yield return characterControl.StartInteraction(go, (FullBodyBipedEffector)s.GetObject("INTERACTION_HAND"),
+                hi.SwitchIndex(HandInteraction.ActivationAction.Open));
+            } else {
+                if (ga.Close) {
+                    yield return characterControl.StartInteraction(go, (FullBodyBipedEffector)s.GetObject("INTERACTION_HAND"),
+                        hi.SwitchIndex(HandInteraction.ActivationAction.Open));
+                    if (AutoDoorOpening)
+                        characterControl.DoorControl.MarkClosed(pd);
+                } else {
+                    yield return characterControl.DoorOpenLeft(go);
+                    if (AutoDoorOpening)
+                        characterControl.DoorControl.MarkOpen(pd);
+        }
+            }
+            //characterControl.DoorControl.OnOpenInteractionEnd(pd, ga.Close);
+            cameraControl.ClearFocusArea();
+        }
+
+        private IEnumerator ExecuteGrab(State s)
+        {
+            GrabAction ga = (GrabAction)s.Action;
+            GameObject go = s.GetScriptGameObject(ga.Name);
+
+            if (go.GetComponent<HandInteraction>() == null) {
+                var hi = go.AddComponent<HandInteraction>();
+                hi.allowPickUp = true;
+                hi.grabHandPose = GetGrabPose(go).Value; // HandInteraction.HandPose.GrabVertical;
+                hi.Initialize();
+            }
+            recorder.MarkActionStart(InteractionType.GRAB, ga.ScriptLine);
+            cameraControl.SetFocusObject(go);
+            yield return characterControl.GrabObject(go, (FullBodyBipedEffector)s.GetObject("INTERACTION_HAND"));
+            ClearFocusObject();
+        }
+
+        private IEnumerator ExecuteDrink(State s)
+        {
+            var intHand = (FullBodyBipedEffector)s.GetObject("INTERACTION_HAND");
+
+            cameraControl.SetVisibleArea(characterControl.UpperPartArea());
+            recorder.MarkActionStart(InteractionType.DRINK, s.Action.ScriptLine);
+            if (intHand == FullBodyBipedEffector.LeftHand)
+                yield return characterControl.DrinkLeft();
+            else if (intHand == FullBodyBipedEffector.RightHand)
+                yield return characterControl.DrinkRight();
+            cameraControl.ClearVisibleArea();
+        }
+
+        private IEnumerator ExecutePhoneAction(State s)
+        {
+            PhoneAction pa = s.Action as PhoneAction;
+            var intHand = (FullBodyBipedEffector)s.GetObject("INTERACTION_HAND");
+            var intType = pa.ActionType == PhoneAction.PhoneActionType.TALK ? InteractionType.TALK : InteractionType.TEXT;
+
+            cameraControl.SetVisibleArea(characterControl.UpperPartArea());
+            recorder.MarkActionStart(intType, s.Action.ScriptLine);
+            if (intHand == FullBodyBipedEffector.LeftHand) {
+                if (pa.ActionType == PhoneAction.PhoneActionType.TALK)
+                    yield return characterControl.TalkLeft();
+                else
+                    yield return characterControl.TextLeft();
+            } else if (intHand == FullBodyBipedEffector.RightHand) {
+                if (pa.ActionType == PhoneAction.PhoneActionType.TALK)
+                    yield return characterControl.TalkRight();
+                else
+                    yield return characterControl.TextRight();
+            }
+            cameraControl.ClearVisibleArea();
+        }
+
+        private IEnumerator ExecuteSwitchOnPrefab(State s)
+        {
+            SwitchOnAction ga = (SwitchOnAction)s.Action;
+            GameObject go = s.GetScriptGameObject(ga.Name);
+
+            if (go.GetComponent<HandInteraction>() != null) {
+                HandInteraction hi = go.GetComponent<HandInteraction>();
+
+                cameraControl.SetFocusObject(go);
+                recorder.MarkActionStart(ga.Off ? InteractionType.SWITCHOFF : InteractionType.SWITCHON, ga.ScriptLine);
+                yield return characterControl.StartInteraction(go, (FullBodyBipedEffector)s.GetObject("INTERACTION_HAND"),
+                    hi.SwitchIndex(HandInteraction.ActivationAction.SwitchOn));
+                cameraControl.ClearFocusObject();
+            }
+        }
+
+        private IEnumerator ExecutePut(State s)
+        {
+            IAction ga = s.Action;
+            GameObject go = s.GetScriptGameObject(ga.Name);
+            Vector3 putPosition = (Vector3)s.GetObject("PUT_POSITION");
+            var goi = go.GetComponent<HandInteraction>().invisibleCpy;
+            Bounds focusBounds;
+
+            if (s.Action is PutAction) {
+                GameObject goDest = s.GetScriptGameObject((s.Action as PutAction).DestName);
+                focusBounds = GameObjectUtils.GetBounds(goDest);
+            } else {
+                focusBounds = GameObjectUtils.GetBounds(go);
+            }
+            goi.transform.position = putPosition;
+            recorder.MarkActionStart(InteractionType.PUTBACK, ga.ScriptLine);
+            cameraControl.SetFocusObject(go, new Bounds(putPosition, focusBounds.size));
+            yield return characterControl.GrabObject(goi, (FullBodyBipedEffector)s.GetObject("INTERACTION_HAND"));
+            ClearFocusObject();
+        }
+
+        private IEnumerator ExecutePutBack(State s)
+        {
+            yield return ExecuteWalkOrRun(s, false, s.Action.Name);
+            yield return ExecutePut(s);
+        }
+
+        private IEnumerator ExecuteTouch(State s)
+        {
+            TouchAction a = (TouchAction)s.Action;
+            GameObject go = s.GetScriptGameObject(a.Name);
+
+            var hi = go.AddComponent<HandInteraction>();
+            var sw = new HandInteraction.ActivationSwitch(HandInteraction.HandPose.Button,
+                HandInteraction.ActivationAction.SwitchOn, Vector3.zero, null);
+            hi.switches = new HandInteraction.ActivationSwitch[] { sw };
+            hi.allowPickUp = true;
+            hi.grabHandPose = GetGrabPose(go).Value; // HandInteraction.HandPose.GrabVertical;
+            hi.Initialize();
+
+            recorder.MarkActionStart(InteractionType.TOUCH, a.ScriptLine);
+            cameraControl.SetFocusObject(go);
+            yield return characterControl.StartInteraction(go, (FullBodyBipedEffector)s.GetObject("INTERACTION_HAND"));
+            cameraControl.ClearFocusObject();
+        }
+
+        #endregion
+
+        void ClearFocusObject()
+        {
+            cameraControl?.ClearFocusObject();
+        }
+
+        public static IEnumerator<T> ExceptionSafeEnumerator<T>(IEnumerator<T> enumerator)
+        {
+            bool haveNext;
+
+            do {
+                try {
+                    haveNext = enumerator.MoveNext();
+                } catch (Exception e) {
+                    Debug.LogWarning("Exception thrown: " + e.Message);
+                    haveNext = false;
+                }
+                if (haveNext)
+                    yield return enumerator.Current;
+            } while (haveNext);
+        }
+
+        public static IEnumerator ExceptionSafeEnumerator(IEnumerator enumerator)
+        {
+            bool haveNext;
+
+            do {
+                try {
+                    haveNext = enumerator.MoveNext();
+                } catch (Exception e) {
+                    Debug.LogWarning("Exception thrown: " + e.Message);
+                    haveNext = false;
+                }
+                if (haveNext)
+                    yield return enumerator.Current;
+            } while (haveNext);
+        }
+
+        // Prepare scene, process & execute script
+        [Obsolete]
+        public IEnumerator PrepareAndExecute(PlacingDataProvider placingDataProvider, AssetsProvider assetsProvider, NameEquivalenceProvider nameEquivProvider, bool recording)
+        {
+            execStartTime = System.Diagnostics.Stopwatch.StartNew();
+            report.Reset();
+
+            bool processed = false;
+            long prepTime = 0;
+
+            for (int i = 0; i < 20; i++) {
+                bool prepNeeded = false;
+
+                try {
+                    var tmPreparation = TimeMeasurement.Start("PrepareAndExecute/ScenePreparation");
+                    var prepStartTime = System.Diagnostics.Stopwatch.StartNew();
+                    prepNeeded = PrepareScene(placingDataProvider, assetsProvider, nameEquivProvider);
+                    prepTime += prepStartTime.ElapsedMilliseconds;
+                    TimeMeasurement.Stop(tmPreparation);
+                } catch (Exception e) {
+                    Debug.LogWarning("Exception thrown in scene preparation: " + e.Message);
+                }
+
+                IEnumerator<StateList> enumerator = ExceptionSafeEnumerator(Process(script).GetEnumerator());
+
+                var tmProcessing = TimeMeasurement.Start("PrepareAndExecute/Processing");
+
+                if (enumerator.MoveNext()) {
+                    if (MasterRenderer.renderPreference == null) {
+                        Debug.Log(String.Format("Search for admissible solution took {0} sec (preparation {1} sec, loop {2}).",
+                            execStartTime.ElapsedMilliseconds / 1000.0, prepTime / 1000.0, i));
+                    }
+                    processed = true;
+
+                    TimeMeasurement.Stop(tmProcessing);
+
+                    report.ResetProcessingMessage();
+                    if (!SkipExecution) {
+                        PrepareSceneForScript(enumerator.Current, recorder.saveSceneStates);
+                        if (recording) {
+                            recorder.MaxFrameNumber = EstimateFrameNumber(enumerator.Current);
+                            recorder.Recording = true;
+                        }
+                        yield return ExceptionSafeEnumerator(Execute(enumerator.Current));
+                    }
+                    break;
+                } else {
+                    TimeMeasurement.Stop(tmProcessing);
+                    if (!prepNeeded)
+                        break;
+                }
+
+                if (execStartTime.ElapsedMilliseconds > processingTimeLimit)
+                    break;
+            }
+            if (!processed) {
+                report.AddItem("EXECUTION_GENERAL", "Script is impossible to execute");
+                if (MasterRenderer.renderPreference == null) {
+                    Debug.Log(String.Format("Search for admissible solution took {0} sec.", execStartTime.ElapsedMilliseconds / 1000.0));
+                    Debug.LogError("Script is impossible to execute.");
+                }
+            }
+        }
+
+        // Prepare scene, process & execute script
+        public IEnumerator ProcessAndExecute(bool recording)
+        {
+            report.Reset();
+            IEnumerator<StateList> enumerator = ExceptionSafeEnumerator(Process(script).GetEnumerator());
+            if (enumerator.MoveNext()) {
+                report.ResetProcessingMessage();
+                if (!SkipExecution) {
+                    PrepareSceneForScript(enumerator.Current, recorder.saveSceneStates);
+                    if (recording) {
+                        recorder.MaxFrameNumber = EstimateFrameNumber(enumerator.Current);
+                        recorder.Recording = true;
+                    }
+                    yield return ExceptionSafeEnumerator(Execute(enumerator.Current));
+                }
+            } else {
+                report.AddItem("EXECUTION_GENERAL", "Script is impossible to execute");
+            }
+        }
+
+        private int EstimateFrameNumber(StateList current)
+        {
+            const int GOTO_MAX_NUMBER = 800;
+            const int OTHER_MAX_NUMBER = 120;
+
+            int result = 0;
+
+            foreach (State s in current) {
+                if (s.Action is GotoAction) result += GOTO_MAX_NUMBER;  // TODO: Temp. solution, maybe move limit to Action interface
+                else result += OTHER_MAX_NUMBER;
+            }
+            return result;
+        }
+
+        private IEnumerator Execute(StateList sl)
+        {
+            foreach (State s in sl) {
+                yield return s.ActionMethod(s);
+                if (recorder.BreakExecution())
+                    break;
+            }
+        }
+
+        private IEnumerable<StateList> Process(List<ScriptPair> script)
+        {
+            StateList initSl = new StateList();
+
+            initSl.Add(new State(characterControl.transform.position));
+            gotoExecDepth = 0;
+            return ProcessRec(script, 0, initSl);
+        }
+
+        private IEnumerable<StateList> ProcessRec(List<ScriptPair> spl, int spli, StateList sl)
+        {
+            if (spli >= spl.Count || sl.Count == 0) {
+                yield return sl;
+            } else {
+                ScriptPair sp = spl[spli];
+                State last = sl.Last();
+
+                if (sp.Action is GotoAction && gotoExecDepth < sl.Count)
+                    gotoExecDepth = spli;
+                foreach (IStateGroup sg in sp.ProcessMethod(sp.Action, last)) {
+                    StateList appSl = new StateList(sl);
+
+                    appSl.Add(sg);
+                    foreach (var newSl in ProcessRec(spl, spli + 1, appSl)) {
+                        yield return newSl;
+                    }
+                    if (/*s.Action is GotoAction && spli < gotoExecDepth - 1 || */ execStartTime.ElapsedMilliseconds > processingTimeLimit) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Count Goto actions in spl[i + 1..j - 1]
+        private int CountGotoActions(List<ScriptPair> spl, int i, int j)
+        {
+            int count = 0;
+
+            for (int k = i + 1; k < j && k < spl.Count; k++) {
+                if (spl[k].Action is GotoAction)
+                    count++;
+            }
+            return count;
+        }
+
+        #region Utilities
+
+        private static HashSet<GameObject> ObjectsInHands(State s)
+        {
+            HashSet<GameObject> result = new HashSet<GameObject>();
+            GameObject go;
+
+            go = s.GetGameObject("RIGHT_HAND_OBJECT");
+            if (go != null) result.Add(go);
+            go = s.GetGameObject("LEFT_HAND_OBJECT");
+            if (go != null) result.Add(go);
+            return result;
+        }
+
+        private static bool IsGrabbable(GameObject go)
+        {
+            return GetGrabPose(go) != null;
+        }
+
+        private static bool IsTouchable(Vector3 intPos, GameObject go, out Vector3 pos)
+        {
+            Collider co = GameObjectUtils.GetCollider(go);
+            Vector3 src = new Vector3(intPos.x, 1.5f, intPos.z);
+
+            pos = co.ClosestPointOnBounds(src);
+            Vector3 dir = pos - src;
+            return new Vector2(dir.x, dir.z).magnitude < 2f && pos.y < 2;
+        }
+
+        private bool IsOpenable(Vector3 intPos, ScriptObjectData sod, out IList<Vector3> switchPos, bool useIntPos, InteractionType intType)
+        {
+            if (ScriptObjectUtils.CanOpenOrClose(sod, intType)) {
+                return IsOpenablePosition(intPos, sod.GameObject, out switchPos, useIntPos, intType == InteractionType.CLOSE);
+            } else {
+                switchPos = new List<Vector3>();
+                return false;
+            }
+        }
+
+        // Check for openable sod, if not null, else check go, go should not be sod.GameObject
+        private bool IsOpenable(Vector3 intPos, ScriptObjectData sod, GameObject go, out IList<Vector3> switchPos, bool useIntPos, InteractionType intType)
+        {
+            if (sod != null) return IsOpenable(intPos, sod, out switchPos, useIntPos, intType);
+            else {
+                // Newly discovered -- check what is the initial status of objects:
+                // Initially, doors can be closed or opened, other things, if openable, 
+                // are closed by default and can only be closed
+                if (go.GetComponent<Properties_door>() == null && intType == InteractionType.CLOSE) {
+                    switchPos = new List<Vector3>();
+                    return false;
+                } else {
+                    return IsOpenablePosition(intPos, go, out switchPos, useIntPos, intType == InteractionType.CLOSE);
+                }
+            }
+        }
+
+        // Check if go is openable from intPos. If useIntPos = true also check distance from switchPos to intPos
+        private bool IsOpenablePosition(Vector3 intPos, GameObject go, out IList<Vector3> switchPos, bool useIntPos, bool close)
+        {
+            Vector3 src = new Vector3(intPos.x, 1.5f, intPos.z);
+            switchPos = new List<Vector3>();
+            Properties_door pd = go.GetComponent<Properties_door>();
+
+            if (pd == null) {
+                // Not door
+                HandInteraction hi = go.GetComponent<HandInteraction>();
+
+                if (hi != null) {
+                    int switchIndex = hi.SwitchIndex(HandInteraction.ActivationAction.Open);
+
+                    if (switchIndex >= 0) {
+                        Vector3 pos = hi.switches[switchIndex].switchPosition;
+                        pos = hi.switches[switchIndex].switchTransform.TransformPoint(pos);
+                        pos += 0.75f * go.transform.right;
+                        if (!useIntPos || (pos - src).magnitude < 1.5f) {
+                            switchPos.Add(pos);
+                        }
+                    }
+                }
+            } else {
+                List<Vector3> potentialPos = new List<Vector3>();
+                if (close) {
+                    Vector3[] centers = new Vector3[] {
+                        (pd.transformIKClose.position + 0.5f * go.transform.right),
+                        (pd.transformIKClose.position - 0.5f * go.transform.right)
+                    };
+                    foreach (Vector3 pos in centers) {
+                        potentialPos.AddRange(CalculateInteractionPositions(pos, go, 1, 10, 0, 0.25f, 0.25f));
+                    }
+                } else {
+                    Vector3 offset = new Vector3(0.0f, pd.transform.position.y);
+                    potentialPos.Add(pd.posItrnPush + offset);
+                    potentialPos.Add(pd.posItrnPull + offset);
+                }
+
+                foreach (Vector3 pos in potentialPos) {
+                    if ((!useIntPos || (pos - src).magnitude < 1.5f /* !!! */)) {
+                        switchPos.Add(pos);
+                    }
+                }
+            }
+            return switchPos.Count > 0;
+        }
+
+        private static bool IsSwitchable(Vector3 intPos, GameObject go, out Vector3 switchPos, bool useIntPos)
+        {
+            Vector3 src = new Vector3(intPos.x, 1.5f, intPos.z);
+            HandInteraction hi = go.GetComponent<HandInteraction>();
+
+            if (hi != null) {
+                int switchIndex = hi.SwitchIndex(HandInteraction.ActivationAction.SwitchOn);
+
+                if (switchIndex >= 0) {
+                    Vector3 pos = hi.switches[switchIndex].switchPosition;
+                    if (hi.switches[switchIndex].switchTransform != null)
+                        pos = hi.switches[switchIndex].switchTransform.TransformPoint(pos);
+                    else
+                        pos = go.transform.TransformPoint(pos);
+                    if (!useIntPos || (pos - src).magnitude < 1.5f) {
+                        switchPos = pos;
+                        return true;
+                    }
+                }
+            }
+            switchPos = Vector3.zero;
+            return false;
+        }
+
+        private static HandInteraction.HandPose? GetGrabPose(GameObject go)
+        {
+            if (go == null)
+                return null;
+
+            Collider co = GameObjectUtils.GetCollider(go);
+
+            if (co == null)
+                return null;
+
+            Vector3 size = co.bounds.size;
+
+            if (size.x < 0.15f && size.y < 1.0f && size.z < 0.15f) return HandInteraction.HandPose.GrabVertical; // vertical "cylinder"
+            // else if (size.x < 0.4f && size.z < 0.4f && size.y < 0.5) return HandInteraction.HandPose.GrabHorizontal; // flat object
+            // else return null;
+            else return HandInteraction.HandPose.GrabHorizontal;
+        }
+
+        private List<Vector3> CalculateInteractionPositions(GameObject go, IInteractionArea area)
+        {
+            return CalculateInteractionPositions(go.transform.position, go, int.MaxValue, 20, 0.25f, 4.5f, 0.25f);
+        }
+
+        private  List<Vector3> CalculateInteractionPositions(Vector3 initPos, GameObject go, int maxPos,
+            int angles, float rMin, float rMax, float rStep)
+        {
+            const float ObstructionHeight = 0.1f;   // Allow for some obstuction around target object (e.g., carpet)
+
+            NavMeshAgent nma = characterControl.GetComponent<NavMeshAgent>();
+            List<Vector3> result = new List<Vector3>();
+
+            if (nma == null)
+                return result;
+            rMax += rStep / 2.0f;
+            for (int i = 0; i < angles; i++) {
+                float phi = 2 * Mathf.PI * i / angles;
+
+                for (float r = rMin; r < rMax; r += rStep) {
+                    float x = r * Mathf.Cos(phi);
+                    float z = r * Mathf.Sin(phi);
+                    Vector3 center = initPos + new Vector3(x, 0, z);
+                    Vector3 cStart = new Vector3(center.x, nma.radius + ObstructionHeight, center.z);
+                    Vector3 cEnd = new Vector3(center.x, nma.height - nma.radius + ObstructionHeight, center.z);
+
+                    // Check for space
+                    if (!Physics.CheckCapsule(cStart, cEnd, nma.radius)) {
+                        if (go == null || IsVisibleFromSegment(go, center, 0.2f, 1.8f, 0.2f)) {
+                            result.Add(center);
+                            break; // for each angle, take the closest radius
+                        }
+                    }
+                }
+                if (rMin < 0.0f) // if radius is approx. zero, take only one angle
+                    rMin += rStep;
+                if (result.Count >= maxPos)
+                    break;
+            }
+
+            result.Sort((p1, p2) => (p1 - go.transform.position).sqrMagnitude.CompareTo((p2 - go.transform.position).sqrMagnitude));
+            // Debug.Log(string.Format("CC: Radius: {0}, Height: {1}, Center: {2}", cc.radius, cc.height, cc.center));
+            // Debug.Log(string.Format("GO: Position: {0}", go.transform.position));
+            // Debug.Log(string.Format("Found positions {0}", result.Count));
+
+            return result;
+        }
+
+        private static void DebugCalcPath(string info, Vector3 from, Vector3 to)
+        {
+            NavMeshPath path = new NavMeshPath();
+            from.y = 0;
+            to.y = 0;
+            NavMesh.CalculatePath(from, to, -1, path);
+
+            Debug.Log("Go from " + from + " to: " + to + "(" + info + ") Path length " + path.corners.Length + " status: " + path.status);
+            if (path.status != NavMeshPathStatus.PathInvalid && path.corners.Length > 0) {
+                Debug.Log("Path: " + string.Join("->", path.corners));
+            }
+        }
+
+        // Checks if GameObject go is visible from position v
+        // Sends one ray from go to v.
+        public static bool IsVisible(GameObject go, Vector3 v)
+        {
+            return IsVisible(go, Vector3.zero, v);
+        }
+
+        // Checks if GameObject go is visible from position v
+        // Sends one ray from go + goDelta to v.
+        public static bool IsVisible(GameObject go, Vector3 goDelta, Vector3 v)
+        {
+            RaycastHit hit;
+            Vector3 direction = go.transform.position + goDelta - v;
+            bool rcResult = Physics.Raycast(v, direction, out hit, direction.magnitude);
+
+            return !rcResult || GameObjectUtils.IsInPath(go, hit.transform);
+        }
+
+        // Checks if GameObject go is visible from position v
+        // Checks randomly selected nRays from collider of go
+        // If there is no colider attached to go or to go's children, IsVisible is returned
+        public static float VisiblityFactor(GameObject go, Vector3 v, int nRays = 10)
+        {
+            Bounds bounds = GameObjectUtils.GetBounds(go);
+
+            if (bounds.extents == Vector3.zero) {
+                bool visible = IsVisible(go, v);
+                return visible ? 1.0f / nRays : 0.0f;
+            } else {
+                RaycastHit hit;
+                int hitCount = 0;
+
+                for (int rn = 0; rn < nRays; rn++) {
+                    float rx = UnityEngine.Random.Range(-bounds.extents.x, bounds.extents.x);
+                    float ry = UnityEngine.Random.Range(-bounds.extents.y, bounds.extents.y);
+                    float rz = UnityEngine.Random.Range(-bounds.extents.z, bounds.extents.z);
+
+                    Vector3 direction = bounds.center + new Vector3(rx, ry, rz) - v;
+                    bool rcResult = Physics.Raycast(v, direction, out hit, direction.magnitude);
+
+                    if (!rcResult || GameObjectUtils.IsInPath(go, hit.transform))
+                        hitCount++;
+                }
+                return (float)hitCount / nRays;
+            }
+        }
+
+        // Checks if GameObject go is visible from position v
+        // Checks nRays to randomly selected points from the vertical axis of the collider
+        // If there is no colider attached, 0 is returned
+        public static float AxisVisiblityFactor(GameObject go, Vector3 v, int nRays = 15)
+        {
+            Collider coll = GameObjectUtils.GetCollider(go);
+
+            if (coll == null) {
+                return 0.0f;
+            } else {
+                RaycastHit hit;
+                Bounds b = coll.bounds;
+                int hitCount = 0;
+                float ry = -b.extents.y;
+                float ydelta = 2 * b.extents.y / nRays;
+
+                for (int rn = 0; rn <= nRays; rn++) {
+                    // float ry = UnityEngine.Random.Range(-b.extents.y, b.extents.y);
+                    Vector3 direction = b.center + new Vector3(0.0f, ry, 0.0f) - v;
+                    bool rcResult = Physics.Raycast(v, direction, out hit, direction.magnitude);
+
+                    if (!rcResult || GameObjectUtils.IsInPath(go, hit.transform))
+                        hitCount++;
+                    ry += ydelta;
+                }
+                return (float)hitCount / nRays;
+            }
+        }
+
+
+        // Return closest point or src
+        public static Vector3 ClosestPoint(Vector3 src, Vector3 dir, float maxDist)
+        {
+            RaycastHit hit;
+            bool rcResult = Physics.Raycast(src, dir, out hit, maxDist);
+            return rcResult ? hit.point : src;
+        }
+
+        public static Vector3 ClosestPoint(Vector3 src)
+        {
+            return ClosestPoint(src, Vector3.down, 2.0f);
+        }
+
+        public static bool IsVisibleFromSegment(GameObject go, Vector3 v, float miny, float maxy, float delta = 0.1f, bool sampleGo = false)
+        {
+            maxy += delta / 2.0f;
+            for (float y = miny; y <= maxy; y += delta) {
+                if (sampleGo) {
+                    if (VisiblityFactor(go, new Vector3(v.x, y, v.z)) > 0.0f)
+                        return true;
+                } else {
+                    if (IsVisible(go, new Vector3(v.x, y, v.z)))
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        // Send ray to corners and center of bounds attempting to hit go
+        public static bool IsVisibleFromCorners(GameObject go, Bounds bounds, float factor = 0.9f)
+        {
+            foreach (Vector3 v in BoundsUtils.CornersAndCenter(bounds, factor)) {
+                if (IsVisible(go, v)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        #endregion
+
+        // Obsolete, use preparation of the scene with "graphs"
+        [Obsolete]
+        public bool PrepareScene(PlacingDataProvider placingDataProvider, AssetsProvider assetsProvider, NameEquivalenceProvider nameEquivProvider)
+        {
+            // Missing object is a pair (object name, room name), room name can be null -- 
+            // in this case object can be placed without restrictions
+            HashSet<Tuple<string, string>> missingObjects = new HashSet<Tuple<string, string>>();
+            List<GameObject> newObjects = new List<GameObject>();
+
+            string roomName = null;
+
+            foreach (ScriptPair sp in script) {
+                if (sp.Action is GotoAction) {
+                    GotoAction ga = sp.Action as GotoAction;
+
+                    if (roomSelector.IsRoomName(ga.Name.Name)) {
+                        roomName = roomSelector.CanonicalRoomName(ga.Name.Name);
+                    } else {
+                        if (roomName == null && !SelectObjects(ga.Selector).Any() ||
+                                roomName != null && !SelectObjects(ga.Selector, go => roomName == roomSelector.ExtractRoomName(go.RoomName())).Any()) {
+                            missingObjects.Add(Tuple.Create(ga.Name.Name, roomName));
+                            // report.AddItem("MISSING OBJECT", ga.Name.Name);
+                        }
+                        roomName = null;
+                    }
+                }
+            }
+
+            List<string> placedObjects = new List<string>();
+
+            foreach (var mObj in missingObjects) {
+                List<Tuple<string, string>> places; // List of (dest. object name, room constraint) pairs
+                List<string> paths; // List of paths to objects
+                string mObjName = mObj.Item1;
+                string mObjRoom = mObj.Item2;
+                ISet<string> eqClassNames = nameEquivProvider.GetSynonyms(mObjName);
+
+                foreach (string mo in eqClassNames) {
+                    if (placingDataProvider.TryGetPlaces(mo, out places) && assetsProvider.TryGetAssets(mo, out paths)) {
+                        IList<GameObject> filteredPlaces = new List<GameObject>();
+
+                        foreach (var placePair in places) {
+                            string place = placePair.Item1;
+                            string room = mObjRoom ?? placePair.Item2;
+
+                            //foreach (GameObject go in SelectObjects(new SynonymSelector(GetSynonyms(place)))) {
+                            foreach (GameObject go in SelectObjects(GetObjectSelector(place, 0))) {
+                                if (room == null || room == roomSelector.ExtractRoomName(go.RoomName()))
+                                    filteredPlaces.Add(go);
+                            }
+                        }
+
+                        if (filteredPlaces.Count > 0) {
+                            GameObject destGo = filteredPlaces[randomizeExecution ? UnityEngine.Random.Range(0, filteredPlaces.Count) : 0];
+                            string path = paths[randomizeExecution ? UnityEngine.Random.Range(0, paths.Count) : 0];
+                            GameObject newGo = PlaceObject(destGo, path); //, mo);
+
+                            if (newGo != null) {
+                                newObjects.Add(newGo);
+                                placedObjects.Add(mObjName);
+                            }
+                        }
+                    }
+                }
+            }
+
+            foreach (string unplaced in missingObjects.Select(pair => pair.Item1).Except(placedObjects)) {
+                report.AddItem("UNPLACED OBJECT", unplaced);
+            }
+
+            int count = 0;
+
+            foreach (GameObject go in newObjects) {
+                nameList.Add(go);
+                count++;
+            }
+
+            return count > 0;
+        }
+
+        private GameObject PlaceObject(GameObject destGo, string path) //, string newName)
+        {
+            GameObject loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(path)) as GameObject;
+            Bounds destBounds = GameObjectUtils.GetBounds(destGo);
+            Bounds srcBounds = GameObjectUtils.GetBounds(loadedObj);
+
+            if (destBounds.extents == Vector3.zero) {
+                report.AddItem("OBJECT ZERO EXTENTS", destGo.name);
+                return null;
+            }
+
+            if (srcBounds.extents == Vector3.zero) {
+                report.AddItem("LOADED OBJECT ZERO EXTENTS", path);
+                return null;
+            }
+
+            Vector3 destMax = destBounds.max;
+            Vector3 destMin = destBounds.min;
+            Vector3 srcCenter = srcBounds.center;
+            int maxTries = randomizeExecution ? 10 : 5;
+            Vector3 centerDelta = srcCenter - loadedObj.transform.position;
+
+            for (int tryCount = 0; tryCount < maxTries; tryCount++) {
+                float x, z;
+
+                if (randomizeExecution) {
+                    x = UnityEngine.Random.Range(destMin.x, destMax.x);
+                    z = UnityEngine.Random.Range(destMin.z, destMax.z);
+                } else {
+                    x = Mathf.Lerp(destMin.x, destMax.x, (float)(tryCount + 0.5f) / maxTries);
+                    z = Mathf.Lerp(destMin.z, destMax.z, (float)(tryCount + 0.5f) / maxTries);
+                }
+
+                //bool ok = (Mathf.Abs(x - destMin.x) > 0.1f && Mathf.Abs(z - destMin.z) > 0.1f && Mathf.Abs(x - destMax.x) > 0.1f && Mathf.Abs(z - destMax.z) > 0.1f) &&
+                //    !(Mathf.Abs(x - destMin.x) > 1 && Mathf.Abs(z - destMin.z) > 1 && Mathf.Abs(x - destMax.x) > 1 && Mathf.Abs(z - destMax.z) > 1f);
+
+                //if (!ok)
+                //    continue;
+
+                Vector3 srcDelta = new Vector3(x - srcCenter.x, destMax.y - srcBounds.min.y, z - srcCenter.z);
+                float hity;
+
+                if (GameObjectUtils.HitFlatSurface(srcBounds, srcDelta, destGo, out hity)) {
+                    float yDelta = hity - (srcBounds.min.y + srcDelta.y);
+                    Vector3 delta = srcDelta + new Vector3(0, yDelta, 0);
+
+                    if (!GameObjectUtils.CheckBox(srcBounds, delta, 0.01f, destGo)) {
+                        string newName = loadedObj.name;
+                        GameObject newGo = MonoBehaviour.Instantiate(loadedObj, destGo.transform) as GameObject;
+                        // Rename the GameObject so that its class can be identified (number with parentheses append to its original name when instantiated)
+                        newGo.name = loadedObj.name;
+                        ColorEncoding.EncodeGameObject(newGo);
+
+                        newGo.transform.position = srcBounds.center + delta - centerDelta;
+                        //newGo.transform.position = srcBounds.center + delta; // += delta - destGo.transform.position; // += delta; // Translate(srcDelta + new Vector3(0, yDelta, 0));
+                        //var tmpBounds = GameObjectUtils.GetBounds(newGo);
+                        //Debug.Log($"Bounds {tmpBounds.center.x}, {tmpBounds.center.y}, {tmpBounds.center.z} vs {x}, y, {z}");
+                        //Debug.Log($"SrcBounds {srcBounds.center.x}, {srcBounds.center.y}, {srcBounds.center.z} / delta {delta.x}, y, {delta.z}");
+                        return newGo;
+                    }
+                }
+            }
+            report.AddItem("NO SPACE", path, destGo.name);
+            return null;
+        }
+
+        // Prepare scene for the script.
+        // Place here anything that is needed for correct processing of actions
+        // Current: 
+        //   - Prepare State_object component if necessary
+        //   - Switch off light which is to be turned on by some action (we assume all lights are turned on by default)
+        private void PrepareSceneForScript(StateList sl, bool addStateObject)
+        {
+            HashSet<GameObject> processedGOs = new HashSet<GameObject>();
+            HashSet<GameObject> processedSwtchGOs = new HashSet<GameObject>();
+            foreach (State s in sl) {
+                // If addStateObject is true, we are generating SceneState GTs. Thus we need to
+                // prepare State_object component. 
+                if (addStateObject && s.Action != null) {
+                    GameObject go = s.GetScriptGameObject(s.Action.Name);
+                    if (go != null && !processedGOs.Contains(go)) {
+                        processedGOs.Add(go);
+                    }
+                }
+
+                // If this action is switching on a light switch, it must be turned off in the beginning
+                SwitchOnAction sa = s.Action as SwitchOnAction;
+                if (sa != null && !sa.Off) {
+                    GameObject go = s.GetScriptGameObject(sa.Name);
+                    if (go != null && !processedSwtchGOs.Contains(go)) {
+                        processedSwtchGOs.Add(go);
+                        HandInteraction hi = go.GetComponent<HandInteraction>();
+                        if (hi != null && go.name.Contains("Light_switch")) {
+                            hi.switches[0].FlipInitialState();
+                        }
+                    }
+                }
+                OpenAction oa = s.Action as OpenAction;
+                if (oa != null && s.Previous != null) {
+                    ScriptObjectData sod;
+
+                    if (s.Previous.GetScriptGameObjectData(oa.Name, out sod)) {
+                        Properties_door pd = sod.GameObject.GetComponent<Properties_door>();
+
+                        if (pd != null && !oa.Close) {
+                            pd.SetDoorToClose();
+                        }
+                    }
+                }
+            }
+
+            // Preparing must come after flipping initial state because it updates Recorder's SceneStateSequence
+            // with current object's state and we want to use flipped value, not the initial value.
+            if (addStateObject) {
+                foreach (GameObject go in processedGOs) {
+                    State_object so = go.GetComponent<State_object>();
+                    if (so == null) {
+                        so = go.AddComponent<State_object>();
+                        so.Initialize();
+                    }
+                    so.Prepare(recorder.sceneStateSequence);
+                }
+            }
+        }
+
+        public string CreateReportString()
+        {
+            return report.ToString();
+        }
+
+        internal IObjectSelector GetRoomOrObjectSelector(string name, int instance)
+        {
+            if (roomSelector.IsRoomName(name)) {
+                return roomSelector.GetRoomSelector(name);
+            } else {
+                return objectSelectorProvider.GetSelector(name, instance);
+            }
+        }
+
+        internal IObjectSelector GetObjectSelector(string name, int instance)
+        {
+            return objectSelectorProvider.GetSelector(name, instance);
+        }
+    }
+
+
+    public class ScriptReaderException : Exception
+    {
+        public ScriptReaderException(string message) :
+            base(message)
+        {
+        }
+    }
+
+    class ScriptLine
+    {
+        public InteractionType Interaction { get; set; }
+        public IList<Tuple<string, int>> Parameters { get; set; }
+        public int LineNumber { get; set; }
+
+        internal bool CompareParameters(ScriptLine otherSl)
+        {
+            return Parameters.SequenceEqual(otherSl.Parameters);
+        }
+    }
+
+    public class ScriptReader
+    {
+
+        public static void ReadScript(ScriptExecutor sExecutor, string fileName,
+            ActionEquivalenceProvider actionEquivProvider, string scriptPath = @"ActionScripts/")
+        {
+            IList<ScriptLine> sLines = ReadScriptLines(scriptPath + fileName, actionEquivProvider);
+
+            for (int i = 0; i < sLines.Count; i++) {
+                ScriptLineToAction(sExecutor, i, sLines);
+            }
+        }
+
+        public static void ParseScript(ScriptExecutor sExecutor, IList<string> scriptLines,
+            ActionEquivalenceProvider actionEquivProvider)
+        {
+            IList<ScriptLine> sLines = new List<ScriptLine>();
+
+            for (int lineNo = 0; lineNo < scriptLines.Count; lineNo++) {
+                string line = scriptLines[lineNo];
+                ScriptLine sl = ParseLine(line, lineNo, actionEquivProvider);
+
+                if (sl != null)
+                    sLines.Add(sl);
+            }
+            for (int i = 0; i < sLines.Count; i++) {
+                ScriptLineToAction(sExecutor, i, sLines);
+            }
+        }
+
+        private static void ScriptLineToAction(ScriptExecutor sExecutor, int index, IList<ScriptLine> sLines)
+        {
+            ScriptLine sl = sLines[index];
+            ScriptLine nextSl = index + 1 < sLines.Count ? sLines[index + 1] : null;
+            InteractionType nextIt = nextSl != null && sl.CompareParameters(nextSl) ? nextSl.Interaction : InteractionType.UNSPECIFIED;
+            string name0 = sl.Parameters.Count == 0 ? "" : sl.Parameters[0].Item1;
+            int instance0 = sl.Parameters.Count == 0 ? 0 : sl.Parameters[0].Item2;
+            string name1 = sl.Parameters.Count <= 1 ? "" : sl.Parameters[1].Item1;
+            int instance1 = sl.Parameters.Count <= 1 ? 0 : sl.Parameters[1].Item2;
+
+            switch (sl.Interaction) {
+                case InteractionType.WALK:
+                case InteractionType.GOTO:
+                case InteractionType.RUN:
+                    sExecutor.AddAction(
+                        new GotoAction(sl.LineNumber, sExecutor.GetRoomOrObjectSelector(name0, instance0),
+                            name0, instance0, sl.Interaction == InteractionType.RUN, nextIt),
+                        false);
+                    break;
+                case InteractionType.FIND:
+                    sExecutor.AddAction(
+                        new GotoAction(sl.LineNumber, sExecutor.GetRoomOrObjectSelector(name0, instance0),
+                            name0, instance0, false, nextIt),
+                        true);
+                    break;
+                case InteractionType.SIT:
+                    sExecutor.AddAction(new SitAction(sl.LineNumber, name0, instance0));
+                    break;
+                case InteractionType.STANDUP:
+                    sExecutor.AddAction(new StandupAction(sl.LineNumber));
+                    break;
+                case InteractionType.WATCH:
+                case InteractionType.LOOKAT:
+                case InteractionType.LOOKAT_MEDIUM:
+                case InteractionType.TURNTO:
+                case InteractionType.POINTAT:
+                    sExecutor.AddAction(new WatchAction(sl.LineNumber, sExecutor.GetObjectSelector(name0, instance0),
+                        name0, instance0, WatchAction.MediumDuration));
+                    break;
+                case InteractionType.LOOKAT_SHORT:
+                    sExecutor.AddAction(new WatchAction(sl.LineNumber, sExecutor.GetObjectSelector(name0, instance0),
+                        name0, instance0, WatchAction.ShortDuration));
+                    break;
+                case InteractionType.LOOKAT_LONG:
+                    sExecutor.AddAction(new WatchAction(sl.LineNumber, sExecutor.GetObjectSelector(name0, instance0),
+                        name0, instance0, WatchAction.LongDuration));
+                    break;
+                case InteractionType.SWITCHON:
+                case InteractionType.SWITCHOFF:
+                    sExecutor.AddAction(new SwitchOnAction(sl.LineNumber, name0, instance0, sl.Interaction == InteractionType.SWITCHOFF));
+                    break;
+                case InteractionType.GRAB:
+                    sExecutor.AddAction(new GrabAction(sl.LineNumber, name0, instance0));
+                    break;
+                case InteractionType.DRINK:
+                    sExecutor.AddAction(new DrinkAction(sl.LineNumber, name0, instance0));
+                    break;
+                case InteractionType.TALK:
+                    sExecutor.AddAction(new PhoneAction(sl.LineNumber, name0, instance0, PhoneAction.PhoneActionType.TALK));
+                    break;
+                case InteractionType.TEXT:
+                    sExecutor.AddAction(new PhoneAction(sl.LineNumber, name0, instance0, PhoneAction.PhoneActionType.TEXT));
+                    break;
+                case InteractionType.TOUCH:
+                    sExecutor.AddAction(new TouchAction(sl.LineNumber, name0, instance0));
+                    break;
+                case InteractionType.PUT:
+                case InteractionType.PUTBACK:
+                case InteractionType.PUTIN:
+                    if (string.IsNullOrEmpty(name1))
+                        throw new ScriptReaderException($"No second argument for [{sl.Interaction}]");
+                    sExecutor.AddAction(new PutAction(sl.LineNumber, name0, instance0, name1, instance1, sl.Interaction == InteractionType.PUTIN));
+                    break;
+                case InteractionType.PUTOBJBACK:
+                    sExecutor.AddAction(new PutBackAction(sl.LineNumber, name0, instance0));
+                    break;
+                case InteractionType.OPEN:
+                    sExecutor.AddAction(new OpenAction(sl.LineNumber, name0, instance0, false));
+                    break;
+                case InteractionType.CLOSE:
+                    sExecutor.AddAction(new OpenAction(sl.LineNumber, name0, instance0, true));
+                    break;
+                case InteractionType.SPECIAL:
+                    // Ignore
+                    break;
+                default:
+                    throw new ScriptReaderException(string.Format("Unsuported action: {0}, line: {1}", sl.Interaction.ToString(), sl.LineNumber));
+            }
+
+        }
+
+        static IList<ScriptLine> ReadScriptLines(string fileName, ActionEquivalenceProvider actionEquivProvider)
+        {
+            var result = new List<ScriptLine>();
+
+            using (System.IO.StreamReader file = new System.IO.StreamReader(fileName)) {
+                string line;
+                int lineNo = 0;
+
+                while ((line = file.ReadLine()) != null) {
+                    var sl = ParseLine(line, lineNo++, actionEquivProvider);
+
+                    if (sl != null)
+                        result.Add(sl);
+                }
+            }
+            return result;
+        }
+
+        private static ScriptLine ParseLine(string line, int lineNo, ActionEquivalenceProvider actionEquivProvider)
+        {
+            // Line example: 
+            // [Put] <COFFEE FILTER> (1) <COFFE MAKER> (1)
+
+            if (string.IsNullOrEmpty(line) || line[0] != '[')
+                return null;
+
+            IList<Tuple<string, int>> paramList = new List<Tuple<string, int>>();
+
+            string pattAction = @"^\[(\w+)\]";
+            string pattParams = @"<([\w\s]+)>\s*\((\d+)\)";
+
+            Regex r = new Regex(pattAction);
+            Match m = r.Match(line);
+
+            if (!m.Success)
+                throw new ScriptReaderException(string.Format("Can not parse line {0}", line));
+
+            string actionStr = m.Groups[1].Value;
+
+            r = new Regex(pattParams);
+            m = r.Match(line);
+
+            while (m.Success) {
+                paramList.Add(Tuple.Create(m.Groups[1].Value, int.Parse(m.Groups[2].Value)));
+                m = m.NextMatch();
+            }
+
+            if (paramList.Count == 1) {
+                string newActionStr;
+
+                if (actionEquivProvider.TryGetEquivalentAction(actionStr, paramList[0].Item1, out newActionStr))
+                    actionStr = newActionStr;
+            } else if (paramList.Count == 2) {
+                string newActionStr;
+
+                if (actionEquivProvider.TryGetEquivalentAction(actionStr, paramList[0].Item1, paramList[1].Item1, out newActionStr))
+                    actionStr = newActionStr;
+            }
+
+            InteractionType action = (InteractionType)Enum.Parse(typeof(InteractionType), actionStr, true);
+
+            return new ScriptLine() { Interaction = action, Parameters = paramList, LineNumber = lineNo };
+        }
+
+    }
+
+    public class ObjectNameSetSelector : IObjectSelector
+    {
+        ISet<string> objectNames;
+
+        public ObjectNameSetSelector(IEnumerable<string> objectNames)
+        {
+            this.objectNames = new HashSet<string>(objectNames);
+        }
+
+        public bool IsSelectable(GameObject go)
+        {
+            return objectNames.Contains(go.name.ToLower());
+        }
+    }
+
+    // Allows synonyms and forbidden strings
+    public class SynonymSelector : IObjectSelector
+    {
+        private ISet<string> synonyms;
+
+        public SynonymSelector(ISet<string> synonyms)
+        {
+            this.synonyms = synonyms;
+        }
+
+        // Hackish, replace with something more suitable
+        public bool IsSelectable(GameObject go)
+        {
+            // var mKey = TimeMeasurement.Start("SelectObjects");
+
+            List<string> path = go.GetPathNames();
+            int occurrences = 0;
+            bool lastMatches = false;
+
+            // TimeMeasurement.Stop(mKey);
+
+            for (int i = 0; i < path.Count; i++) {
+                if (synonyms.Any(name => Utils.ObjectNameMatches(path[i], name))) {
+                    occurrences++;
+                    if (i == path.Count - 1)
+                        lastMatches = true;
+                }
+            }
+            return lastMatches && occurrences == 1;
+        }
+
+        public bool IsSelectable(string s)
+        {
+            return synonyms.Any(name => Utils.ObjectNameMatches(s, name));
+        }
+
+    }
+
+    // Selects no objects
+    public class EmptySelector : IObjectSelector
+    {
+        public static readonly EmptySelector Instance = new EmptySelector();
+
+        public bool IsSelectable(GameObject go)
+        {
+            return false;
+        }
+    }
+
+    public class FixedObjectSelector : IObjectSelector
+    {
+        private GameObject gameObject;
+
+        public FixedObjectSelector(GameObject gameObject)
+        {
+            this.gameObject = gameObject;
+        }
+
+        public bool IsSelectable(GameObject go)
+        {
+            return go == gameObject;
+        }
+    }
+
+    public class RoomSelector
+    {
+        private readonly static string[] RoomNames = { "bathroom", "kitchen", "livingroom", "bedroom" };
+
+        NameEquivalenceProvider nameEqProvider;
+
+        public RoomSelector(NameEquivalenceProvider nameEqProvider)
+        {
+            this.nameEqProvider = nameEqProvider;
+        }
+
+        // Example: living room -> livingroom, home office -> livingroom, kitchen -> kitchen, livingroom -> livingroom, ...
+        public string CanonicalRoomName(string name)
+        {
+            name = ScriptUtils.TransformClassName(name);
+            foreach (var canonicalRoom in RoomNames) {
+                if (nameEqProvider.IsEquivalent(name, canonicalRoom))
+                    return canonicalRoom;
+            }
+            return null;
+        }
+
+        // Example: living room, kitchen, home office -> true, PRE_FUR_kitchen_01 -> false
+        public bool IsRoomName(string name)
+        {
+            return CanonicalRoomName(name) != null;
+        }
+
+        // Example: PRE_FUR_kitchen_01 -> kitchen, PRE_DEC_bottle_12 -> null
+        public string ExtractRoomName(string objName)
+        {
+            foreach (var canonicalRoom in RoomNames) {
+                if (Utils.ObjectNameMatches(objName, canonicalRoom))
+                    return canonicalRoom;
+            }
+            return null;
+        }
+
+        public SynonymSelector GetRoomSelector(string name)
+        {
+            return new SynonymSelector(nameEqProvider.GetSynonyms(CanonicalRoomName(name)));
+        }
+
+    }
+
+    static class ScriptObjectUtils
+    {
+        public static bool CanOpenOrClose(ScriptObjectData sod, InteractionType it)
+        {
+            if (sod.OpenStatus == OpenStatus.CLOSED && it == InteractionType.CLOSE ||
+                    sod.OpenStatus == OpenStatus.OPEN && it == InteractionType.OPEN) {
+                return false;
+            }
+            return true;
+        }
+    }
+
+    static class Utils
+    {
+        // Example: (PRE_kitchen_01, kitchen) -> true, (PRE_FUR_kitchentable_01, kitchen) -> false
+        public static bool ObjectNameMatches(string objName, string name)
+        {
+            char[] separators = { ' ', '_', '(', ')' };
+            int index = 0;
+
+            while (index < objName.Length && (index = objName.IndexOf(name, index, StringComparison.OrdinalIgnoreCase)) >= 0) {
+                if ((index == 0 || separators.Contains(objName[index - 1])) &&
+                        (index + name.Length >= objName.Length || separators.Contains(objName[index + name.Length])))
+                    return true;
+                index = index + name.Length;
+            }
+            return false;
+        }
+
+        public static void ParseNamePlaceName(string str, out string name, out string roomName)
+        {
+            Regex r = new Regex(@"\[([\w\s]+)\]");
+            Match m = r.Match(str);
+
+            if (m.Success) {
+                roomName = m.Groups[1].Value.ToLower();
+                name = str.Substring(0, m.Groups[0].Index).Trim();
+            } else {
+                roomName = null;
+                name = str.Trim();
+            }
+        }
+
+    }
+}
