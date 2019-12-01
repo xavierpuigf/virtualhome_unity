@@ -199,7 +199,7 @@ public class Patch : Editor
                         }
 
                         // We are done with this prefab so remove it.
-                        if (!keep || !pf.keep)
+                        if (!keep && !pf.keep)
                         {
                           AssetDatabase.MoveAssetToTrash(p_pf_in);
                         }
