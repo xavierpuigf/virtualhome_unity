@@ -103,7 +103,7 @@ public class Patch : Editor
     [System.Serializable]
     public class Dir
     {
-        public string[] path_out;
+        public string[] path_out = null;
         public DirList[] extra_dirs = null;
         public string path_in;
 
@@ -124,10 +124,36 @@ public class Patch : Editor
 
         public void Process(string p_resources)
         {
+            // If path_out isn't given, it's just renaming the prefab.
+            if (path_out == null)
+            {
+                RenamePrefabs();
+                return;
+            }
             string p_base_out = CreateDir(p_resources);
 
             ProcessPrefabs(p_base_out);
             ProcessModels(p_base_out);
+        }
+
+        void RenamePrefabs()
+        {
+            foreach (Prefab pf in prefabs)
+            {
+                if (pf.names_out.Length == 1)
+                {
+                    string p_pf_in = AssembleAssetPath(path_in, pf.name, ".prefab");
+                    string msg = AssetDatabase.RenameAsset(p_pf_in, $"{pf.names_out[0]}.prefab");
+                    if (msg.Length > 0)
+                    {
+                        Debug.LogError(msg);
+                    }
+                }
+                else
+                {
+                    Debug.LogError($"The should be only one names_out for {pf.name}");
+                }
+            }
         }
 
         string CreateDir(string p_resources)
