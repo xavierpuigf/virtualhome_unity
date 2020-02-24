@@ -66,15 +66,18 @@ public class Patch : Editor
     [System.Serializable]
     public class PrefabDirs
     {
-        public Dir[] prefab_dirs;
+        public Dir[] prefab_dirs = null;
         public string package_old_path = null;
         public string package_new_path = null;
 
         public void Process(string path_resources)
         {
-            foreach (Dir d in prefab_dirs)
-            {
-                d.Process(path_resources);
+            if (prefab_dirs != null)
+            {            
+                foreach (Dir d in prefab_dirs)
+                {
+                    d.Process(path_resources);
+                }
             }
 
             AssetDatabase.MoveAsset(package_old_path, package_new_path);
