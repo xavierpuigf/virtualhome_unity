@@ -163,6 +163,21 @@ namespace StoryGenerator
                         response.success = true;
                         response.message = JsonConvert.SerializeObject(cameraData);
                     }
+                } else if (networkRequest.action == "add_camera") {
+                    CameraConfig camera_config = JsonConvert.DeserializeObject<CameraConfig>(networkRequest.stringParams[0]);
+                    String camera_name = cameras.Count().ToString();
+                    GameObject go = new GameObject("new_camera" + camera_name, typeof(Camera));
+                    Camera new_camera = go.GetComponent<Camera>();
+                    new_camera.renderingPath = RenderingPath.UsePlayerSettings;
+                    Vector3 position_vec = camera_config.position;
+                    Vector3 rotation_vec = camera_config.rotation;
+                    go.transform.localPosition = position_vec;
+                    go.transform.localRotation = Quaternion.LookRotation(rotation_vec);
+
+                    cameras.Add(new_camera);
+                    response.message = "New camera created. Id:" + camera_name;
+                    response.success = true;
+
                 } else if (networkRequest.action == "camera_image") {
                     cameraInitializer.Initialize(() => CameraUtils.InitCameras(cameras));
 
@@ -193,11 +208,20 @@ namespace StoryGenerator
                         response.message_list = imgs;
                     }
                 } else if (networkRequest.action == "environment_graph") {
-                    var graphCreator = new EnvironmentGraphCreator(dataProviders);
-                    var graph = graphCreator.CreateGraph(transform);
-                    response.success = true;
-                    response.message = JsonConvert.SerializeObject(graph);
-                    currentGraph = graph;
+                    if (currentGraph == null)
+                    {
+                        var graphCreator = new EnvironmentGraphCreator(dataProviders);
+                        var graph = graphCreator.CreateGraph(transform);
+                        response.success = true;
+                        response.message = JsonConvert.SerializeObject(graph);
+                        currentGraph = graph;
+                    }
+                    else
+                    {
+                        response.success = true;
+                        response.message = JsonConvert.SerializeObject(currentGraph);
+
+                    }
                 } else if (networkRequest.action == "expand_scene") {
                     List<IEnumerator> animationEnumerators = new List<IEnumerator>();
                     Animator animator = character.GetComponent<Animator>();
@@ -425,6 +449,7 @@ namespace StoryGenerator
                     }
                 } else if (networkRequest.action == "reset") {
                     networkRequest.action = "idle"; // return result after scene reload
+                    currentGraph = null;
                     if (networkRequest.intParams?.Count > 0) {
                         int sceneIndex = networkRequest.intParams[0];
 
@@ -474,7 +499,6 @@ namespace StoryGenerator
         {
             recorder.FrameRate = config.frame_rate;
             recorder.imageSynthesis = config.image_synthesis;
-            recorder.captureScreenshot = config.capture_screenshot;
             recorder.savePoseData = config.save_pose_data;
             recorder.saveSceneStates = config.save_scene_states;
             recorder.FileName = config.file_name_prefix;
@@ -678,7 +702,7 @@ namespace StoryGenerator
         public string output_folder = "Output/";
         public string file_name_prefix = "script";
         public int frame_rate = 5;
-        public bool image_synthesis = false;
+        public List<string> image_synthesis = new List<string>();
         public bool capture_screenshot = false;
         public bool save_pose_data = false;
         public bool save_scene_states = false;
@@ -693,6 +717,13 @@ namespace StoryGenerator
         public int image_width = 640;
         public int image_height = 480;
         public string mode = "normal";
+    }
+
+    public class CameraConfig
+    {
+        public Vector3 rotation = new Vector3(0.0f, 0.0f, 0.0f);
+        public Vector3 position = new Vector3(0.0f, 0.0f, 0.0f);
+
     }
 
     public class ExpanderConfig

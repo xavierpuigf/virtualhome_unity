@@ -22,8 +22,7 @@ namespace StoryGenerator.Recording
 
     public class Recorder : MonoBehaviour
     {
-        public bool imageSynthesis = false;
-        public bool captureScreenshot = false;
+        public List <string> imageSynthesis = new List<string>();
         public bool savePoseData = false;
         public bool saveSceneStates = false;
 
@@ -238,15 +237,15 @@ namespace StoryGenerator.Recording
                 yield return new WaitForEndOfFrame();
 
                 if (recording) {
-                    if (imageSynthesis) {
-                        for (int i = 0; i < ImageSynthesis.PASSNAMES.Length; i++) {
+                    for (int i = 0; i < ImageSynthesis.PASSNAMES.Length; i++) {
+                        if (imageSynthesis.Contains(ImageSynthesis.PASSNAMES[i]))
+                        {
                             // Special case for optical flow camera - flow is really high whenver camera changes so it
                             // should just save black image
                             bool isOpticalFlow = (i == ImageSynthesis.PASS_NUM_OPTICAL_FLOW);
                             SaveRenderedFromCam(pathPrefix, i, isOpticalFlow);
                         }
-                    } else if (captureScreenshot) {
-                        SaveRenderedFromCam(pathPrefix, 0, false);
+
                     }
                     if (savePoseData) {
                         UpdatePoseData(frameNum);
