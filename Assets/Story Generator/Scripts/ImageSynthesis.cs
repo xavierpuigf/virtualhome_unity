@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine.PostProcessing;
 
@@ -9,7 +10,7 @@ namespace StoryGenerator.Recording
     [RequireComponent (typeof(Camera))]
     public class ImageSynthesis : MonoBehaviour
     {    
-        public static readonly string[] PASSNAMES = {"normal", "seg_inst", "seg_class", "depth", "flow"};
+        public static readonly string[] PASSNAMES = { "normal", "seg_inst", "seg_class", "depth", "flow", "albedo", "illumination", "surf_normals" };
         public static float OPTICAL_FLOW_SENSITIVITY = 10.0f;
         public const int PASS_NUM_DEPTH = 3;
         public const int PASS_NUM_OPTICAL_FLOW = 4;
@@ -17,14 +18,26 @@ namespace StoryGenerator.Recording
         [HideInInspector]
         public Camera[] m_captureCameras = new Camera[PASSNAMES.Length];
 
-        static Shader m_shader_colorPass;
-        static Shader m_shader_depthPass;
-        static Shader m_shader_opticalFlowPass;
+        static readonly Dictionary<string, string> shader_name_map = new Dictionary<string, string>()
+        {
+            {"seg_inst", "Hidden/UniformColor"},
+            {"seg_class", "Hidden/UniformColor"},
+            {"depth", "Hidden/LinearDepth"},
+            {"flow", "Hidden/OpticalFlow" },
+            {"albedo", "Hidden/Albedo" },
+            {"illumination", "Hidden/Illumination" },
+            {"surf_normals", "Hidden/SurfaceNormal" },
+        };
+        public Dictionary<string, Shader> shaders;
 
         void Start()
         {
             // For more realistic camera
             PostProcessingBehaviour ppb = gameObject.AddComponent<PostProcessingBehaviour> ();
+            if (ppb == null)
+            {
+                ppb = gameObject.AddComponent<PostProcessingBehaviour>();
+            }
             PostProcessingProfile ppp = Resources.Load("CamProfiles/defaultProfile") as PostProcessingProfile;
             Debug.Assert(ppp != null, "Can't find Post Processing Profile.");
             ppb.profile = ppp;
@@ -38,26 +51,28 @@ namespace StoryGenerator.Recording
 
             // HDR should be enabled to fully utilize post processing stack
             m_captureCameras[0].allowHDR = true;
-
-            if (m_shader_colorPass == null)
+            if (shaders == null)
             {
-                m_shader_colorPass = Shader.Find("Hidden/UniformColor");
-            }
-            if (m_shader_depthPass == null)
-            {
-                m_shader_depthPass = Shader.Find("Hidden/LinearDepth");
-            }
-            if (m_shader_opticalFlowPass == null)
-            {
-                m_shader_opticalFlowPass = Shader.Find("Hidden/OpticalFlow");
-            }
+                shaders = new Dictionary<string, Shader>();
+                foreach (string shader_name in shader_name_map.Keys)
+                {
+                    shaders[shader_name] = Shader.Find(shader_name_map[shader_name]);
+                }
 
-            SetupCameraWithReplacementShaderAndBlackBackground(m_captureCameras[1], m_shader_colorPass, 0);
-            SetupCameraWithReplacementShaderAndBlackBackground(m_captureCameras[2], m_shader_colorPass, 1);
 
-            SetupCameraWithPostShader(m_captureCameras[3], m_shader_depthPass, DepthTextureMode.Depth);
-            SetupCameraWithPostShader(m_captureCameras[4], m_shader_opticalFlowPass,
+            }
+            SetupCameraWithReplacementShaderAndBlackBackground(m_captureCameras[1], shaders["seg_inst"], 0);
+            SetupCameraWithReplacementShaderAndBlackBackground(m_captureCameras[2], shaders["seg_class"], 1);
+
+            SetupCameraWithPostShader(m_captureCameras[3], shaders["depth"], DepthTextureMode.Depth);
+            SetupCameraWithPostShader(m_captureCameras[4], shaders["flow"],
               DepthTextureMode.Depth | DepthTextureMode.MotionVectors, "_Sensitivity", OPTICAL_FLOW_SENSITIVITY);
+
+            SetupCameraWithReplacementShader(m_captureCameras[5], shaders["albedo"]);
+            SetupCameraWithReplacementShader(m_captureCameras[6], shaders["illumination"]);
+            SetupCameraWithReplacementShader(m_captureCameras[7], shaders["surf_normals"]);
+
+
         }
         
         Camera CreateHiddenCamera(string name, int targetDisplay)
@@ -71,6 +86,15 @@ namespace StoryGenerator.Recording
             newCamera.targetDisplay = targetDisplay;
 
             return newCamera;
+        }
+
+        static void SetupCameraWithReplacementShader(Camera cam, Shader shader)
+        {
+            var cb = new CommandBuffer();
+            cam.AddCommandBuffer(CameraEvent.AfterEverything, cb);
+            cam.SetReplacementShader(shader, "");
+            cam.backgroundColor = Color.black;
+            cam.clearFlags = CameraClearFlags.SolidColor;
         }
 
         static void SetupCameraWithReplacementShaderAndBlackBackground(Camera cam, Shader shader, int source)
