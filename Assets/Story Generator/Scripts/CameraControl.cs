@@ -30,8 +30,8 @@ namespace StoryGenerator.Utilities
         {
             this.camera = camera;
             CameraUtils.InitCameras(new[] { camera });
-            camera.gameObject.SetActive(true);
-            camera.enabled = true;
+            camera.gameObject.SetActive(false);
+            camera.enabled = false;
         }
 
         public Camera CurrentCamera
@@ -67,6 +67,12 @@ namespace StoryGenerator.Utilities
         {
             CameraUtils.AdjustFrontCharacterCamera(camera);
         }
+        public void Activate(bool activate)
+        {
+            camera.gameObject.SetActive(activate);
+            camera.enabled = activate;
+        }
+
     }
 
     public class FixedCameraControl : ICameraControl
@@ -80,8 +86,8 @@ namespace StoryGenerator.Utilities
         {
             this.camera = camera;
             CameraUtils.InitCameras(new[] { camera });
-            camera.gameObject.SetActive(true);
-            camera.enabled = true;
+            camera.gameObject.SetActive(false);
+            camera.enabled = false;
             initialRotation = camera.transform.localRotation;
         }
 
@@ -128,6 +134,12 @@ namespace StoryGenerator.Utilities
         public void Update()
         {
         }
+        public void Activate(bool activate)
+        {
+            camera.gameObject.SetActive(activate);
+            camera.enabled = activate;
+        }
+
     }
 
     public class AutoCameraControl : ICameraControl
