@@ -59,36 +59,54 @@ namespace StoryGenerator.Utilities
         public double GapPenalty { get; set; } = -1.0;
         public double SimilarityPenalty { get; } = -1000.0;
 
-        public IDictionary<int, EnvironmentObject> Align(EnvironmentGraph graphA, EnvironmentGraph graphB)
+        public IDictionary<int, EnvironmentObject> Align(EnvironmentGraph graphA, EnvironmentGraph graphB, bool exact_alignment)
         {
             IDictionary<int, EnvironmentObject> result = new Dictionary<int, EnvironmentObject>();
             IList<EnvironmentObject> nodesA = graphA.nodes;
             IList<EnvironmentObject> nodesB = graphB.nodes;
-            double[,] F = CalcFMatrix(nodesA, nodesB);
-            int i = nodesA.Count;
-            int j = nodesB.Count;
 
-            while (i > 0 || j > 0) {
-                if (i > 0 && j > 0 && F[i, j] == F[i - 1, j - 1] + NodeSimilarity(nodesA[i - 1], nodesB[j - 1])) {
-                    result[nodesA[i - 1].id] = nodesB[j - 1];
-                    i--;
-                    j--;
-                } else if (i > 0 && F[i, j] == F[i - 1, j] + GapPenalty) {
-                    i--;
-                } else {
-                    j--;
+            if (exact_alignment)
+            {
+                IDictionary<int, EnvironmentObject> nodesBMap = new Dictionary<int, EnvironmentObject>();
+                foreach (EnvironmentObject nodeB in nodesB)
+                {
+                    nodesBMap[nodeB.id] = nodeB;
+                }
+                foreach (EnvironmentObject nodeA in nodesA)
+                {
+                    EnvironmentObject objB;
+                    if (nodesBMap.TryGetValue(nodeA.id, out objB))
+                    {
+                        result[nodeA.id] = objB;
+                    }
                 }
             }
-            // Debug:
-            //string stringA = "";
-            //string stringB = "";
+            else
+            {
+                double[,] F = CalcFMatrix(nodesA, nodesB);
+                int i = nodesA.Count;
+                int j = nodesB.Count;
 
-            //foreach (EnvironmentObject oa in nodesA) {
-            //    stringA += oa.id.ToString().PadLeft(5, ' ');
-
-            //}
-            //Debug.Log("");
-            //
+                while (i > 0 || j > 0)
+                {
+                    if (i > 0 && j > 0 && F[i, j] == F[i - 1, j - 1] + NodeSimilarity(nodesA[i - 1], nodesB[j - 1]))
+                    {
+                        result[nodesA[i - 1].id] = nodesB[j - 1];
+                        i--;
+                        j--;
+                    }
+                    else if (i > 0 && F[i, j] == F[i - 1, j] + GapPenalty)
+                    {
+                        i--;
+                    }
+                    else
+                    {
+                        j--;
+                    }
+                }
+                
+                
+            }
             return result;
         }
 
@@ -134,6 +152,7 @@ namespace StoryGenerator.Utilities
         public bool Randomize { get; set; }
         public bool IgnoreObstacles { get; set; }
         public bool AnimateCharacter { get; set; }
+        public bool TransferTransform { get; set; }
 
         public IDictionary<string, List<string>> AssetsMap { get; set; }
 
@@ -157,31 +176,34 @@ namespace StoryGenerator.Utilities
             return expanderResult;
         }
 
-        public void ExpandScene(Transform transform, EnvironmentGraph graph, EnvironmentGraph sceneGraph, int previousExpandsCount)
+        public void ExpandScene(Transform transform, EnvironmentGraph graph, EnvironmentGraph sceneGraph, int previousExpandsCount, bool exact_alignment = false)
         {
             CreateGraphMaps(graph, out id2ObjectMap, out edgeMap);
             CreateGraphMaps(sceneGraph, out sceneId2ObjectMap, out sceneEdgeMap);
             var tm = TimeMeasurement.Start("alignment");
-            alignment = new GraphObjectAlignment(dataProviders.NameEquivalenceProvider).Align(graph, sceneGraph);
+            alignment = new GraphObjectAlignment(dataProviders.NameEquivalenceProvider).Align(graph, sceneGraph, exact_alignment);
             TimeMeasurement.Stop(tm);
             Debug.Log("alignment took: " + TimeMeasurement.PrintResults());
             roomObjectsMap = CreateRoomObjectsMap(graph);
             expanderResult = new SceneExpanderResult();
 
             try {
-                DoExpandScene(transform, graph, sceneGraph);
+                DoExpandScene(transform, graph, sceneGraph, exact_alignment);
             } catch (ExpanderException e) {
                 expanderResult.AddItem(FATAL, e.Message);
             }
         }
 
-        private void DoExpandScene(Transform transform, EnvironmentGraph graph, EnvironmentGraph sceneGraph)
+        private void DoExpandScene(Transform transform, EnvironmentGraph graph, EnvironmentGraph sceneGraph, bool exact_alignment=false)
         {
             // Detect missing objects and invalid class ids
             List<EnvironmentObject> missingObjects = new List<EnvironmentObject>();
 
             EnvironmentObject characterObject = null;
             EnvironmentObject sceneCharacterObject = null;
+
+            // For which objects we found a maching transformation
+            List<int> id_transformed = new List<int>();
 
             foreach (EnvironmentObject obj in graph.nodes) {
                 if (obj.class_name == "character")
@@ -196,14 +218,30 @@ namespace StoryGenerator.Utilities
                     if (sceneObj.class_name == "character") {
                         sceneCharacterObject = sceneObj;
                     }
+
+                    if (this.TransferTransform && obj.obj_transform != null && obj.prefab_name == sceneObj.prefab_name)
+                    {
+                        sceneObj.transform.position = obj.obj_transform.GetPosition();
+                        sceneObj.transform.rotation = obj.obj_transform.GetRotation();
+                        sceneObj.bounding_box = ObjectBounds.FromGameObject(sceneObj.transform.gameObject);
+                        id_transformed.Add(obj.id);
+                    }
+
                     obj.transform = sceneObj.transform;
+                    obj.prefab_name = sceneObj.prefab_name;
+                    obj.bounding_box = sceneObj.bounding_box;
                 }
             }
 
             // Report unaligned objects (ids) from graph
-            foreach (var e in id2ObjectMap) {
-                if (!alignment.ContainsKey(e.Key) && e.Key < NEW_OBJECT_ID) {
-                    expanderResult.AddItem(UNALIGNED_IDS, e.Key);
+            if (!exact_alignment)
+            {
+                foreach (var e in id2ObjectMap)
+                {
+                    if (!alignment.ContainsKey(e.Key) && e.Key < NEW_OBJECT_ID)
+                    {
+                        expanderResult.AddItem(UNALIGNED_IDS, e.Key);
+                    }
                 }
             }
 
@@ -213,25 +251,105 @@ namespace StoryGenerator.Utilities
             idsToRemove.ExceptWith(alignedSceneObjects);
 
             foreach (int id in idsToRemove) {
-                sceneId2ObjectMap[id].transform.gameObject.SetActive(false);
+                try
+                {
+                    sceneId2ObjectMap[id].transform.gameObject.SetActive(false);
+                }
+                catch
+                {
+                    EnvironmentObject aux = sceneId2ObjectMap[id];
+                    Debug.Log("ERROR");
+                }
+                
             }
 
             // Add missing objects
             foreach (EnvironmentObject obj in missingObjects) {
-                // Put inside
-                if (HandleCreateInside(obj))
-                    continue;
+                // Check if object transformation is available
 
-                // Put on
-                if (HandleCreateOn(obj))
-                    continue;
+                bool object_inst = false;
+                if (obj.prefab_name != null && this.TransferTransform)
+                {
+                    GameObject loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(obj.prefab_name)) as GameObject;
+                    if (loadedObj == null)
+                    {
+                        List<string> names = dataProviders.NameEquivalenceProvider.GetEquivalentNames(obj.class_name);
+                        if (names.Count > 0)
+                        {
+                            List<string> fileNames;
+                            if (TryGetAssets(names[0], out fileNames))
+                            {
 
-                // Put inside
-                if (!edgeMap.ContainsKey(Tuple.Create(obj.id, ObjectRelation.ON))) {
-                    if (HandleCreateInsideRoom(obj))
-                        continue;
+                                loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(fileNames[0])) as GameObject;
+                            }
+                        }
+
+                    }
+                    if (loadedObj != null)
+                    {
+
+                        List<EnvironmentObject> objectsInRelation;
+                        if (edgeMap.TryGetValue(Tuple.Create(obj.id, ObjectRelation.INSIDE), out objectsInRelation))
+                        {
+                            if (loadedObj != null && GameObjectUtils.GetCollider(loadedObj) != null)
+                            {
+                                Transform destObjRoom = GameObjectUtils.GetRoomTransform(objectsInRelation[0].transform);
+                                GameObject newGo = UnityEngine.Object.Instantiate(loadedObj, destObjRoom) as GameObject;
+                                newGo.name = loadedObj.name;
+                                if (obj.obj_transform == null)
+                                {
+                                    if (obj.bounding_box == null)
+                                        object_inst = false;
+                                    else
+                                    {
+                                        // Set position based on bounding box
+                                        ObjectBounds lo = ObjectBounds.FromGameObject(newGo);
+                                        Vector3 loc = new Vector3(lo.center[0], lo.center[1], lo.center[2]);
+                                        Vector3 objc = new Vector3(obj.bounding_box.center[0], obj.bounding_box.center[1], obj.bounding_box.center[2]);
+                                        newGo.transform.position = newGo.transform.position - loc + objc;
+                                        object_inst = true;
+                                        ColorEncoding.EncodeGameObject(newGo);
+                                    }
+
+                                }
+                                else
+                                {
+                                    Vector3 position = obj.obj_transform.GetPosition();
+                                    Quaternion rotation = obj.obj_transform.GetRotation();
+                                    newGo.transform.position = position;
+                                    newGo.transform.rotation = rotation;
+                                    object_inst = true;
+
+                                    ColorEncoding.EncodeGameObject(newGo);
+                                }
+
+                            }
+                        }
+                    }
                 }
-                expanderResult.AddItem(UNPLACED, obj.class_name);
+
+
+
+                if (!object_inst)
+                {
+                    // Put inside
+
+                    if (HandleCreateInside(obj))
+                        continue;
+
+                    // Put on
+                    if (HandleCreateOn(obj))
+                        continue;
+
+                    // Put inside
+                    if (!edgeMap.ContainsKey(Tuple.Create(obj.id, ObjectRelation.ON)))
+                    {
+                        if (HandleCreateInsideRoom(obj))
+                            continue;
+                    }
+                    expanderResult.AddItem(UNPLACED, obj.class_name);
+                }
+
             }
 
             List<EnvironmentObject> heldObjsLH = GetObjectsInRelation(edgeMap, characterObject, ObjectRelation.HOLDS_LH);
@@ -258,30 +376,55 @@ namespace StoryGenerator.Utilities
                 List<EnvironmentObject> objsInRelation;
                 List<EnvironmentObject> sceneObjsInRelation;
 
-                // "ON"
-                objsInRelation = GetObjectsInRelation(edgeMap, obj, ObjectRelation.ON);
-                sceneObjsInRelation = GetObjectsInRelation(sceneEdgeMap, obj, ObjectRelation.ON);
+                bool object_inst = false;
+                if (this.TransferTransform)
+                {
+                    if (id_transformed.Contains(obj.id))
+                    {
+                        object_inst = true;
+                        List<EnvironmentObject> objectsInRelation;
+                        if (edgeMap.TryGetValue(Tuple.Create(obj.id, ObjectRelation.INSIDE), out objectsInRelation))
+                        {
+                            Transform destObjRoom = GameObjectUtils.GetRoomTransform(objectsInRelation[0].transform);
+                            obj.transform.SetParent(destObjRoom);
 
-                if (HandleOnPlacing(obj, objsInRelation, sceneObjsInRelation))
-                    continue;
 
-                // "HOLDS_LH"
-                if (HandleHoldsPlacing(ObjectRelation.HOLDS_LH, characterObject, obj, heldObjsLH, heldSceneObjsLH))
-                    continue;
+                        }
+                    }
+                }
 
-                // "HOLDS_RH"
-                if (HandleHoldsPlacing(ObjectRelation.HOLDS_RH, characterObject, obj, heldObjsRH, heldSceneObjsRH))
-                    continue;
+                if (!object_inst)
+                {
 
-                // "INSIDE"
-                objsInRelation = GetObjectsInRelation(edgeMap, obj, ObjectRelation.INSIDE);
-                sceneObjsInRelation = GetObjectsInRelation(sceneEdgeMap, obj, ObjectRelation.INSIDE);
+                    // "ON"
+                    objsInRelation = GetObjectsInRelation(edgeMap, obj, ObjectRelation.ON);
+                    sceneObjsInRelation = GetObjectsInRelation(sceneEdgeMap, obj, ObjectRelation.ON);
 
-                if (obj.Equals(characterObject)) {
-                    HandleCharacterInsidePlacing(obj, objsInRelation, sceneObjsInRelation, GetObjectsInRelation(edgeMap, obj, ObjectRelation.CLOSE),
-                        GetObjectsInRelation(sceneEdgeMap, obj, ObjectRelation.CLOSE));
-                } else {
-                    HandleInsidePlacing(obj, objsInRelation, sceneObjsInRelation);
+                    if (HandleOnPlacing(obj, objsInRelation, sceneObjsInRelation))
+                        continue;
+
+                    if (characterObject != null)
+                    {
+                        // "HOLDS_LH"
+                        if (HandleHoldsPlacing(ObjectRelation.HOLDS_LH, characterObject, obj, heldObjsLH, heldSceneObjsLH))
+                            continue;
+
+                        // "HOLDS_RH"
+                        if (HandleHoldsPlacing(ObjectRelation.HOLDS_RH, characterObject, obj, heldObjsRH, heldSceneObjsRH))
+                            continue;
+                    }
+
+                    // "INSIDE"
+                    objsInRelation = GetObjectsInRelation(edgeMap, obj, ObjectRelation.INSIDE);
+                    sceneObjsInRelation = GetObjectsInRelation(sceneEdgeMap, obj, ObjectRelation.INSIDE);
+
+                    if (characterObject != null && obj.Equals(characterObject))
+                    {
+                        HandleCharacterInsidePlacing(obj, objsInRelation, sceneObjsInRelation, GetObjectsInRelation(edgeMap, obj, ObjectRelation.CLOSE),
+                            GetObjectsInRelation(sceneEdgeMap, obj, ObjectRelation.CLOSE));
+                    } else {
+                        HandleInsidePlacing(obj, objsInRelation, sceneObjsInRelation);
+                    }
                 }
             }
             
@@ -293,7 +436,7 @@ namespace StoryGenerator.Utilities
 
                 if (obj.transform == null) {
                     if (!obj.states.SetEquals(alignment[obj.id].states)) {
-                        expanderResult.AddItem(MISSING_INT, obj.class_name);
+                        expanderResult.AddItem(MISSING_INT, obj.class_name + "." + obj.id.ToString());
                     }
                     continue;
                 }
@@ -331,7 +474,7 @@ namespace StoryGenerator.Utilities
                             return true;
                         }
                     } else {
-                        expanderResult.AddItem(MISSING_DEST, obj2.class_name);
+                        expanderResult.AddItem(MISSING_DEST, obj2.class_name + "." + obj2.id.ToString());
                         // Debug.Log($"Cannot find {obj2.class_name} to put {obj.class_name} on it");
                     }
                 }
@@ -353,7 +496,7 @@ namespace StoryGenerator.Utilities
                                 return true;
                             }
                         } else {
-                            expanderResult.AddItem(MISSING_DEST, obj2.class_name);
+                            expanderResult.AddItem(MISSING_DEST, obj2.class_name + "." + obj2.id.ToString());
                             // Debug.Log($"Cannot find {obj2.class_name} to put {obj.class_name} inside it");
                         }
                     }
@@ -402,7 +545,11 @@ namespace StoryGenerator.Utilities
             if (intersection.Count() > 0 || objsInRelation.Count == 0)
                 return;
 
-            MoveObject(true, obj, objsInRelation[0]); // TODO: what happens if no place?
+            if (!MoveObject(true, obj, objsInRelation[0]))
+            {
+                new ExpanderException(true, "Object " + obj.class_name + " cannot be placed");
+                // TODO: what happens if no place?
+            }
         }
 
         private void HandleCharacterInsidePlacing(EnvironmentObject obj, List<EnvironmentObject> objsInRelation, List<EnvironmentObject> sceneObjsInRelation,
@@ -442,7 +589,7 @@ namespace StoryGenerator.Utilities
                 }
             }
 
-            List<Vector3> positions = GameObjectUtils.CalculateCharacterPositions(center, obj.transform.gameObject, roomBounds);
+            List<Vector3> positions = GameObjectUtils.CalculateDestinationPositions(center, obj.transform.gameObject, roomBounds);
 
             if (positions.Count > 0) {
                 if (AnimateCharacter) {
@@ -532,11 +679,31 @@ namespace StoryGenerator.Utilities
                 // ObjectState oppositeInitialOpenableState = ObjectState.OPEN;
 
                 if (obj.states.Contains(ObjectState.OPEN) && sceneStates.Contains(ObjectState.CLOSED) ||
-                        obj.states.Contains(ObjectState.CLOSED) && sceneStates.Contains(ObjectState.OPEN)) {
-                    foreach (HandInteraction.ActivationSwitch asw in hi.switches) {
-                        if (asw.action == HandInteraction.ActivationAction.Open) {
-                            if (asw.transitionSequences?.Count > 0 && asw.transitionSequences[0].transitions?.Count > 0) {
-                                asw.transitionSequences[0].transitions[0].Flip();
+                        obj.states.Contains(ObjectState.CLOSED) && sceneStates.Contains(ObjectState.OPEN))
+                {
+                    foreach (HandInteraction.ActivationSwitch asw in hi.switches)
+                    {
+                        if (asw.action == HandInteraction.ActivationAction.Open)
+                        {
+                            if (asw.transitionSequences?.Count > 0 && asw.transitionSequences[0].transitions?.Count > 0)
+                            {
+                                //
+                                //asw.transitionSequences
+                                //asw.UpdateStateObject();
+                                if (obj.states.Contains(ObjectState.OPEN))
+                                {
+                                    alignment[obj.id].states.Remove(Utilities.ObjectState.CLOSED);
+                                    alignment[obj.id].states.Add(Utilities.ObjectState.OPEN);
+                                    asw.transitionSequences[0].transitions[0].Flip();
+                                }
+
+                                else
+                                {
+                                    alignment[obj.id].states.Remove(Utilities.ObjectState.OPEN);
+                                    alignment[obj.id].states.Add(Utilities.ObjectState.CLOSED);
+                                    asw.transitionSequences[0].transitions[1].Flip();
+                                }
+
                                 break;
                             }
                         }
@@ -547,11 +714,29 @@ namespace StoryGenerator.Utilities
                 // ObjectState opositeInitialSwitchedState = EnvironmentGraphCreator.DEFAULT_ON_OBJECTS.Contains(obj.class_name) ? ObjectState.OFF : ObjectState.ON;
 
                 if (obj.states.Contains(ObjectState.ON) && sceneStates.Contains(ObjectState.OFF) ||
-                        obj.states.Contains(ObjectState.OFF) && sceneStates.Contains(ObjectState.ON)) {
-                    foreach (HandInteraction.ActivationSwitch asw in hi.switches) {
-                        if (asw.action == HandInteraction.ActivationAction.SwitchOn) {
-                            if (asw.transitionSequences?.Count > 0 && asw.transitionSequences[0].transitions?.Count > 0) {
-                                foreach (HandInteraction.TransitionSequence ts in asw.transitionSequences) {
+                        obj.states.Contains(ObjectState.OFF) && sceneStates.Contains(ObjectState.ON))
+                {
+
+                    if (obj.states.Contains(ObjectState.OFF))
+                    {
+
+                        alignment[obj.id].states.Remove(Utilities.ObjectState.ON);
+                        alignment[obj.id].states.Add(Utilities.ObjectState.OFF);
+                    }
+                    else
+                    {
+                        alignment[obj.id].states.Remove(Utilities.ObjectState.OFF);
+                        alignment[obj.id].states.Add(Utilities.ObjectState.ON);
+                    }
+
+                    foreach (HandInteraction.ActivationSwitch asw in hi.switches)
+                    {
+                        if (asw.action == HandInteraction.ActivationAction.SwitchOn)
+                        {
+                            if (asw.transitionSequences?.Count > 0 && asw.transitionSequences[0].transitions?.Count > 0)
+                            {
+                                foreach (HandInteraction.TransitionSequence ts in asw.transitionSequences)
+                                {
                                     ts.transitions[0].Flip();
                                 }
                                 break;
@@ -758,16 +943,27 @@ namespace StoryGenerator.Utilities
         private bool PlaceObject(bool inside, string className, string prefabFile, EnvironmentObject destObj, Vector3 centerDelta, out GameObject newGo)
         {
             GameObject loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(prefabFile)) as GameObject;
-
+            if (loadedObj == null)
+            {
+                newGo = null;
+                return false;
+            }
             if (GameObjectUtils.GetCollider(loadedObj) == null) {
                 // If there are no colliders on destination object
                 newGo = null;
                 return false;
             }
+            List<Vector3> positions = new List<Vector3>();
 
-            List<Vector3> positions = GameObjectUtils.CalculatePutPositions(destObj.bounding_box.bounds.center + centerDelta, loadedObj,
-                destObj.transform.gameObject, inside, IgnoreObstacles);
-
+            try
+            {
+                positions = GameObjectUtils.CalculatePutPositions(destObj.bounding_box.bounds.center + centerDelta, loadedObj,
+                    destObj.transform.gameObject, inside, IgnoreObstacles);
+            }
+            catch (Exception e)
+            {
+                throw new ExpanderException(true, "Bounds of object " + destObj.class_name + " are not defined when placing " + className);
+            }
             if (positions.Count == 0) {
                 newGo = null;
                 return false;
@@ -785,11 +981,11 @@ namespace StoryGenerator.Utilities
         private bool MoveObject(bool inside, EnvironmentObject srcObject, EnvironmentObject destObj)
         {
             if (srcObject.transform == null) {
-                expanderResult.AddItem(MISSING_INT, srcObject.class_name);
+                expanderResult.AddItem(MISSING_INT, srcObject.class_name + "." + srcObject.id.ToString());
                 return false;
             }
             if (destObj.transform == null) {
-                expanderResult.AddItem(MISSING_INT, destObj.class_name);
+                expanderResult.AddItem(MISSING_INT, destObj.class_name + "." + srcObject.id.ToString());
                 return false;
             }
 
@@ -823,6 +1019,8 @@ namespace StoryGenerator.Utilities
         public const string FRONT_CHARACTER_CAMERA_NAME = "Character_Camera_Front";
         public const string TOP_CHARACTER_CAMERA_NAME = "Character_Camera_Top";
         public const string FORWARD_VIEW_CAMERA_NAME = "Character_Camera_Fwd";
+        public const string FROM_BACK_CAMERA_NAME = "Character_Camera_FBack";
+        public const string FROM_LEFT_CAMERA_NAME = "Character_Camera_FLeft";
 
         public static List<Camera> AddRoomCameras(Transform transform)
         {
@@ -841,79 +1039,165 @@ namespace StoryGenerator.Utilities
             return newCameras;
         }
 
-        public static List<Camera> AddCharacterCameras(GameObject character, Transform transform)
+        public static List<Camera> AddCharacterCameras(GameObject character, Transform transform, string cameraName)
         {
             List<Camera> newCameras = new List<Camera>();
 
-            // Top-view camera
-            GameObject go = new GameObject(TOP_CHARACTER_CAMERA_NAME, typeof(Camera));
-            Camera camera = go.GetComponent<Camera>();
-            camera.renderingPath = RenderingPath.UsePlayerSettings;
+            switch (cameraName)
+            {
+                case FORWARD_VIEW_CAMERA_NAME:
+                    {
+                        // Forward-view camera
+                        GameObject go = new GameObject(FORWARD_VIEW_CAMERA_NAME, typeof(Camera));
+                        Camera camera = go.GetComponent<Camera>();
+                        camera.renderingPath = RenderingPath.UsePlayerSettings;
 
-            // go.hideFlags = HideFlags.HideAndDontSave;
-            go.transform.parent = character.transform;
-            go.transform.localPosition = new Vector3(0, 4.5f, 0);
-            go.transform.localRotation = Quaternion.LookRotation(Vector3.down);
+                        // go.hideFlags = HideFlags.HideAndDontSave;
+                        go.transform.parent = character.transform;
+                        go.transform.localPosition = new Vector3(0, 1.8f, 0.15f);
+                        go.transform.localRotation = Quaternion.Euler(20, 0, 0);
 
-            newCameras.Add(camera);
+                        newCameras.Add(camera);
+                    }
+                    break;
+                case TOP_CHARACTER_CAMERA_NAME:
+                    {
+                        // Top-view camera
+                        GameObject go = new GameObject(TOP_CHARACTER_CAMERA_NAME, typeof(Camera));
+                        Camera camera = go.GetComponent<Camera>();
+                        camera.renderingPath = RenderingPath.UsePlayerSettings;
 
-            // Forward-view camera
-            go = new GameObject(FORWARD_VIEW_CAMERA_NAME, typeof(Camera));
-            camera = go.GetComponent<Camera>();
-            camera.renderingPath = RenderingPath.UsePlayerSettings;
+                        // go.hideFlags = HideFlags.HideAndDontSave;
+                        go.transform.parent = character.transform;
+                        go.transform.localPosition = new Vector3(0, 4.5f, 0);
+                        go.transform.localRotation = Quaternion.LookRotation(Vector3.down);
 
-            // go.hideFlags = HideFlags.HideAndDontSave;
-            go.transform.parent = character.transform;
-            go.transform.localPosition = new Vector3(0, 1.8f, 0.3f);
-            go.transform.localRotation = Quaternion.Euler(20, 0, 0);
+                        newCameras.Add(camera);
+                    }
+                    break;
+                case FROM_BACK_CAMERA_NAME:
+                    {
+                        // Top-view camera
+                        GameObject go = new GameObject(FROM_BACK_CAMERA_NAME, typeof(Camera));
+                        Camera camera = go.GetComponent<Camera>();
 
-            newCameras.Add(camera);
+                        camera.renderingPath = RenderingPath.UsePlayerSettings;
 
-            // Right-view camera
-            go = new GameObject("Character_Camera_3", typeof(Camera));
-            camera = go.GetComponent<Camera>();
+                        //// go.hideFlags = HideFlags.HideAndDontSave;
+                        //go.AddComponent(typeof(CameraFollow));
+                        //go.GetComponent<CameraFollow>().target = character.transform;
+                        //go.GetComponent<CameraFollow>().offset_pos = new Vector3(0, 2.0f, -1.2f);
+                        //go.GetComponent<CameraFollow>().offset_rot = Quaternion.Euler(20, 0, 0);
 
-            go.hideFlags = HideFlags.HideAndDontSave;
-            go.transform.parent = character.transform;
-            go.transform.localPosition = new Vector3(0, 1.8f, 0.3f);
-            go.transform.localRotation = Quaternion.Euler(20, 90, 0);
+                        go.transform.parent = character.transform;
+                        go.transform.localPosition = new Vector3(0, 2.0f, -1.2f);
+                        go.transform.localRotation = Quaternion.Euler(20, 0, 0);
 
-            newCameras.Add(camera);
+                        //go.transform.localPosition = new Vector3(-1.4f, 1.7f, 1.0f);
+                        //go.transform.localRotation = Quaternion.Euler(20, 120, 0);
 
-            // Left-view camera
-            go = new GameObject("Character_Camera_4", typeof(Camera));
-            camera = go.GetComponent<Camera>();
 
-            go.hideFlags = HideFlags.HideAndDontSave;
-            go.transform.parent = character.transform;
-            go.transform.localPosition = new Vector3(0, 1.8f, 0.3f);
-            go.transform.localRotation = Quaternion.Euler(20, -90, 0);
+                        newCameras.Add(camera);
+                    }
+                    break;
+                case FROM_LEFT_CAMERA_NAME:
+                    {
+                        // Top-view camera
+                        GameObject go = new GameObject(FROM_LEFT_CAMERA_NAME, typeof(Camera));
+                        Camera camera = go.GetComponent<Camera>();
+                        camera.renderingPath = RenderingPath.UsePlayerSettings;
 
-            newCameras.Add(camera);
+                        // go.hideFlags = HideFlags.HideAndDontSave;
+                        go.transform.parent = character.transform;
 
-            // Back-view camera
-            go = new GameObject("Character_Camera_5", typeof(Camera));
-            camera = go.GetComponent<Camera>();
 
-            go.hideFlags = HideFlags.HideAndDontSave;
-            go.transform.parent = character.transform;
-            go.transform.localPosition = new Vector3(0, 1.8f, -0.3f);
-            go.transform.localRotation = Quaternion.Euler(20, 180, 0);
-            newCameras.Add(camera);
-            // Front-view camera
-            go = new GameObject(FRONT_CHARACTER_CAMERA_NAME, typeof(Camera));
-            camera = go.GetComponent<Camera>();
-            camera.renderingPath = RenderingPath.UsePlayerSettings;
+                        go.transform.localPosition = new Vector3(-0.7f, 1.9f, 0.6f);
+                        go.transform.localRotation = Quaternion.Euler(32, 120, 0);
 
-            // go.hideFlags = HideFlags.HideAndDontSave;
-            go.transform.parent = character.transform;
 
-            // Temporary, will be changed when requested
-            go.transform.localPosition = 1.5f * Vector3.forward;
-            go.transform.localRotation = Quaternion.LookRotation(Vector3.back);
+                        newCameras.Add(camera);
+                    }
+                    break;
 
-            newCameras.Add(camera);
+                default:
+                    {
+                        // Top-view camera
+                        GameObject go = new GameObject(TOP_CHARACTER_CAMERA_NAME, typeof(Camera));
+                        Camera camera = go.GetComponent<Camera>();
+                        camera.renderingPath = RenderingPath.UsePlayerSettings;
 
+                        // go.hideFlags = HideFlags.HideAndDontSave;
+                        go.transform.parent = character.transform;
+                        go.transform.localPosition = new Vector3(0, 4.5f, 0);
+                        go.transform.localRotation = Quaternion.LookRotation(Vector3.down);
+
+                        newCameras.Add(camera);
+
+                        // Forward-view camera
+                        go = new GameObject(FORWARD_VIEW_CAMERA_NAME, typeof(Camera));
+                        camera = go.GetComponent<Camera>();
+                        camera.renderingPath = RenderingPath.UsePlayerSettings;
+                        camera.nearClipPlane = 0.1f;
+
+                        // go.hideFlags = HideFlags.HideAndDontSave;
+                        go.transform.parent = character.transform;
+                        go.transform.localPosition = new Vector3(0, 1.8f, 0.15f);
+                        go.transform.localRotation = Quaternion.Euler(20, 0, 0);
+
+                        newCameras.Add(camera);
+
+                        // Right-view camera
+                        go = new GameObject("Character_Camera_right", typeof(Camera));
+                        camera = go.GetComponent<Camera>();
+
+                        go.hideFlags = HideFlags.HideAndDontSave;
+                        go.transform.parent = character.transform;
+                        go.transform.localPosition = new Vector3(0, 1.8f, 0.3f);
+                        go.transform.localRotation = Quaternion.Euler(20, 90, 0);
+
+                        newCameras.Add(camera);
+
+                        // Left-view camera
+                        go = new GameObject("Character_Camera_left", typeof(Camera));
+                        camera = go.GetComponent<Camera>();
+
+                        go.hideFlags = HideFlags.HideAndDontSave;
+                        go.transform.parent = character.transform;
+                        go.transform.localPosition = new Vector3(0, 1.8f, 0.3f);
+                        go.transform.localRotation = Quaternion.Euler(20, -90, 0);
+
+                        newCameras.Add(camera);
+
+                        // Back-view camera
+                        go = new GameObject("Character_Camera_back", typeof(Camera));
+                        camera = go.GetComponent<Camera>();
+
+                        go.hideFlags = HideFlags.HideAndDontSave;
+                        go.transform.parent = character.transform;
+                        go.transform.localPosition = new Vector3(0, 1.8f, -0.3f);
+                        go.transform.localRotation = Quaternion.Euler(20, 180, 0);
+                        newCameras.Add(camera);
+
+                        // Front-view camera
+                        go = new GameObject(FRONT_CHARACTER_CAMERA_NAME, typeof(Camera));
+                        camera = go.GetComponent<Camera>();
+                        camera.renderingPath = RenderingPath.UsePlayerSettings;
+
+                        // go.hideFlags = HideFlags.HideAndDontSave;
+                        go.transform.parent = character.transform;
+
+                        // Temporary, will be changed when requested
+                        go.transform.localPosition = 1.5f * Vector3.forward;
+                        go.transform.localRotation = Quaternion.LookRotation(Vector3.back);
+
+                        newCameras.Add(camera);
+                    }
+                    break;
+            }
+            for (int i = 0; i < newCameras.Count; i++)
+            {
+                newCameras[i].enabled = false;
+            }
             return newCameras;
         }
 

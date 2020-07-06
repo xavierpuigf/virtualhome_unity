@@ -48,7 +48,10 @@ namespace StoryGenerator.Utilities
             if (CheckBounds_nmo(go, ref bnd)) return bnd;
             if (CheckBounds_collider(go, ref bnd)) return bnd;
             if (CheckBounds_renderer(go, ref bnd)) return bnd;
-            if (CheckBounds_childCollider(go, ref bnd)) return bnd;
+            if (!go.name.Contains("Male") && !go.name.Contains("male"))
+            {
+                if (CheckBounds_childCollider(go, ref bnd)) return bnd;
+            }
             if (CheckBounds_childRenderer(go, ref bnd)) return bnd;
 
             // If it reaches here, it's impossible to get the size of the bounds.
@@ -87,21 +90,32 @@ namespace StoryGenerator.Utilities
         private static bool CheckBounds_childCollider(GameObject go, ref Bounds bnd)
         {
             BoxCollider[] bcs = go.GetComponentsInChildren<BoxCollider>();
-            if (bcs != null && bcs.Length != 0) {
-                Bounds maxBounds = new Bounds();
-                foreach (BoxCollider bc in bcs) {
+            if (bcs != null && bcs.Length != 0)
+            {
+                bnd = new Bounds();
+                foreach (BoxCollider bc in bcs)
+                {
                     Bounds curBounds = CreateBounds(bc.gameObject, bc.center, bc.size);
-                    if (Helpers.Helper.IsFirstV3GtrThanSecondV3(maxBounds.size, curBounds.size)) {
-                        maxBounds = curBounds;
-                    }
+                    if (bnd.size == Vector3.zero)
+                        bnd = curBounds;
+                    else
+                        bnd.Encapsulate(curBounds);
+
+                    //if (Helpers.Helper.IsFirstV3GtrThanSecondV3(curBounds.size, maxBounds.size)) {
+                    //    maxBounds = curBounds;
+                    //}
                 }
-                if (maxBounds.size != Vector3.zero) {
-                    bnd = maxBounds;
+
+
+                if (bnd.size != Vector3.zero)
+                {
+                    //bnd = maxBounds;
                     return true;
                 }
             }
 
             return false;
+
         }
 
         private static bool CheckBounds_renderer(GameObject go, ref Bounds bnd)
@@ -118,11 +132,15 @@ namespace StoryGenerator.Utilities
         private static bool CheckBounds_childRenderer(GameObject go, ref Bounds bnd)
         {
             Renderer[] rdrs = go.GetComponentsInChildren<Renderer>();
-            if (rdrs != null && rdrs.Length != 0) {
-                foreach (Renderer r in rdrs) {
-                    if (Helpers.Helper.IsFirstV3GtrThanSecondV3(r.bounds.size, bnd.size)) {
+            bnd = new Bounds();
+            if (rdrs != null && rdrs.Length != 0)
+            {
+                foreach (Renderer r in rdrs)
+                {
+                    if (bnd.size == Vector3.zero)
                         bnd = r.bounds;
-                    }
+                    else
+                        bnd.Encapsulate(r.bounds);
                 }
                 if (bnd.extents != Vector3.zero) return true;
             }
@@ -147,6 +165,47 @@ namespace StoryGenerator.Utilities
             return size_world;
         }
 
+        public static List<Vector3> GetWalkLocation(Vector3[] points, out Vector3 current_point, out Vector3? lookAt, float walk_distance = 1.0f)
+        {
+            float WALK_DISTANCE = walk_distance;
+            float cum_distance = 0.0f;
+            current_point = points[0];
+            Vector3 last_point;
+            int index = 1;
+            while (cum_distance < WALK_DISTANCE && index < points.Length)
+            {
+                float distance_points = Vector3.Distance(current_point, points[index]);
+                cum_distance += distance_points;
+                last_point = current_point;
+                current_point = points[index];
+                if (cum_distance > WALK_DISTANCE)
+                {
+                    // Debug.Log($"walked over");
+                    float overwalked = cum_distance - WALK_DISTANCE;
+                    float alpha = overwalked / distance_points;
+                    current_point = Vector3.Lerp(last_point, points[index], 1 - alpha);
+                    // Debug.Log($"walk pos calculated with walkover {current_point}");
+                    // Debug.Log($"current corner: {points[index]}");
+                    break;
+                }
+                index += 1;
+            }
+            if (index < points.Length)
+            {
+                lookAt = points[index];
+            }
+            else
+            {
+                lookAt = null;
+            }
+            List<Vector3> path_list = new List<Vector3>();
+            path_list.AddRange(points);
+            path_list[index - 1] = current_point;
+            path_list.RemoveRange(0, index - 1);
+            return path_list;
+
+        }
+
         public static List<Vector3> CalculatePutPositions(Vector3 intPos, GameObject go, GameObject goDest, bool putInside,
             bool ignoreObstacles)
         {
@@ -158,17 +217,40 @@ namespace StoryGenerator.Utilities
             bool putInside, bool ignoreObstacles)
         {
             // "Optimal" distance from character to search for space (0.5 meters)
-            const float putCenterDistance = 0.5f;
+            Bounds destBounds = GetBounds(goDest);
+            Vector3 dir = destBounds.center - intPos;
+            bool is_expanding_scene = dir.magnitude == 0;
+            float min_center_distance = 0.0f;
+            float putCenterDistance = 0.5f;
+
+            if (!putInside)
+            {
+
+                float smaller_surface_radius = Math.Min(destBounds.extents.x, destBounds.extents.z);
+                float max_object_radius = Math.Max(srcBounds.extents.x, srcBounds.extents.z);
+
+                if (is_expanding_scene)
+                {
+                    min_center_distance = Math.Max(smaller_surface_radius - 1.0f - max_object_radius, 0.0f);
+                    putCenterDistance = 1.5f;
+                }
+                else
+                {
+                    // this is center ditance form character
+                    min_center_distance = 0.0f;
+                    putCenterDistance = 0.7f;
+                }
+
+            }
+
             // Factor to put object into goDest
             const float putInDirFactor = 0.9f;
 
             List<Vector3> result = new List<Vector3>();
-            Bounds destBounds = GetBounds(goDest);
-
+            
             if (srcBounds.extents == Vector3.zero || destBounds.extents == Vector3.zero)
                 return result;
 
-            Vector3 dir = destBounds.center - intPos;
             Vector3 destMin = destBounds.min;
             Vector3 destMax = destBounds.max;
             Vector3 srcCenter = srcBounds.center;
@@ -183,7 +265,7 @@ namespace StoryGenerator.Utilities
 
             Vector3 center = new Vector3(intPos.x + dir.x, 0, intPos.z + dir.z);
 
-            for (float r = 0.0f; r <= putCenterDistance; r += 0.1f) {  // advance radii by 10 cm
+            for (float r = min_center_distance; r <= putCenterDistance; r += 0.1f) {  // advance radii by 10 cm
                 for (int i = 0; i < 20; i++) {                      // angle quantization is 360/20 = 18 degrees
                     float phi = 2 * Mathf.PI * i / 20;
                     float x = center.x + r * Mathf.Cos(phi);
@@ -283,7 +365,7 @@ namespace StoryGenerator.Utilities
             return bounds;
         }
 
-        public static List<Vector3> CalculateCharacterPositions(Vector3 center, GameObject go, Bounds roomBounds)
+        public static List<Vector3> CalculateDestinationPositions(Vector3 center, GameObject go, Bounds roomBounds)
         {
             const float ObstructionHeight = 0.1f;   // Allow for some obstuction around target object (e.g., carpet)
             const float PutCenterDistance = 2.0f;

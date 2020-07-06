@@ -14,11 +14,11 @@ public class Patch : Editor
         const string CHIP_PATH_JSON = "Assets/Editor/CHIP_patch.json";
         
         // Change the emissive material intensity
-        Material lamp_mat = (Material)AssetDatabase.LoadAssetAtPath( "Assets/Complete_Home_Interior_Pack/CHIP_Materials/MAT_Furniture/MAT_FUR_White_lamp.mat", typeof(Material) );
+        Material lamp_mat = (Material)AssetDatabase.LoadAssetAtPath( "Assets/Resources/Complete_Home_Interior_Pack/CHIP_Materials/MAT_Furniture/MAT_FUR_White_lamp.mat", typeof(Material) );
         lamp_mat.SetColor( "_EmissionColor", new Color(4.5f, 4.5f, 4.5f, 0.0f) );
-
-        PrefabDirs pd = PrefabDirs.CreateFromJson(CHIP_PATH_JSON);
-        pd.Process(path_resources);
+        
+        //PrefabDirs pd = PrefabDirs.CreateFromJson(CHIP_PATH_JSON);
+        //pd.Process(path_resources);
     }
 
     [MenuItem("Patch/MHIP")]

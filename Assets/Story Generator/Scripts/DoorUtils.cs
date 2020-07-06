@@ -40,29 +40,34 @@ namespace StoryGenerator.Utilities
         public IList<DoorAction> SelectDoorsOnPath(Vector3[] path, bool closedOnly)
         {
             IList<DoorAction> result = new List<DoorAction>();
+            for (int i = 1; i < path.Length; i++)
+            {
+                Vector2 p = ProjectXZ(path[i - 1]);
+                Vector2 q = ProjectXZ(path[i]);
+                foreach (Properties_door pd in doors)
+                {
+                    if (closedOnly && !pd.offMeshLink.activated)
+                        continue;
 
-            foreach (Properties_door pd in doors) {
-                if (closedOnly && !pd.offMeshLink.activated)
-                    continue;
+                    if (GeoUtils.SegmentsIntersectNC(p, q, pd.doorwayA, pd.doorwayB))
+                    {
 
-                Vector2 pull = ProjectXZ(pd.transformPull.position);
-                Vector2 push = ProjectXZ(pd.transformPush.position);
 
-                for (int i = 1; i < path.Length; i++) {
-                    Vector2 p = ProjectXZ(path[i - 1]);
-                    Vector2 q = ProjectXZ(path[i]);
-
-                    if (GeoUtils.SegmentsIntersectNC(p, q, pd.doorwayA, pd.doorwayB)) {
+                        Vector2 pull = ProjectXZ(pd.transformPull.position);
+                        Vector2 push = ProjectXZ(pd.transformPush.position);
                         DoorAction da = new DoorAction();
                         Vector2 ppdir = (pull - push).normalized;
                         float dp = Vector2.Dot((q - p).normalized, pull - push);
 
-                        if (dp > 0) {
+                        if (dp > 0)
+                        {
                             // push
                             da.pull = false;
                             da.posOne = pd.posItrnPush;
                             da.posTwo = pd.lookAtPush;
-                        } else {
+                        }
+                        else
+                        {
                             // pull
                             da.pull = true;
                             da.posOne = pd.posItrnPull;
@@ -70,9 +75,11 @@ namespace StoryGenerator.Utilities
                         }
                         da.properties = pd;
                         result.Add(da);
+                        break;
                     }
                 }
             }
+
             return result;
         }
 

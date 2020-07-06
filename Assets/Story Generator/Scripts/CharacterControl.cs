@@ -90,7 +90,15 @@ namespace StoryGenerator
                     new Vector3(90.0f, 0.0f, -90.0f), new Vector3(90.0f, 0.0f, 90.0f) )},
                   {"Female4", new CharCoeffs(1.2512f, -0.89384f, 1.3f, -0.1f, -0.46f, 0.4304f, -0.21228f,
                     new Vector3(90.0f, 0.0f, -90.0f), new Vector3(90.0f, 0.0f, 90.0f) )},
+                  {"Female4_red", new CharCoeffs(1.2512f, -0.89384f, 1.3f, -0.1f, -0.46f, 0.4304f, -0.21228f,
+                    new Vector3(90.0f, 0.0f, -90.0f), new Vector3(90.0f, 0.0f, 90.0f) )},
+                  {"Female4_blue", new CharCoeffs(1.2512f, -0.89384f, 1.3f, -0.1f, -0.46f, 0.4304f, -0.21228f,
+                    new Vector3(90.0f, 0.0f, -90.0f), new Vector3(90.0f, 0.0f, 90.0f) )},
                   {"Male1", new CharCoeffs(1.168f, -0.8736f, 0.82f, 0.1f, -0.48f, 0.1152f, 0.00336f,
+                    new Vector3(90.0f, 0.0f, 0.0f), new Vector3(90.0f, 0.0f, 180.0f) )},
+                  {"Male1_red", new CharCoeffs(1.168f, -0.8736f, 0.82f, 0.1f, -0.48f, 0.1152f, 0.00336f,
+                    new Vector3(90.0f, 0.0f, 0.0f), new Vector3(90.0f, 0.0f, 180.0f) )},
+                  {"Male1_blue", new CharCoeffs(1.168f, -0.8736f, 0.82f, 0.1f, -0.48f, 0.1152f, 0.00336f,
                     new Vector3(90.0f, 0.0f, 0.0f), new Vector3(90.0f, 0.0f, 180.0f) )},
                   {"Male2", new CharCoeffs(1.1664f, -0.95248f, -1.13f, -0.8f, 0.0f, 0.712f, -0.36f,
                     new Vector3(90.0f, 0.0f, -90.0f), new Vector3(90.0f, 0.0f, 90.0f) )},
@@ -225,6 +233,7 @@ namespace StoryGenerator
         public float animSpeedMultiplier = 1.0f;
         public bool extraTurn;
         public Recorder rcdr { get; internal set; }
+        public ProcessingReport report { get; internal set; }
         public bool Randomize { get; internal set; }
         public DoorControl DoorControl { get; } = new DoorControl();
         public State_char stateChar { get; internal set; } = null;
@@ -251,6 +260,9 @@ namespace StoryGenerator
         const float DISTANCE_DIFF_BLEND_ACTION_RANGE = 0.25f;
         const float MIN_TURN_AMOUNT = 0.025f;
         const float ALMOST_TOUCHING = 0.95f;
+
+        const float MIN_DISPLACEMENT = 5.0f;
+        const float MAX_FRAMES_STOP = 50.0f;
         
         const string ANIM_STR_FORWARD = "Forward";
         const string ANIM_STR_TURN = "Turn";
@@ -318,7 +330,7 @@ namespace StoryGenerator
         // go: GameObject that is getting sit on
         // objToInteract: The target that this character must look at
         // targetObject: IK target of body
-        public IEnumerator Sit(GameObject go, GameObject objToInteract, GameObject targetObject)
+        public IEnumerator Sit(GameObject go, GameObject objToInteract, GameObject targetObject, bool perform_animation = false)
         {
             if (objToInteract == null || targetObject == null) {
                 Debug.LogError("Null objectToInteract or targetObject in Sit" + go.name);
@@ -438,6 +450,10 @@ namespace StoryGenerator
                     {
                         rcdr.Error = new ExecutionError("Path not complete");
                     }
+                    if (report != null)
+                    {
+                        report.AddItem("Character cannot reach the desitnation");
+                    }
                     yield break;
                 }
             }
@@ -467,11 +483,33 @@ namespace StoryGenerator
             }
 
             Debug.Assert(m_nma.pathStatus == NavMeshPathStatus.PathComplete, "Path is not complete");
+            float init_dist = m_nma.remainingDistance;
+            float total_displacement = init_dist - m_nma.remainingDistance;
+            int cont = 0;
+
+
 
             for (float distanceDiff = float.PositiveInfinity;
               distanceDiff > 0 && ((rcdr == null) || ( (rcdr != null) && !rcdr.BreakExecution() ));
               distanceDiff = m_nma.remainingDistance - m_nma.stoppingDistance)
             {
+                total_displacement = init_dist - m_nma.remainingDistance;
+                if (total_displacement < MIN_DISPLACEMENT && cont > MAX_FRAMES_STOP)
+                {
+                    m_nma.isStopped = true;
+                    if (rcdr != null)
+                    {
+                        rcdr.Error = new ExecutionError("Path not complete");
+                    }
+                    if (report != null)
+                        report.AddItem("Character cannot reach the desitnation due to collision");
+                    yield break;
+                    //cont = 0;
+
+                }
+                cont += 1;
+
+
                 Vector3 velo = m_nma.desiredVelocity;
                 // Convert the world relative moveInput vector into a local-relative
                 // turn amount and forward amount required to head in the desired
@@ -533,6 +571,64 @@ namespace StoryGenerator
             m_animator.SetFloat(ANIM_STR_FORWARD, 0.0f);
             m_animator.SetFloat(ANIM_STR_TURN, 0.0f);
             m_nma.isStopped = true;
+        }
+
+        public IEnumerator walkOrRunTeleport(bool isWalk, Vector3 pos, Vector3 lookAt)
+        {
+
+
+            yield return walkOrRunTeleport(isWalk, pos, lookAt, false);
+
+        }
+
+        public IEnumerator walkOrRunTeleport(bool isWalk, Vector3 pos, Vector3? lookAt = null, bool shouldCheckPath = true)
+        {
+            if (shouldCheckPath)
+            {
+                NavMeshPath path = new NavMeshPath();
+                m_nma.CalculatePath(pos, path);
+                if (path.status != NavMeshPathStatus.PathComplete)
+                {
+                    Debug.LogError($"Character cannot reach the destination {pos}");
+                    if (rcdr != null)
+                    {
+                        rcdr.Error = new ExecutionError("Path not complete");
+                    }
+                    if (report != null)
+                    {
+                        report.AddItem("Character cannot reach the desitnation");
+                    }
+                    yield break;
+                }
+                else
+                {
+                    Debug.Log($"Character wants to reach the position {pos}");
+                }
+            }
+
+            m_pos_lookAt = lookAt;
+
+
+            m_nma.isStopped = false;
+            m_nma.Warp(pos);
+            if (m_pos_lookAt.HasValue)
+            {
+                Vector3 mpos = (Vector3)m_pos_lookAt;
+                mpos.y = m_nma.transform.position.y;
+                m_nma.transform.LookAt(mpos);
+            }
+
+
+            m_animator.SetFloat(ANIM_STR_FORWARD, 0.0f);
+            m_animator.SetFloat(ANIM_STR_TURN, 0.0f);
+            m_nma.isStopped = true;
+        }
+
+        public IEnumerator TurnDegrees(float degrees)
+        {
+            float radians = degrees * Mathf.PI / 180.0f;
+            m_nma.gameObject.transform.Rotate(new Vector3(0.0f, degrees, 0.0f));
+            yield return null;
         }
 
         // Simple turn, just for test...

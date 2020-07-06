@@ -31,8 +31,13 @@ namespace StoryGenerator.Recording
         public string FileName { get; set; }
         public Animator Animator { get; internal set; }
         public ExecutionError Error { get; set; }
-        public ICameraControl CamCtrl { get; set; }
+        public List<ICameraControl> CamCtrls { get; set; }
+
         public SceneStateSequence sceneStateSequence { get; set; } = new SceneStateSequence();
+
+        // Index of the character assigned to this camera controller
+        public int charIdx { get; set; }
+        public List<string> currentCameraMode;
 
         List<ActionRange> actionRanges = new List<ActionRange>();
         List<CameraData> cameraData = new List<CameraData>();
@@ -80,13 +85,15 @@ namespace StoryGenerator.Recording
         private class CameraData
         {
             public Matrix4x4 ProjectionMatrix { get; set; }
+            public Matrix4x4 World2CamMatrix { get; set; }
             public int FrameStart { get; set; }
             public int FrameEnd { get; set; }
 
             override public string ToString()
             {
-                return string.Format("{0}{1} {2}",
+                return string.Format("{0}{1} {2} {3}",
                     ProjectionMatrix.ToString().Replace('\t', ' ').Replace('\n', ' '),
+                    World2CamMatrix.ToString().Replace('\t', ' ').Replace('\n', ' '),
                     FrameStart, FrameEnd);
             }
         }
@@ -102,6 +109,10 @@ namespace StoryGenerator.Recording
             {
                 this.frameNumber = frameNumber;
                 for (int i = 0; i < bones.Length; i++) {
+                    if (bones[i] < 0 || bones[i] >= HumanBodyBones.LastBone)
+                    {
+                        continue;
+                    }
                     Transform bt = animator.GetBoneTransform(bones[i]);
 
                     if (bt != null)
@@ -162,11 +173,16 @@ namespace StoryGenerator.Recording
         {
             Time.captureFramerate = frameRate;
 
-            if (CamCtrl != null) {
-                CamCtrl.Update();
+            Time.captureFramerate = frameRate;
+
+            for (int cam_id = 0; cam_id < CamCtrls.Count; cam_id++)
+            {
+                if (CamCtrls[cam_id] != null)
+                    CamCtrls[cam_id].Update();
             }
 
-            if (OutputDirectory != null) {
+            if (OutputDirectory != null)
+            {
                 const string FILE_NAME_PREFIX = "Action_";
                 StartCoroutine(OnEndOfFrame(Path.Combine(OutputDirectory, FILE_NAME_PREFIX)));
             }
@@ -188,9 +204,9 @@ namespace StoryGenerator.Recording
         // doesn't corrupt ground truth data.
         public void MarkTermination()
         {
-            const string NULL_ACTION = "NULL";
+            // const string NULL_ACTION = "NULL";
             MarkActionEnd();
-            actionRanges.Add(new ActionRange(-1, NULL_ACTION, frameNum + 1));
+            // actionRanges.Add(new ActionRange(-1, NULL_ACTION, frameNum + 1));
         }
 
         private void MarkActionEnd()
@@ -227,9 +243,17 @@ namespace StoryGenerator.Recording
         // https://forum.unity.com/threads/yield-return-waitendofframe-will-wait-until-end-of-the-same-frame-or-the-next-frame.282213/
         System.Collections.IEnumerator OnEndOfFrame(string pathPrefix)
         {
-            for (int i = 0; i < INITIAL_FRAME_SKIP; i++) {
-                yield return new WaitForEndOfFrame();
-                CamCtrl.Update();
+            if (CamCtrls.Count > 0)
+            {
+                for (int i = 0; i < INITIAL_FRAME_SKIP; i++)
+                {
+                    yield return new WaitForEndOfFrame();
+                    for (int cam_id = 0; cam_id < CamCtrls.Count; cam_id++)
+                    {
+                        CamCtrls[cam_id].Update();
+                    }
+                }
+
             }
 
             // Need to check since recording can be disabled due to error such as stuck error.
@@ -237,15 +261,20 @@ namespace StoryGenerator.Recording
                 yield return new WaitForEndOfFrame();
 
                 if (recording) {
-                    for (int i = 0; i < ImageSynthesis.PASSNAMES.Length; i++) {
-                        if (imageSynthesis.Contains(ImageSynthesis.PASSNAMES[i]))
+                    for (int cam_id = 0; cam_id < CamCtrls.Count; cam_id++)
+                    {
+                        for (int i = 0; i < ImageSynthesis.PASSNAMES.Length; i++)
                         {
-                            // Special case for optical flow camera - flow is really high whenver camera changes so it
-                            // should just save black image
-                            bool isOpticalFlow = (i == ImageSynthesis.PASS_NUM_OPTICAL_FLOW);
-                            SaveRenderedFromCam(pathPrefix, i, isOpticalFlow);
+                            if (imageSynthesis.Contains(ImageSynthesis.PASSNAMES[i]))
+                            {
+                                // Special case for optical flow camera - flow is really high whenver camera changes so it
+                                // should just save black image
+                                bool isOpticalFlow = (i == ImageSynthesis.PASS_NUM_OPTICAL_FLOW);
+                                SaveRenderedFromCam(pathPrefix, i, isOpticalFlow, cam_id);
+                            }
                         }
-
+                        // Only if we want camera position for every frame
+                        //cameraData.Add(new CameraData() { World2CamMatrix = CamCtrls[cam_id].CurrentCamera.worldToCameraMatrix, ProjectionMatrix = CamCtrls[cam_id].CurrentCamera.projectionMatrix, FrameStart = frameNum > 0 ? frameNum + 1 : 0 });
                     }
                     if (savePoseData) {
                         UpdatePoseData(frameNum);
@@ -255,22 +284,30 @@ namespace StoryGenerator.Recording
                     }
                 }
 
-                CamCtrl.Update();
+                for (int cam_id = 0; cam_id < CamCtrls.Count; cam_id++)
+                {
+                    if (CamCtrls[cam_id] != null)
+                        CamCtrls[cam_id].Update();
+                }
                 frameNum++;
             }
             // If code reaches here, it means either recording is set to false or
             // frameNum exceeded max frame number. If recording is still true,
             // it means max frame number is reached.
             if (recording) {
-                Error = new ExecutionError("Max frame number exceeded");
+                Error = new ExecutionError($"Max frame number exceeded {MaxFrameNumber}");
             }
         }
 
-        void SaveRenderedFromCam(string pathPrefix, int camPassNo, bool isOpticalFlow)
+        void SaveRenderedFromCam(string pathPrefix, int camPassNo, bool isOpticalFlow, int cam_id=0)
         {
             const int RT_DEPTH = 24;
 
-            Camera cam = CamCtrl.CurrentCamera.GetComponent<ImageSynthesis>().m_captureCameras[camPassNo];
+            Camera cam = CamCtrls[cam_id].CurrentCamera.GetComponent<ImageSynthesis>().m_captureCameras[camPassNo];
+            if (cam == null)
+            {
+                return;
+            }
             RenderTexture renderRT;
             // Use different render texture for depth values.
             if (camPassNo == ImageSynthesis.PASS_NUM_DEPTH) {
@@ -312,8 +349,8 @@ namespace StoryGenerator.Recording
 
             RenderTexture.ReleaseTemporary(renderRT);
 
-            string filePath = string.Format("{0}{1:D4}_{2}", pathPrefix, frameNum,
-                        ImageSynthesis.PASSNAMES[camPassNo]);
+            string filePath = string.Format("{0}{1:D4}_{3}_{2}", pathPrefix, frameNum,
+                        ImageSynthesis.PASSNAMES[camPassNo], cam_id);
 
             byte[] bytes;
             // encode texture

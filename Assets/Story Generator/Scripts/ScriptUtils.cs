@@ -44,9 +44,9 @@ namespace StoryGenerator.Scripts
     {
         private IDictionary<string, ISet<string>> nameEquiv;
 
-        public NameEquivalenceProvider(string fileName)
+        public NameEquivalenceProvider(string resourceName)
         {
-            InitNameEquivMap(fileName);
+            InitNameEquivMap(resourceName);
         }
 
         public IEnumerator<KeyValuePair<string, ISet<string>>> GetEnumerator()
@@ -72,12 +72,16 @@ namespace StoryGenerator.Scripts
             ISet<string> ned;
 
             name = ScriptUtils.TransformClassName(name);
-            if (!nameEquiv.TryGetValue(name, out ned)) {
+            if (!nameEquiv.TryGetValue(name, out ned))
+            {
                 return new List<string>() { name };
-            } else { 
+            }
+            else
+            {
                 List<string> result = ned.ToList();
 
-                if (!ned.Contains(name)) {
+                if (!ned.Contains(name))
+                {
                     result.Insert(0, name);
                 }
                 return result;
@@ -95,21 +99,25 @@ namespace StoryGenerator.Scripts
 
             ISet<string> result;
 
-            if (nameEquiv.TryGetValue(name2.ToLower(), out result)) {
+            if (nameEquiv.TryGetValue(name2.ToLower(), out result))
+            {
                 return result.Contains(name1);
-            } else {
+            }
+            else
+            {
                 return false;
             }
         }
 
-        private void InitNameEquivMap(string fileName)
+        private void InitNameEquivMap(string resourceName)
         {
-            string file = System.IO.File.ReadAllText(fileName);
-            var fileEquivMap = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(file);
+            TextAsset txtAsset = Resources.Load<TextAsset>(resourceName);
+            var fileEquivMap = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(txtAsset.text);
 
             nameEquiv = new Dictionary<string, ISet<string>>();
 
-            foreach (var e in fileEquivMap) {
+            foreach (var e in fileEquivMap)
+            {
                 string key = ScriptUtils.TransformClassName(e.Key);
                 ISet<string> values = new HashSet<string>(e.Value.Select(s => ScriptUtils.TransformClassName(s)));
                 nameEquiv[key] = values;
@@ -138,13 +146,18 @@ namespace StoryGenerator.Scripts
             key = m.Groups[1].Value.Trim();
             string[] values = m.Groups[2].Value.Split(',');
 
-            foreach (string v in values) {
+            foreach (string v in values)
+            {
                 string vt = v.Trim();
 
-                if (vt.Length > 0) {
-                    if (vt[0] != '!') {
+                if (vt.Length > 0)
+                {
+                    if (vt[0] != '!')
+                    {
                         equivs.Add(vt);
-                    } else {
+                    }
+                    else
+                    {
                         if (vt.Length > 1)
                             forbiddens.Add(vt.Substring(1));
                     }
@@ -160,9 +173,9 @@ namespace StoryGenerator.Scripts
     {
         private IDictionary<Tuple<string, string, string>, string> actionEquivMap;
 
-        public ActionEquivalenceProvider(string fileName)
+        public ActionEquivalenceProvider(string resourceName)
         {
-            actionEquivMap = LoadActionMap(fileName);
+            actionEquivMap = LoadActionMap(resourceName);
         }
 
         public bool TryGetEquivalentAction(string actionStr, string objectName, out string newActionStr)
@@ -196,22 +209,21 @@ namespace StoryGenerator.Scripts
                 return false;
         }
 
-        private static IDictionary<Tuple<string, string, string>, string> LoadActionMap(string fileName)
+        private static IDictionary<Tuple<string, string, string>, string> LoadActionMap(string resourceName)
         {
             var result = new Dictionary<Tuple<string, string, string>, string>();
+            TextAsset txtFile = Resources.Load<TextAsset>(resourceName);
 
-            using (System.IO.StreamReader file = new System.IO.StreamReader(fileName)) {
-                string line;
+            foreach (string line in txtFile.text.Split('\n'))
+            {
+                string action;
+                string srcObj;
+                string destObj;
+                string eqAction;
 
-                while ((line = file.ReadLine()) != null) {
-                    string action;
-                    string srcObj;
-                    string destObj;
-                    string eqAction;
-
-                    if (ParseActionLine(line, out action, out srcObj, out destObj, out eqAction)) {
-                        result[Tuple.Create(action.ToUpper(), srcObj.ToLower(), destObj.ToLower())] = eqAction.ToUpper();
-                    }
+                if (ParseActionLine(line, out action, out srcObj, out destObj, out eqAction))
+                {
+                    result[Tuple.Create(action.ToUpper(), srcObj.ToLower(), destObj.ToLower())] = eqAction.ToUpper();
                 }
             }
             return result;
@@ -241,16 +253,21 @@ namespace StoryGenerator.Scripts
             eqAction = m.Groups[2].Value.Trim();
             string[] values = m.Groups[1].Value.Split(',');
 
-            if (values.Length == 2) {
+            if (values.Length == 2)
+            {
                 action = values[0].Trim();
                 srcObj = values[1].Trim();
                 return true;
-            } else if (values.Length == 3) {
+            }
+            else if (values.Length == 3)
+            {
                 action = values[0].Trim();
                 srcObj = values[1].Trim();
                 destObj = values[2].Trim();
                 return true;
-            } else {
+            }
+            else
+            {
                 return false;
             }
 
@@ -261,17 +278,19 @@ namespace StoryGenerator.Scripts
     {
         IDictionary<string, List<string>> assetsMap;
 
-        public AssetsProvider(string fileName)
+        public AssetsProvider(string resourceName)
         {
-            InitAssetsMap(fileName);
-        } 
+            InitAssetsMap(resourceName);
+        }
 
-        private void InitAssetsMap(string fileName) {
-            string file = System.IO.File.ReadAllText(fileName);
-            var tmpAssetsMap = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(file);
+        private void InitAssetsMap(string resourceName)
+        {
+            TextAsset txtAsset = Resources.Load<TextAsset>(resourceName);
+            var tmpAssetsMap = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(txtAsset.text);
 
             assetsMap = new Dictionary<string, List<string>>();
-            foreach (var e in tmpAssetsMap) {
+            foreach (var e in tmpAssetsMap)
+            {
                 assetsMap[ScriptUtils.TransformClassName(e.Key)] = e.Value;
             }
         }
@@ -279,6 +298,40 @@ namespace StoryGenerator.Scripts
         public bool TryGetAssets(string mo, out List<string> paths)
         {
             return assetsMap.TryGetValue(mo.ToLower(), out paths);
+        }
+        public List<string> GetAssetsNames()
+        {
+            return assetsMap.Keys.ToList();
+        }
+        public List<string> GetAssetsPaths()
+        {
+            List<string> res = new List<string>();
+            for (int index_val = 0; index_val < assetsMap.Count; index_val += 1)
+            {
+                var item = assetsMap.ElementAt(index_val);
+                List<string> curr_val = item.Value.ToList();
+                res = res.Union(curr_val).ToList();
+            }
+            return res;
+        }
+        public List<string> GetMissingPrefabs()
+        {
+            List<string> list_assets = this.GetAssetsPaths();
+            List<string> results = new List<string>();
+            foreach (string asset_name in list_assets)
+            {
+                if (asset_name != "Null")
+                {
+                    GameObject loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(asset_name)) as GameObject;
+                    if (loadedObj == null)
+                    {
+                        results.Add(asset_name);
+
+                    }
+
+                }
+            }
+            return results;
         }
     }
 
@@ -311,7 +364,8 @@ namespace StoryGenerator.Scripts
             if (!tsfm.gameObject.activeSelf)
                 return;
             string key = prefix + "/" + tsfm.name;
-            if (!dict.ContainsKey(key)) {
+            if (!dict.ContainsKey(key))
+            {
                 dict.Add(key, tsfm.gameObject);
                 for (int i = 0; i < tsfm.childCount; i++)
                     FindAllObjects(tsfm.GetChild(i), dict, key);
@@ -338,7 +392,8 @@ namespace StoryGenerator.Scripts
         {
             if (selector(tsfm))
                 yield return tsfm.gameObject;
-            for (int i = 0; i < tsfm.childCount; i++) {
+            for (int i = 0; i < tsfm.childCount; i++)
+            {
                 foreach (var o in FindAllObjects(tsfm.GetChild(i), selector))
                     yield return o;
             }
@@ -356,7 +411,8 @@ namespace StoryGenerator.Scripts
 
             NavMeshAgent nma = characterControl.GetComponent<NavMeshAgent>();
 
-            for (int iter = 0; iter < maxIterations; iter++) {
+            for (int iter = 0; iter < maxIterations; iter++)
+            {
                 GameObject room = rooms[UnityEngine.Random.Range(0, rooms.Count)];
                 // Position of the room transform is not necessarily the center of the room
                 // Bounds field of Properties_room is created to have the correct center.
@@ -373,7 +429,8 @@ namespace StoryGenerator.Scripts
                 Vector3 cEnd = new Vector3(center.x, nma.height - nma.radius + ObstructionHeight, center.z);
 
                 // Check for space
-                if (!Physics.CheckCapsule(cStart, cEnd, nma.radius)) {
+                if (!Physics.CheckCapsule(cStart, cEnd, nma.radius))
+                {
                     return center;
                 }
             }
@@ -384,7 +441,8 @@ namespace StoryGenerator.Scripts
         {
             List<Camera> result = new List<Camera>();
 
-            foreach (GameObject go in ScriptUtils.FindAllObjects(tsfm, t => t.GetComponent<Camera>() != null && t.GetComponent<Camera>().enabled)) {
+            foreach (GameObject go in ScriptUtils.FindAllObjects(tsfm, t => t.GetComponent<Camera>() != null && t.GetComponent<Camera>().enabled))
+            {
                 result.Add(go.GetComponent<Camera>());
             }
             return result;
@@ -394,7 +452,8 @@ namespace StoryGenerator.Scripts
         {
             List<GameObject> result = new List<GameObject>();
 
-            foreach (GameObject go in ScriptUtils.FindAllObjects(tsfm, t => t.CompareTag(Tags.TYPE_CHARACTER) && t.gameObject.activeSelf)) {
+            foreach (GameObject go in ScriptUtils.FindAllObjects(tsfm, t => t.CompareTag(Tags.TYPE_CHARACTER) && t.gameObject.activeSelf))
+            {
                 result.Add(go);
             }
             return result;
@@ -404,7 +463,8 @@ namespace StoryGenerator.Scripts
         {
             List<GameObject> result = new List<GameObject>();
 
-            foreach (GameObject go in ScriptUtils.FindAllObjects(tsfm, t => t.CompareTag(Tags.TYPE_ROOM) && t.gameObject.activeSelf)) {
+            foreach (GameObject go in ScriptUtils.FindAllObjects(tsfm, t => t.CompareTag(Tags.TYPE_ROOM) && t.gameObject.activeSelf))
+            {
                 result.Add(go);
             }
             return result;
@@ -425,16 +485,19 @@ namespace StoryGenerator.Scripts
         {
             Dictionary<string, List<string>> result = new Dictionary<string, List<string>>();
 
-            using (System.IO.StreamReader file = new System.IO.StreamReader(fileName)) {
+            using (System.IO.StreamReader file = new System.IO.StreamReader(fileName))
+            {
                 string line;
                 string key = null;
 
-                while ((line = file.ReadLine()) != null) {
+                while ((line = file.ReadLine()) != null)
+                {
                     string value = null;
 
                     ParseBeginEndLine(line, ref key, ref value);
 
-                    if (value != null && key != null) {
+                    if (value != null && key != null)
+                    {
                         key = key.ToLower();
 
                         List<string> list;
@@ -459,7 +522,8 @@ namespace StoryGenerator.Scripts
             r = new Regex(pattBegin);
             m = r.Match(line);
 
-            if (m.Success) {
+            if (m.Success)
+            {
                 key = m.Groups[1].Value.Trim();
                 value = null;
                 return;
@@ -468,7 +532,8 @@ namespace StoryGenerator.Scripts
             r = new Regex(pattEnd);
             m = r.Match(line);
 
-            if (m.Success) {
+            if (m.Success)
+            {
                 key = null;
                 value = null;
                 return;
@@ -483,10 +548,12 @@ namespace StoryGenerator.Scripts
             var generalParse = ParseBeginEndFile(fileName);
             var result = new Dictionary<string, List<Tuple<string, string>>>();
 
-            foreach (var klPair in generalParse) {
+            foreach (var klPair in generalParse)
+            {
                 var newList = new List<Tuple<string, string>>();
 
-                foreach (string val in klPair.Value) {
+                foreach (string val in klPair.Value)
+                {
                     string name, roomName;
 
                     Utils.ParseNamePlaceName(val, out name, out roomName);
@@ -504,13 +571,16 @@ namespace StoryGenerator.Scripts
             HashSet<string> items = new HashSet<string>(result);
 
             // "Complicate" to maintain original order
-            foreach (string s in result) {
+            foreach (string s in result)
+            {
                 string ts = TransformClassName(s);
-                if (!items.Contains(ts)) {
+                if (!items.Contains(ts))
+                {
                     items.Add(ts);
                 }
             }
-            foreach (string s in result) {
+            foreach (string s in result)
+            {
                 items.Remove(s);
             }
             result.AddRange(items);
@@ -526,9 +596,11 @@ namespace StoryGenerator.Scripts
         {
             List<string> keys = new List<string>(map.Keys);
 
-            foreach (string key in keys) {
+            foreach (string key in keys)
+            {
                 string tkey = TransformClassName(key);
-                if (!map.ContainsKey(tkey)) {
+                if (!map.ContainsKey(tkey))
+                {
                     map[tkey] = map[key];
                 }
             }
@@ -543,11 +615,13 @@ namespace StoryGenerator.Scripts
             float[] bins = new float[elements.Length + 1];
 
             bins[0] = 0.0f;
-            for (int i = 0; i < elements.Length; i++) {
+            for (int i = 0; i < elements.Length; i++)
+            {
                 bins[i + 1] = elements[i] + bins[i];
             }
             float r = UnityEngine.Random.Range(0, bins[bins.Length - 1]);
-            for (int i = 1; i < bins.Length; i++) {
+            for (int i = 1; i < bins.Length; i++)
+            {
                 if (r < bins[i]) return i - 1;
             }
             return elements.Length - 1;
@@ -563,7 +637,8 @@ namespace StoryGenerator.Scripts
         {
             int max = Mathf.Min(ipl.Count, n);
 
-            for (int i = 0; i < max - 1; i++) {
+            for (int i = 0; i < max - 1; i++)
+            {
                 int j = UnityEngine.Random.Range(i, max);
                 T tmp = ipl[i];
 
@@ -601,9 +676,12 @@ namespace StoryGenerator.Scripts
         {
             List<string> properties;
 
-            if (namePropertiesMap.TryGetValue(className.ToLower(), out properties)) {
+            if (namePropertiesMap.TryGetValue(className.ToLower(), out properties))
+            {
                 return properties;
-            } else {
+            }
+            else
+            {
                 return new List<string>();
             }
         }
@@ -671,17 +749,20 @@ namespace StoryGenerator.Scripts
 
             IDictionary<string, PrefabClassEncoding> tmpObjectNameClassMap = Helper.GetClassGroups();
 
-            foreach (var item in tmpObjectNameClassMap) {
+            foreach (var item in tmpObjectNameClassMap)
+            {
                 objectNameClassMap[item.Key] = item.Value.className.ToLower();
             }
 
             // reverse objectNameClassMap
             var classObjectNamesMapTmp = new Dictionary<string, ISet<string>>();
 
-            foreach (var item in objectNameClassMap) {
+            foreach (var item in objectNameClassMap)
+            {
                 ISet<string> values;
 
-                if (!classObjectNamesMapTmp.TryGetValue(item.Value, out values)) {
+                if (!classObjectNamesMapTmp.TryGetValue(item.Value, out values))
+                {
                     values = new HashSet<string>();
                     classObjectNamesMapTmp[item.Value] = values;
                 }
@@ -691,14 +772,17 @@ namespace StoryGenerator.Scripts
             classObjectNamesMap = new Dictionary<string, ISet<string>>();
 
             // create equivalence classes from classObjectNamesMap and equivNameMap
-            foreach (var item in nameEquivProvider) {
+            foreach (var item in nameEquivProvider)
+            {
                 string catName = item.Key;
                 ISet<string> objNames = new HashSet<string>();
 
-                foreach (string s in item.Value) {
+                foreach (string s in item.Value)
+                {
                     ISet<string> names;
 
-                    if (classObjectNamesMapTmp.TryGetValue(s, out names)) {
+                    if (classObjectNamesMapTmp.TryGetValue(s, out names))
+                    {
                         objNames.UnionWith(names);
                     }
                 }
@@ -707,7 +791,8 @@ namespace StoryGenerator.Scripts
             }
 
             // join classObjectNamesMap and classObjectNamesMapTmp
-            foreach (var item in classObjectNamesMapTmp) {
+            foreach (var item in classObjectNamesMapTmp)
+            {
                 if (!classObjectNamesMap.ContainsKey(item.Key))
                     classObjectNamesMap.Add(item);
             }
@@ -741,7 +826,8 @@ namespace StoryGenerator.Scripts
             Tuple<string, long> mValue;
             long now = Stopwatch.GetTimestamp();
 
-            if (measurementTime.TryGetValue(mKey, out mValue)) {
+            if (measurementTime.TryGetValue(mKey, out mValue))
+            {
                 if (totalTime.ContainsKey(mValue.Item1))
                     totalTime[mValue.Item1] += now - mValue.Item2;
                 else
@@ -753,7 +839,8 @@ namespace StoryGenerator.Scripts
         {
             StringBuilder sb = new StringBuilder();
 
-            foreach (var item in totalTime) {
+            foreach (var item in totalTime)
+            {
                 sb.Append(string.Format("{0}: {1}\n", item.Key, item.Value / TimeSpan.TicksPerMillisecond));
             }
             return sb.ToString();

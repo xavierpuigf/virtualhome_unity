@@ -20,6 +20,7 @@ namespace StoryGenerator.Utilities
         void SetFocusObject(GameObject go, Bounds? bounds = null);
         void ClearFocusObject();
         void Update();
+        void Activate(bool activate);
     }
 
     public class FrontCameraControl : ICameraControl
@@ -416,7 +417,11 @@ namespace StoryGenerator.Utilities
             return vpPos.z > 0 && vpPos.x >= 0.1f && vpPos.x <= 0.9f && vpPos.y >= 0.1f && vpPos.y <= 0.9f;
         }
 
+        public void Activate(bool activate)
+        {
 
+            throw new NotImplementedException();
+        }
     }
 
     public static class CameraUtils

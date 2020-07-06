@@ -29,7 +29,12 @@ namespace StoryGenerator.Utilities
         WALK,
         WATCH,
         TALK,
-        TEXT
+        TEXT,
+        WALKTOWARDS,
+        WALKTO,
+        WALKFORWARD,
+        TURNLEFT,
+        TURNRIGHT
     }
 
     public static class InteractionTypeGroup

@@ -9,7 +9,7 @@ namespace StoryGenerator.Helpers
 {
     public class Helper
     {
-        public const string SCRIPTS_FOLDER = "Assets/Resources/Data/";
+        public const string DATA_RESOURCES_FOLDER = "Data/";
         const string PATH_PREFIX = "Assets/Resources/";
         static Dictionary<string, PrefabClassEncoding> classDictionary = null;
         static Dictionary<string, List<string>> propertiesDictionary = null;
@@ -205,29 +205,24 @@ namespace StoryGenerator.Helpers
         {
             dic_prefab = new Dictionary<string, bool> ();
             dic_go = new Dictionary<string, int>();
-            string FILE_PATH = SCRIPTS_FOLDER + "InstanceGroupList.json";
+            TextAsset txtAsset = Resources.Load<TextAsset>(DATA_RESOURCES_FOLDER + "InstanceGroupList");
+            InstanceGroupHolder igh = JsonUtility.FromJson<InstanceGroupHolder>(txtAsset.text);
 
-            using ( StreamReader sr = new StreamReader(FILE_PATH) )
+            foreach (PrefabGroup pg in igh.prefabGroups)
             {
-                string str_file = sr.ReadToEnd();
-                InstanceGroupHolder igh = JsonUtility.FromJson<InstanceGroupHolder>(str_file);
+                dic_prefab[pg.prefab_name] = true;
+            }
 
-                foreach (PrefabGroup pg in igh.prefabGroups)
+            for (int i = 0; i < igh.gameObjectGroups.Length; i++)
+            {
+                GameObjectGroup gog = igh.gameObjectGroups[i];
+                dic_go[gog.group_name] = i;
+
+                if (gog.alias != null)
                 {
-                    dic_prefab[pg.prefab_name] = true;
-                }
-
-                for (int i = 0; i < igh.gameObjectGroups.Length; i++)
-                {
-                    GameObjectGroup gog = igh.gameObjectGroups[i];
-                    dic_go[gog.group_name] = i;
-
-                    if (gog.alias != null)
+                    for (int j = 0; j < gog.alias.Length; j++)
                     {
-                        for (int j = 0; j < gog.alias.Length; j++)
-                        {
-                            dic_go[gog.alias[j]] = i;
-                        }
+                        dic_go[gog.alias[j]] = i;
                     }
                 }
             }
@@ -240,23 +235,18 @@ namespace StoryGenerator.Helpers
                 return classDictionary;
             }
 
-            classDictionary = new Dictionary<string, PrefabClassEncoding> ();
-            string FILE_PATH = SCRIPTS_FOLDER + "PrefabClass.json";
+            classDictionary = new Dictionary<string, PrefabClassEncoding>();
+            TextAsset txtAsset = Resources.Load<TextAsset>(DATA_RESOURCES_FOLDER + "PrefabClass");
+            PrefabClassHolder pch = JsonUtility.FromJson<PrefabClassHolder>(txtAsset.text);
 
-            using ( StreamReader sr = new StreamReader(FILE_PATH) )
+            for (int i = 0; i < pch.prefabClasses.Length; ++i)
             {
-                string str_file = sr.ReadToEnd();
-                PrefabClassHolder pch = JsonUtility.FromJson<PrefabClassHolder>(str_file);
+                PrefabClass pc = pch.prefabClasses[i];
+                PrefabClassEncoding pce = new PrefabClassEncoding(ScriptUtils.TransformClassName(pc.className), i);
 
-                for (int i = 0; i < pch.prefabClasses.Length; ++i)
+                foreach (string pName in pc.prefabs)
                 {
-                    PrefabClass pc = pch.prefabClasses[i];
-                    PrefabClassEncoding pce = new PrefabClassEncoding(ScriptUtils.TransformClassName(pc.className), i);
-
-                    foreach (string pName in pc.prefabs)
-                    {
-                        classDictionary[pName] = pce;
-                    }
+                    classDictionary[pName] = pce;
                 }
             }
             return classDictionary;
@@ -270,34 +260,33 @@ namespace StoryGenerator.Helpers
             }
             propertiesDictionary = new Dictionary<string, List<string>>();
 
-            string fName = SCRIPTS_FOLDER + "properties_data.json";
+            TextAsset txtAsset = Resources.Load<TextAsset>(DATA_RESOURCES_FOLDER + "properties_data");
+            Dictionary<string, List<string>> propMap = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(txtAsset.text);
 
-            using (StreamReader sr = new StreamReader(fName)) {
-                string strFile = sr.ReadToEnd();
-                Dictionary<string, List<string>> propMap = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(strFile);
-                
-                foreach (var e in propMap) {
-                    List<string> properties = e.Value.Select(s => s.ToUpper()).ToList();
-                    string className = e.Key.ToLower();
+            foreach (var e in propMap)
+            {
+                List<string> properties = e.Value.Select(s => s.ToUpper()).ToList();
+                string className = e.Key.ToLower();
 
-                    propertiesDictionary[className] = properties;
+                propertiesDictionary[className] = properties;
 
-                    ISet<string> synonyms = nameEquivalenceProvider.GetSynonyms(className);
-                    foreach (string eqClassName in synonyms) {
+                ISet<string> synonyms = nameEquivalenceProvider.GetSynonyms(className);
+                foreach (string eqClassName in synonyms)
+                {
+                    propertiesDictionary[eqClassName.ToLower()] = properties;
+                }
+
+                string classNameReduced = e.Key.Replace(" ", "").ToLower();
+
+                if (classNameReduced != className)
+                {
+                    propertiesDictionary[classNameReduced] = properties;
+
+                    synonyms = nameEquivalenceProvider.GetSynonyms(classNameReduced);
+                    foreach (string eqClassName in synonyms)
+                    {
                         propertiesDictionary[eqClassName.ToLower()] = properties;
                     }
-
-                    string classNameReduced = e.Key.Replace(" ", "").ToLower();
-
-                    if (classNameReduced != className) {
-                        propertiesDictionary[classNameReduced] = properties;
-
-                        synonyms = nameEquivalenceProvider.GetSynonyms(classNameReduced);
-                        foreach (string eqClassName in synonyms) {
-                            propertiesDictionary[eqClassName.ToLower()] = properties;
-                        }
-                    }
-
                 }
 
             }
@@ -307,19 +296,13 @@ namespace StoryGenerator.Helpers
         public static List<string> GetAllClasses()
         {
             List<string> allClasses = new List<string>();
-            string FILE_PATH = SCRIPTS_FOLDER + "PrefabClass.json";
+            TextAsset txtAsset = Resources.Load<TextAsset>(DATA_RESOURCES_FOLDER + "PrefabClass.json");
+            PrefabClassHolder pch = JsonUtility.FromJson<PrefabClassHolder>(txtAsset.text);
 
-            using ( StreamReader sr = new StreamReader(FILE_PATH) )
+            foreach (PrefabClass pc in pch.prefabClasses)
             {
-                string str_file = sr.ReadToEnd();
-                PrefabClassHolder pch = JsonUtility.FromJson<PrefabClassHolder>(str_file);
-
-                foreach (PrefabClass pc in pch.prefabClasses)
-                {
-                    allClasses.Add(ScriptUtils.TransformClassName(pc.className));
-                }
+                allClasses.Add(ScriptUtils.TransformClassName(pc.className));
             }
-
             return allClasses;
         }
 
