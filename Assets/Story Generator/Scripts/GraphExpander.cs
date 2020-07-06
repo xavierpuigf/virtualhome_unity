@@ -1194,10 +1194,11 @@ namespace StoryGenerator.Utilities
                     }
                     break;
             }
-            for (int i = 0; i < newCameras.Count; i++)
-            {
-                newCameras[i].enabled = false;
-            }
+            //for (int i = 0; i < newCameras.Count; i++)
+            //{
+            //    //CameraUtils.InitCamera(newCameras[i]);
+            //    newCameras[i].enabled = false;
+            //}
             return newCameras;
         }
 

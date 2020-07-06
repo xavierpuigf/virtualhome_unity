@@ -3200,6 +3200,7 @@ namespace StoryGenerator.Utilities
         {
             if (spli >= spl.Count || sl.Count == 0)
             {
+                caller.CurrentStateList[this.charIndex] = sl.Last();
                 yield return sl;
             }
             else

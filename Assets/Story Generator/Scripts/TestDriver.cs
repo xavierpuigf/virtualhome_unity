@@ -76,6 +76,8 @@ namespace StoryGenerator
 
             List<string> list_assets = dataProviders.AssetsProvider.GetAssetsPaths();
 
+            
+
             // Check all the assets exist
             //foreach (string asset_name in list_assets)
             //{
@@ -96,6 +98,7 @@ namespace StoryGenerator
             commServer.Driver = this;
 
             ProcessHome(false);
+            DeleteChar();
 
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
 
@@ -104,7 +107,7 @@ namespace StoryGenerator
             }
             StartCoroutine(ProcessNetworkRequest());
         }
-
+        
         private void InitServer()
         {
             string[] args = Environment.GetCommandLineArgs();
@@ -121,6 +124,23 @@ namespace StoryGenerator
         private void OnApplicationQuit()
         {
             commServer?.Stop();
+        }
+
+        void DeleteChar()
+        {
+
+            foreach (Transform tf_child in transform)
+            {
+                foreach (Transform tf_obj in tf_child)
+                {
+                    if (tf_obj.gameObject.name.ToLower().Contains("male"))
+                    {
+                        Destroy(tf_obj.gameObject);
+                    }
+                }
+            }
+
+
         }
 
         void ProcessHome(bool randomizeExecution)
@@ -174,7 +194,6 @@ namespace StoryGenerator
             OneTimeInitializer homeInitializer = new OneTimeInitializer();
             EnvironmentGraphCreator currentGraphCreator = null;
             EnvironmentGraph currentGraph = null;
-            bool cameras_init = false;
             int expandSceneCount = 0;
 
             InitRooms();
@@ -218,16 +237,13 @@ namespace StoryGenerator
 
                     cameras.Add(new_camera);
                     response.message = "New camera created. Id:" + camera_name;
-                    response.success = true;
-                    cameras_init = false;
+                    response.success = true;;
+                    cameraInitializer.initialized = false;
                     CameraUtils.DeactivateCameras(cameras);
 
                 } else if (networkRequest.action == "camera_image") {
-                    if (!cameras_init)
-                    {
-                        cameraInitializer.Initialize(() => CameraUtils.InitCameras(cameras));
-                        cameras_init = true;
-                    }
+                    
+                    cameraInitializer.Initialize(() => CameraUtils.InitCameras(cameras));
 
                     IList<int> indexes = networkRequest.intParams;
 
@@ -237,28 +253,39 @@ namespace StoryGenerator
                     } else {
                         ImageConfig config = JsonConvert.DeserializeObject<ImageConfig>(networkRequest.stringParams[0]);
                         int cameraPass = ParseCameraPass(config.mode);
-
-                        foreach (int i in indexes) {
-                            CameraExpander.AdjustCamera(cameras[i]);
-                            cameras[i].gameObject.SetActive(true);
+                        if (cameraPass == -1)
+                        {
+                            response.success = false;
+                            response.message = "The current camera mode does not exist";
                         }
-                        yield return new WaitForEndOfFrame();
+                        else
+                        {
 
-                        List<string> imgs = new List<string>();
+                            foreach (int i in indexes)
+                            {
+                                CameraExpander.AdjustCamera(cameras[i]);
+                                cameras[i].gameObject.SetActive(true);
+                            }
+                            yield return new WaitForEndOfFrame();
 
-                        foreach (int i in indexes) {
-                            byte[] bytes = CameraUtils.RenderImage(cameras[i], config.image_width, config.image_height, cameraPass);
-                            cameras[i].gameObject.SetActive(false);
-                            imgs.Add(Convert.ToBase64String(bytes));
+                            List<string> imgs = new List<string>();
+
+                            foreach (int i in indexes)
+                            {
+                                byte[] bytes = CameraUtils.RenderImage(cameras[i], config.image_width, config.image_height, cameraPass);
+                                cameras[i].gameObject.SetActive(false);
+                                imgs.Add(Convert.ToBase64String(bytes));
+                            }
+                            response.success = true;
+                            response.message_list = imgs;
                         }
-                        response.success = true;
-                        response.message_list = imgs;
+
                     }
                 } else if (networkRequest.action == "environment_graph") {
                     if (currentGraph == null)
                     {
-                        var graphCreator = new EnvironmentGraphCreator(dataProviders);
-                        var graph = graphCreator.CreateGraph(transform);
+                        currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
+                        var graph = currentGraphCreator.CreateGraph(transform);
                         response.success = true;
                         response.message = JsonConvert.SerializeObject(graph);
                         currentGraph = graph;
@@ -271,7 +298,7 @@ namespace StoryGenerator
 
                     }
                 } else if (networkRequest.action == "expand_scene") {
-                    cameras_init = false;
+                    cameraInitializer.initialized = false;
                     List<IEnumerator> animationEnumerators = new List<IEnumerator>();
 
                     try {
@@ -410,6 +437,7 @@ namespace StoryGenerator
                         List<Camera> charCameras = CameraExpander.AddCharacterCameras(newchar.gameObject, transform, "");
                         CameraUtils.DeactivateCameras(charCameras);
                         cameras.AddRange(charCameras);
+                        cameraInitializer.initialized = false;
 
                         if (currentGraph == null)
                         {
@@ -423,7 +451,6 @@ namespace StoryGenerator
                         // add camera
                         // cameras.AddRange(CameraExpander.AddCharacterCameras(newchar.gameObject, transform, ""));
 
-                        cameras_init = false;
 
                         response.success = true;
                     }
@@ -741,7 +768,7 @@ namespace StoryGenerator
                     }
 
                 } else if (networkRequest.action == "reset") {
-                    cameras_init = false;
+                    cameraInitializer.initialized = false;
                     networkRequest.action = "environment_graph"; // return result after scene reload
                     currentGraph = null;
                     currentGraphCreator = null;
@@ -774,6 +801,7 @@ namespace StoryGenerator
 
                         Debug.Log("Reloading");
                         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+                        DeleteChar();
                         Debug.Log("Reloaded");
                         yield break;
                     }
@@ -783,7 +811,7 @@ namespace StoryGenerator
                     System.Diagnostics.Stopwatch resetStopwatch = System.Diagnostics.Stopwatch.StartNew();
 
                     // Reset without reloading scene
-                    cameras_init = false;
+                    cameraInitializer.initialized = false;
                     networkRequest.action = "environment_graph"; // return result after scene reload
                     //currentGraph = null;
                     //currentGraphCreator = null;
@@ -1295,7 +1323,7 @@ namespace StoryGenerator
 
     class OneTimeInitializer
     {
-        private bool initialized = false;
+        public bool initialized = false;
         private Action defaultAction;
 
         public OneTimeInitializer()

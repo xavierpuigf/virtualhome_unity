@@ -848,6 +848,11 @@ namespace StoryGenerator.Utilities
                                                                                o.category != DoorsCategory &&
                                                                                !IGNORE_IN_EDGE_OBJECTS.Contains(o.class_name) &&
                                                                                o.transform != null);
+            if (changedEnvObjs == null)
+            {
+                changedEnvObjs = treeObjects;
+            }
+
             var tree = BuildKDTree(treeObjects);
             // Methods using only one object
             foreach (EnvironmentObject o in treeObjects) {

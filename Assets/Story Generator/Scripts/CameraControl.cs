@@ -427,14 +427,20 @@ namespace StoryGenerator.Utilities
     public static class CameraUtils
     {
         const float CAMERA_FAR_PLANE = 100.0f;
+        public static void InitCamera(Camera c)
+        {
+            c.farClipPlane = CAMERA_FAR_PLANE;
+            GameObject go_cam = c.gameObject;
+            if (go_cam.GetComponent<ImageSynthesis>() == null) {
+                go_cam.AddComponent<ImageSynthesis>();
+            }
+            go_cam.SetActive(false);
+        }
 
         public static void InitCameras(ICollection<Camera> cameras)
         {
             foreach (Camera c in cameras) {
-                c.farClipPlane = CAMERA_FAR_PLANE;
-                GameObject go_cam = c.gameObject;
-                go_cam.AddComponent<ImageSynthesis>();
-                go_cam.SetActive(false);
+                InitCamera(c);
             }
         }
 
