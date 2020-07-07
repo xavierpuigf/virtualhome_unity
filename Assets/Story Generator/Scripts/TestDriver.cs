@@ -19,6 +19,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using StoryGenerator.CharInteraction;
+using Unity.Profiling;
 
 
 namespace StoryGenerator
@@ -26,6 +27,13 @@ namespace StoryGenerator
     [RequireComponent(typeof(Recorder))]
     public class TestDriver : MonoBehaviour
     {
+
+        static ProfilerMarker s_GetGraphMarker = new ProfilerMarker("MySystem.GetGraph");
+        static ProfilerMarker s_GetMessageMarker = new ProfilerMarker("MySystem.GetMessage");
+        static ProfilerMarker s_UpdateGraph = new ProfilerMarker("MySystem.UpdateGraph");
+        static ProfilerMarker s_SimulatePerfMarker = new ProfilerMarker("MySystem.Simulate");
+
+
         private const int DefaultPort = 8080;
         private const int DefaultTimeout = 500000;
 
@@ -292,10 +300,17 @@ namespace StoryGenerator
                     }
                     else
                     {
-                        currentGraph = currentGraphCreator.GetGraph();
+                        //s_GetGraphMarker.Begin();
+                        using (s_GetGraphMarker.Auto())
+                            currentGraph = currentGraphCreator.GetGraph();
+                        //s_GetGraphMarker.End();
                         response.success = true;
+                    }
+                        
+                        
+                    using (s_GetMessageMarker.Auto())
+                    {
                         response.message = JsonConvert.SerializeObject(currentGraph);
-
                     }
                 } else if (networkRequest.action == "expand_scene") {
                     cameraInitializer.initialized = false;
@@ -593,6 +608,9 @@ namespace StoryGenerator
                         response.message = $"Error parsing script: {e.Message}";
                     }
 
+                    //s_SimulatePerfMarker.Begin();
+                    
+
                     if (parseSuccess)
                     {
                         for (int i = 0; i < numCharacters; i++)
@@ -607,6 +625,8 @@ namespace StoryGenerator
                         }
                     }
 
+
+                    //s_SimulatePerfMarker.End();
 
                     finishedChars = 0;
                     ScriptExecutor.actionsPerLine = new Hashtable();
@@ -774,11 +794,13 @@ namespace StoryGenerator
                             }
                         }
 
-                        if (single_action)
-                            currentGraph = currentGraphCreator.UpdateGraph(transform, null, last_action);
-                        else
-                            currentGraph = currentGraphCreator.UpdateGraph(transform, changedObjs);
-
+                        using (s_UpdateGraph.Auto())
+                        {
+                            if (single_action)
+                                currentGraph = currentGraphCreator.UpdateGraph(transform, null, last_action);
+                            else
+                                currentGraph = currentGraphCreator.UpdateGraph(transform, changedObjs);
+                        }
                     }
 
                 } else if (networkRequest.action == "reset") {

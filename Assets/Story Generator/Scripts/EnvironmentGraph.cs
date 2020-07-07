@@ -917,7 +917,7 @@ namespace StoryGenerator.Utilities
                     if (!On(o1, o2))
                         On(o2, o1);
 
-            if (only_close_char || o1.class_name == "character" || o2.class_name == "character")
+            if (!only_close_char || o1.class_name == "character" || o2.class_name == "character")
                 Close(o1, o2);
             Facing(o1, o2);
         }
