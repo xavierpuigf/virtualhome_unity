@@ -420,7 +420,7 @@ namespace StoryGenerator.Utilities
         public void Activate(bool activate)
         {
 
-            throw new NotImplementedException();
+            return;
         }
     }
 

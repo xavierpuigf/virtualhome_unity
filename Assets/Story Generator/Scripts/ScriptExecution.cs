@@ -822,7 +822,7 @@ namespace StoryGenerator.Utilities
         private int processingTimeLimit = 20 * 1000;                // Max search time for admissible solution (in milliseconds)
         private int charIndex;
         private bool find_solution;
-        private bool smooth_walk;
+        public bool smooth_walk;
 
         public InteractionCache interaction_cache;
 
@@ -3904,24 +3904,31 @@ namespace StoryGenerator.Utilities
                         new GotowardsAction(sl.LineNumber, sExecutor.GetRoomOrObjectSelector(name0, instance0),
                             name0, instance0, sl.Interaction == InteractionType.RUN, nextIt, modif_walk_dist), false);
                     break;
-                case InteractionType.WALKTO:
-                    sExecutor.AddAction(
-                        new GotowardsAction(sl.LineNumber, sExecutor.GetRoomOrObjectSelector(name0, instance0),
-                            name0, instance0, sl.Interaction == InteractionType.RUN, nextIt), true);
-                    break;
+                
                 case InteractionType.WALK:
                 case InteractionType.GOTO:
                 case InteractionType.RUN:
-                    sExecutor.AddAction(
-                        new GotoAction(sl.LineNumber, sExecutor.GetRoomOrObjectSelector(name0, instance0),
-                            name0, instance0, sl.Interaction == InteractionType.RUN, nextIt),
-                        false);
+                    if (sExecutor.smooth_walk)
+                        sExecutor.AddAction(
+                            new GotoAction(sl.LineNumber, sExecutor.GetRoomOrObjectSelector(name0, instance0),
+                                name0, instance0, sl.Interaction == InteractionType.RUN, nextIt),
+                            false);
+                    else
+                        sExecutor.AddAction(
+                        new GotowardsAction(sl.LineNumber, sExecutor.GetRoomOrObjectSelector(name0, instance0),
+                            name0, instance0, sl.Interaction == InteractionType.RUN, nextIt), true);
+
                     break;
                 case InteractionType.FIND:
-                    sExecutor.AddAction(
-                        new GotoAction(sl.LineNumber, sExecutor.GetRoomOrObjectSelector(name0, instance0),
-                            name0, instance0, false, nextIt),
-                        true);
+                    if (sExecutor.smooth_walk)
+                            sExecutor.AddAction(
+                            new GotoAction(sl.LineNumber, sExecutor.GetRoomOrObjectSelector(name0, instance0),
+                                name0, instance0, false, nextIt),
+                            true);
+                    else
+                        sExecutor.AddAction(
+                        new GotowardsAction(sl.LineNumber, sExecutor.GetRoomOrObjectSelector(name0, instance0),
+                            name0, instance0, sl.Interaction == InteractionType.RUN, nextIt), true);
                     break;
                 case InteractionType.SIT:
                     sExecutor.AddAction(new SitAction(sl.LineNumber, sExecutor.GetObjectSelector(name0, instance0), name0, instance0));

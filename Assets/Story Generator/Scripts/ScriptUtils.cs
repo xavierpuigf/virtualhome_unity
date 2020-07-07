@@ -692,6 +692,32 @@ namespace StoryGenerator.Scripts
         IObjectSelector GetSelector(string name, int instance);
     }
 
+    public class InstanceSelectorProvider : IObjectSelectorProvider
+    {
+        private Dictionary<int, GameObject> idObjectMap;
+
+        public InstanceSelectorProvider(EnvironmentGraph currentGraph)
+        {
+            idObjectMap = new Dictionary<int, GameObject>();
+
+            foreach (EnvironmentObject eo in currentGraph.nodes)
+            {
+                if (eo.transform != null)
+                {
+                    idObjectMap[eo.id] = eo.transform.gameObject;
+                }
+            }
+        }
+
+        public IObjectSelector GetSelector(string name, int instance)
+        {
+            GameObject go;
+
+            if (idObjectMap.TryGetValue(instance, out go)) return new FixedObjectSelector(go);
+            else return EmptySelector.Instance;
+        }
+    }
+
     public class ObjectSelectionProvider : IObjectSelectorProvider
     {
         /*

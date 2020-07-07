@@ -34,7 +34,12 @@ namespace StoryGenerator.CharInteraction
         // Boolean used to differentiate original object and its invisible copy.
         bool isThisOriginal = false;
 
+
         bool isPickedUp = false;
+
+        // Whether the hand interaction is added when running the script
+        public bool added_runtime = false;
+
 
         // Interaction Object component of the GameObject that will be picked up;
         InteractionObject m_io_grab;
@@ -65,8 +70,12 @@ namespace StoryGenerator.CharInteraction
         {
             {"Female1", 0},
             {"Male1", 0},
+            {"Male1_red", 0},
+            {"Male1_blue", 0},
             {"Female2", 1},
             {"Female4", 1},
+            {"Female4_red", 1},
+            {"Female4_blue", 1},
             {"Male2", 1},
             {"Male6", 1},
             {"Male10", 1},
@@ -102,8 +111,12 @@ namespace StoryGenerator.CharInteraction
             [Tooltip("Type of action")]
             public readonly ActivationAction action;
 
-            [Tooltip("Transform of GameObject that correspondes to the switch. The center of this GameObject would be used. If such thing does not exists, use SwitchPosition below")]
+            [Tooltip("Transform of GameObject that corresponds to the switch. The center of this GameObject would be used. If such thing does not exists, use SwitchPosition below")]
             public readonly Transform switchTransform;
+
+            [Tooltip("Original position of that switch, instead of the current position. This is uses so that when we close a fridge, we do it from the same place wheer we opened it")]
+            public readonly Vector3 originalPosition;
+
 
             [Tooltip("If SwitchTransform = null, this will work as the position of switch. Else, this will work as a offset from the center of the SwitchTransform.")]
             public readonly Vector3 switchPosition;
@@ -119,7 +132,7 @@ namespace StoryGenerator.CharInteraction
 
             HandInteraction hi;
 
-            State_object so;
+            public State_object so;
 
             public ActivationSwitch(HandPose hp, ActivationAction aa, Vector3 swchPos, List<TransitionSequence> ts,
               Transform swchTsfm = null, SharedVisualChange[] svc = null)
@@ -199,7 +212,7 @@ namespace StoryGenerator.CharInteraction
                 }
             }
 
-            void UpdateStateObject()
+            public void UpdateStateObject()
             {
                 StateObjectCheck();
                 so.ToggleState(this);
@@ -1152,6 +1165,21 @@ namespace StoryGenerator.CharInteraction
             return -1;
         }
 
+
+        // Get all the swi of corresponding action
+        internal List<int> SwitchIndices(ActivationAction action)
+        {
+            List<int> switchIndices = new List<int>();
+
+            if (switches != null)
+            {
+                for (int i = 0; i < switches.Length; i++)
+                    if (switches[i].action == action)
+                        switchIndices.Add(i);
+            }
+
+            return switchIndices;
+        }
         // Draws switch Gizmo (purple sphere) that activates the visual effect
         void OnDrawGizmosSelected()
         {
@@ -1202,6 +1230,11 @@ namespace StoryGenerator.CharInteraction
         // Reset static variable
         void OnDestroy()
         {
+            if (invisibleCpy != null)
+            {
+                Destroy(invisibleCpy);
+            }
+            Destroy(m_io_grab);
             m_skipAwake = false;
         }
     }

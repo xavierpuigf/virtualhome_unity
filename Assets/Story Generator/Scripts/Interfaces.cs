@@ -31,7 +31,6 @@ namespace StoryGenerator.Utilities
         TALK,
         TEXT,
         WALKTOWARDS,
-        WALKTO,
         WALKFORWARD,
         TURNLEFT,
         TURNRIGHT

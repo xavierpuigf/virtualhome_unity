@@ -527,8 +527,11 @@ namespace StoryGenerator
                     if (!config.skip_execution) {
                         Directory.CreateDirectory(outDir);
                     }
-
-                    IObjectSelectorProvider objectSelectorProvider = new InstanceSelectorProvider(currentGraph);
+                    IObjectSelectorProvider objectSelectorProvider;
+                    if (config.find_solution)
+                        objectSelectorProvider = new ObjectSelectionProvider(dataProviders.NameEquivalenceProvider);
+                    else
+                        objectSelectorProvider = new InstanceSelectorProvider(currentGraph);
                     IList<GameObject> objectList = ScriptUtils.FindAllObjects(transform);
                     // TODO: check if we need this
                     if (recorders.Count != numCharacters)
@@ -541,6 +544,16 @@ namespace StoryGenerator
                     }
 
                     // initialize the recorders
+                    if (!config.skip_execution)
+                    {
+                        for (int i = 0; i < numCharacters; i++)
+                        {
+                            if (config.skip_animation)
+                                characters[i].SetSpeed(150.0f);
+                            else
+                                characters[i].SetSpeed(1.0f);
+                        }
+                    }
                     if (config.recording)
                     {
                         for (int i = 0; i < numCharacters; i++)
@@ -548,7 +561,8 @@ namespace StoryGenerator
                             // Debug.Log($"cameraCtrl is not null? : {recorders[i].CamCtrl != null}");
                             recorders[i].Initialize();
                             recorders[i].Animator = characters[i].GetComponent<Animator>();
-                            recorders[i].Animator.speed = 1;
+                            
+                            //recorders[i].Animator.speed = 1;
                         }
 
                     }
@@ -1091,7 +1105,7 @@ namespace StoryGenerator
 
 
                 // Initialize the scriptExecutor for the character
-                ScriptExecutor sExecutor = new ScriptExecutor(objectList, dataProviders.RoomSelector, objectSel, recorders[i], i, interaction_cache, config.skip_animation);
+                ScriptExecutor sExecutor = new ScriptExecutor(objectList, dataProviders.RoomSelector, objectSel, recorders[i], i, interaction_cache, !config.skip_animation);
                 sExecutor.RandomizeExecution = config.randomize_execution;
                 sExecutor.ProcessingTimeLimit = config.processing_time_limit;
                 sExecutor.SkipExecution = config.skip_execution;
@@ -1222,7 +1236,6 @@ namespace StoryGenerator
                     int index = 0;
                     for (int i = 0; i < rooms.Count; i++)
                     {
-                        Debug.Log(rooms[i].name);
                         if (rooms[i].name.Contains(room_name.Substring(1)))
                         {
                             index = i;

@@ -279,6 +279,7 @@ namespace StoryGenerator
             m_nma = GetComponent<NavMeshAgent>();
             m_is = GetComponent<InteractionSystem> ();
 
+            m_is.speed = animSpeedMultiplier;
             m_animator.speed = animSpeedMultiplier;
             m_animator.applyRootMotion = true;
 
@@ -290,6 +291,13 @@ namespace StoryGenerator
                                     RigidbodyConstraints.FreezeRotationZ;
             m_anm_isCharSittingDown = false;
             m_ikTargets = new IkTargets(gameObject, Randomize);
+        }
+
+        public void SetSpeed(float speed_value=1.0f)
+        {
+            m_is.speed = speed_value;
+            m_animator.speed = speed_value;
+
         }
 
         void LateUpdate()
