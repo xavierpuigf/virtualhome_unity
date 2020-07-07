@@ -1318,7 +1318,7 @@ namespace StoryGenerator.HomeAnnotation
                 if (d.name.Contains(DOOR_NAME) && !d.name.Contains(DOORJAMB) && !d.name.Contains(DOOR_MAIN)) {
                     Vector3[] centers = new Vector3[] { new Vector3(-0.034f, 0.03f, 0.434f), new Vector3(-0.034f, 0.03f, 0.7f) };
                     Vector3[] sizes = new Vector3[] { new Vector3(0.115f, 2.028f, 0.878f), new Vector3(0.36f, 2.028f, 0.17f) };
-                    AddNavMeshObstacles(d, centers, sizes);
+                    //AddNavMeshObstacles(d, centers, sizes);
                     d.gameObject.AddComponent<Properties_door>();
                 }
             }
