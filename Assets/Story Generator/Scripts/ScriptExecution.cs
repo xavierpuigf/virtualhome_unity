@@ -846,6 +846,7 @@ namespace StoryGenerator.Utilities
             this.find_solution = !(objectSelectorProvider is InstanceSelectorProvider);
             this.interaction_cache = interaction_cache;
             this.smooth_walk = smooth_walk;
+            this.execStartTime = new System.Diagnostics.Stopwatch();
 
             propCalculator = new DefaultGameObjectPropertiesCalculator();
             script = new List<ScriptPair>();
@@ -1671,7 +1672,7 @@ namespace StoryGenerator.Utilities
                 {
                     ipl = new List<Vector3>();
                     tposl = new List<Vector3>();
-                    for (int i = 0; i < hi.switches.Length; i++)
+                    for (int i = 0; i < hi.switches.Count; i++)
                     {
                         if (interaction == InteractionType.UNSPECIFIED && hi.switches[i].action == HandInteraction.ActivationAction.Open)
                         {
@@ -3028,7 +3029,8 @@ namespace StoryGenerator.Utilities
             var hi = go.AddComponent<HandInteraction>();
             var sw = new HandInteraction.ActivationSwitch(HandInteraction.HandPose.Button,
                 HandInteraction.ActivationAction.SwitchOn, Vector3.zero, null);
-            hi.switches = new HandInteraction.ActivationSwitch[] { sw };
+            hi.switches = new List<HandInteraction.ActivationSwitch>();
+            hi.switches.Add(sw);
             hi.allowPickUp = true;
             hi.added_runtime = true;
             hi.grabHandPose = GetGrabPose(go).Value; // HandInteraction.HandPose.GrabVertical;
@@ -3193,7 +3195,11 @@ namespace StoryGenerator.Utilities
             gotoExecDepth = 0;
             Debug.Log("Process...");
             Debug.Log(this.charIndex);
-            return ProcessRec(script, 0, initSl);
+            execStartTime.Start();
+            IEnumerable<StateList> path = ProcessRec(script, 0, initSl);
+            execStartTime.Reset();
+            return path;
+
         }
 
         private IEnumerable<StateList> ProcessRec(List<ScriptPair> spl, int spli, StateList sl)
@@ -3551,8 +3557,10 @@ namespace StoryGenerator.Utilities
             myLine.AddComponent<LineRenderer>();
             LineRenderer lr = myLine.GetComponent<LineRenderer>();
             lr.material = new Material(Shader.Find("Particles/Alpha Blended Premultiply"));
-            lr.SetColors(color, color);
-            lr.SetWidth(0.1f, 0.1f);
+            lr.startColor = color;
+            lr.endColor = color;
+            lr.startWidth = 0.1f;
+            lr.endWidth = 0.1f;
             lr.SetPosition(0, start);
             lr.SetPosition(1, end);
             GameObject.Destroy(myLine, duration);

@@ -325,7 +325,7 @@ namespace StoryGenerator.Utilities
             if (newCamera == null)
                 return;
 
-            bool changed = false;
+            //bool changed = false;
 
             //if (newCamera == currentCamera && !doRefocus) {
             //    if (currentCamera.transform.rotation != prevRotation) {

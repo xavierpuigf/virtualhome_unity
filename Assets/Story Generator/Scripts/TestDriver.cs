@@ -68,7 +68,7 @@ namespace StoryGenerator
         [Serializable]
         class SceneData
         {
-            public string characterName;
+            //public string characterName;
             public string sceneName;
             public int frameRate;
         }
@@ -157,7 +157,7 @@ namespace StoryGenerator
             ColorEncoding.EncodeCurrentScene(transform);
             // Disable must come after color encoding. Otherwise, GetComponent<Renderer> failes to get
             // Renderer for the disabled objects.
-            HomeAnnotator.PostColorEncoding_DisableGameObjects();
+            UtilsAnnotator.PostColorEncoding_DisableGameObjects();
         }
 
         public void ProcessRequest(string request)
@@ -1401,8 +1401,6 @@ namespace StoryGenerator
 
     public class ImageConfig : RecorderConfig
     {
-        public int image_width = 640;
-        public int image_height = 480;
         public string mode = "normal";
     }
 

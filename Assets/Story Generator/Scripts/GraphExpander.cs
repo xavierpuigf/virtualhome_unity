@@ -972,7 +972,7 @@ namespace StoryGenerator.Utilities
                 newGo = UnityEngine.Object.Instantiate(loadedObj, destObjRoom) as GameObject;
                 newGo.transform.position = Randomize ? RandomUtils.Choose(positions) : positions[0];
                 newGo.name = loadedObj.name;
-                HomeAnnotator.ProcessItem(newGo.transform);
+                ObjectAnnotator.AnnotateObj(newGo.transform);
                 ColorEncoding.EncodeGameObject(newGo);
                 return true;
             }

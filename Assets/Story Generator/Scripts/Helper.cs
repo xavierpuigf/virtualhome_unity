@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using StoryGenerator.Scripts;
+using StoryGenerator.HomeAnnotation;
+using Newtonsoft.Json;
 
 namespace StoryGenerator.Helpers
 {
@@ -13,6 +15,9 @@ namespace StoryGenerator.Helpers
         const string PATH_PREFIX = "Assets/Resources/";
         static Dictionary<string, PrefabClassEncoding> classDictionary = null;
         static Dictionary<string, List<string>> propertiesDictionary = null;
+        static Dictionary<string, Annotation> annotationDictionary = null;
+
+
 
         public static T FindComponentInChildWithTag<T>(GameObject parent, string tag) where T:Component
         {
@@ -292,6 +297,36 @@ namespace StoryGenerator.Helpers
             }
             return propertiesDictionary;
         }
+
+
+        public static Dictionary<string, Annotation> GetAnnotations()
+        {
+            if (annotationDictionary == null)
+            {
+                TextAsset txtAsset = Resources.Load<TextAsset>(DATA_RESOURCES_FOLDER + "object_annotation");
+
+                // AnnotationRoot ar = JsonUtility.FromJson<AnnotationRoot> (txtAsset.text);
+                JsonSerializerSettings settings = new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore,
+                    MissingMemberHandling = MissingMemberHandling.Ignore
+                };
+                AnnotationRoot ar = JsonConvert.DeserializeObject<AnnotationRoot>(txtAsset.text, settings);
+
+                annotationDictionary = new Dictionary<string, Annotation>();
+                foreach (AnnotationContainer ac in ar.models)
+                {
+                    foreach (string model_name in ac.model_names)
+                    {
+                        annotationDictionary[model_name] = ac.annotation;
+                    }
+                }
+
+            }
+
+            return annotationDictionary;
+        }
+
 
         public static List<string> GetAllClasses()
         {

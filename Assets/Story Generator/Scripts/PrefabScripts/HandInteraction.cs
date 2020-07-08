@@ -23,7 +23,7 @@ namespace StoryGenerator.CharInteraction
         public Vector3 handPosition;
 
         [Tooltip("List of properties of switch that will initiate the visual change after character touches the switch")]
-        public ActivationSwitch[] switches;
+        public List<ActivationSwitch> switches;
 
         // Used to put back grabbed object. It is basically an interaction with invisible object.
         public GameObject invisibleCpy {get; private set;}
@@ -980,13 +980,13 @@ namespace StoryGenerator.CharInteraction
             }
 
             // Proceed only if this object is interact-able (has ActivationSwitch)
-            if (switches != null && switches.Length != 0 && switches[0] != null)
+            if (switches != null && switches.Count != 0 && switches[0] != null)
             {
                 m_list_switchPos = new List<Vector3> ();
 
                 // Add hand prefab for each switch.
                 // Note that InteractionObject is already attached to the prefab
-                for (int i = 0; i < switches.Length; i++)
+                for (int i = 0; i < switches.Count; i++)
                 {
                     ActivationSwitch s = switches[i];
                     s.Initialize(this);
@@ -1158,7 +1158,7 @@ namespace StoryGenerator.CharInteraction
         internal int SwitchIndex(ActivationAction action)
         {
             if (switches != null) {
-                for (int i = 0; i < switches.Length; i++)
+                for (int i = 0; i < switches.Count; i++)
                     if (switches[i].action == action)
                         return i;
             }
@@ -1173,7 +1173,7 @@ namespace StoryGenerator.CharInteraction
 
             if (switches != null)
             {
-                for (int i = 0; i < switches.Length; i++)
+                for (int i = 0; i < switches.Count; i++)
                     if (switches[i].action == action)
                         switchIndices.Add(i);
             }
@@ -1196,7 +1196,7 @@ namespace StoryGenerator.CharInteraction
                     DrawSphere( worldPos, tsfm, new Color(0.0f, 1.0f, 0.0f, 0.85f) );
                 }
 
-                if (switches != null && switches.Length > 0 && switches[0] != null)
+                if (switches != null && switches.Count > 0 && switches[0] != null)
                 {
                     foreach (ActivationSwitch curAs in switches)
                     {

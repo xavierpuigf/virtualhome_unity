@@ -273,8 +273,8 @@ namespace StoryGenerator.DoorProperties
 			stateObject.LinkObj2Monitor(this, monitorInfo);
 			
 			HandInteraction hi = gameObject.AddComponent<HandInteraction>();
-			hi.switches = new HandInteraction.ActivationSwitch[1] {doorSwitch};
-
+			hi.switches = new List<HandInteraction.ActivationSwitch>();
+			hi.switches.Add(doorSwitch);
 			hi.Initialize();
 		}
 
