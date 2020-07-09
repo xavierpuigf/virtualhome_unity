@@ -22,7 +22,6 @@ namespace StoryGenerator.HomeAnnotation
     using TransitionSequence = StoryGenerator.CharInteraction.HandInteraction.TransitionSequence;
     using Link = StoryGenerator.CharInteraction.HandInteraction.TransitionSequence.TransitionType;
 
-
     using Toggle = StoryGenerator.CharInteraction.HandInteraction.Toggle;
     using ToggleEmission = StoryGenerator.CharInteraction.HandInteraction.ToggleEmission;
     using ChangeVector = StoryGenerator.CharInteraction.HandInteraction.ChangeVector;
@@ -211,7 +210,7 @@ namespace StoryGenerator.HomeAnnotation
                 {
                     hi.switches = new List<ActivationSwitch>();
                 }
-                hi.switches.Append(swch);
+                hi.switches.Add(swch);
                 hi.Initialize();
             }
         }
@@ -258,7 +257,7 @@ namespace StoryGenerator.HomeAnnotation
             {
                 hi.switches = new List<ActivationSwitch>();
             }
-            hi.switches.Append(swch);
+            hi.switches.Add(swch);
             hi.Initialize();
         }
 

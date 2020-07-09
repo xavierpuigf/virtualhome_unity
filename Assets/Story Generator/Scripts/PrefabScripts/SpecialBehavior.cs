@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using StoryGenerator.CharInteraction;
+using UnityEngine.AI;
 using StoryGenerator.Helpers;
 using StoryGenerator.SceneState;
 using StoryGenerator.HomeAnnotation;
@@ -39,47 +40,90 @@ namespace StoryGenerator.SpecialBehavior
     {
         public void Process(Transform tsfm)
         {
-            if (tsfm.gameObject.GetComponent<HandInteraction>() == null)
+            const string FRIDGE_DOOR_1 = "MOD_APP_Fridge_door_01";
+            const string FRIDGE_DOOR_2 = "MOD_APP_Fridge_door_02";
+            const int FRIDGE_NUM_DRAWERS = 3;
+            const string FRIDGE_DRAWER = "MOD_APP_Fridge_drawer_0";
+
+            const float DELAY_LIGHT_ON = 0.2f;
+            const float DELAY_LIGHT_OFF = 0.8f;
+            List_Link links = new List_Link() { Link.Manual };
+
+            State_object so = tsfm.gameObject.AddComponent<State_object>();
+            so.Initialize();
+
+            // Need to turn off the light of the fridge in the beginnig to minimize
+            // its effect on scene lighting. It will turn back on when the door is opened
+            GameObject go_pl = tsfm.Find(UtilsAnnotator.LAMPS.LIGHT_SOURCE).gameObject;
+            // Default light intensity is too weak.
+            Light l = go_pl.GetComponent<Light>();
+            l.intensity = 1.0f;
+
+            List<GameObject> list_pl = new List<GameObject>() { go_pl };
+            Toggle tgl_open = new Toggle(list_pl, DELAY_LIGHT_ON, InterruptBehavior.Stop);
+            tgl_open.Flip();
+            Toggle tgl_close = new Toggle(list_pl, DELAY_LIGHT_OFF, InterruptBehavior.Stop);
+            List_TB tb_tgl = new List_TB() { tgl_open, tgl_close };
+            TransitionSequence ts_tgl = new TransitionSequence(tb_tgl, links);
+
+            // Turn emissive material off - one light bulb at the top of the fridge.
+            List<GameObject> list_fridge = new List<GameObject>() { tsfm.gameObject };
+            ToggleEmission tglEmsn_open = new ToggleEmission(list_fridge, DELAY_LIGHT_ON, InterruptBehavior.Stop);
+            tglEmsn_open.Flip();
+            ToggleEmission tglEmsn_close = new ToggleEmission(list_fridge, DELAY_LIGHT_OFF, InterruptBehavior.Stop);
+            List_TB tb_tglEmsn = new List_TB() { tglEmsn_open, tglEmsn_close };
+            TransitionSequence ts_tglEmsn = new TransitionSequence(tb_tglEmsn, links);
+
+            // Make white interior less bright since it's reflecting too much light on some scenes.
+            string[] WHITE_INTERIOR = new string[] { "Plastic_02_02" };
+            foreach (Material m in Helper.FindMatNameMatch(list_fridge, WHITE_INTERIOR))
             {
-                const float DELAY_LIGHT_ON = 0.2f;
-                const float DELAY_LIGHT_OFF = 0.8f;
-                List_Link links = new List_Link() { Link.Manual };
-
-                State_object so = tsfm.gameObject.AddComponent<State_object>();
-                so.Initialize();
-
-                // Need to turn off the light of the fridge in the beginnig to minimize
-                // its effect on scene lighting. It will turn back on when the door is opened
-                GameObject go_pl = tsfm.Find(UtilsAnnotator.LAMPS.LIGHT_SOURCE).gameObject;
-                // Default light intensity is too weak.
-                Light l = go_pl.GetComponent<Light>();
-                l.intensity = 1.0f;
-
-                List<GameObject> list_pl = new List<GameObject>() { go_pl };
-                Toggle tgl_open = new Toggle(list_pl, DELAY_LIGHT_ON, InterruptBehavior.Stop);
-                tgl_open.Flip();
-                Toggle tgl_close = new Toggle(list_pl, DELAY_LIGHT_OFF, InterruptBehavior.Stop);
-                List_TB tb_tgl = new List_TB() { tgl_open, tgl_close };
-                TransitionSequence ts_tgl = new TransitionSequence(tb_tgl, links);
-
-                // Turn emissive material off - one light bulb at the top of the fridge.
-                List<GameObject> list_fridge = new List<GameObject>() { tsfm.gameObject };
-                ToggleEmission tglEmsn_open = new ToggleEmission(list_fridge, DELAY_LIGHT_ON, InterruptBehavior.Stop);
-                tglEmsn_open.Flip();
-                ToggleEmission tglEmsn_close = new ToggleEmission(list_fridge, DELAY_LIGHT_OFF, InterruptBehavior.Stop);
-                List_TB tb_tglEmsn = new List_TB() { tglEmsn_open, tglEmsn_close };
-                TransitionSequence ts_tglEmsn = new TransitionSequence(tb_tglEmsn, links);
-
-                // Make white interior less bright since it's reflecting too much light on some scenes.
-                string[] WHITE_INTERIOR = { "Plastic_02_02" };
-                foreach (Material m in Helper.FindMatNameMatch(list_fridge, WHITE_INTERIOR))
-                {
-                    const float REDUCE_AMOUNT = 0.58f;
-                    m.color = new Color(m.color.r * REDUCE_AMOUNT, m.color.g * REDUCE_AMOUNT,
-                      m.color.b * REDUCE_AMOUNT, m.color.a);
-                }
-
+                const float REDUCE_AMOUNT = 0.58f;
+                m.color = new Color(m.color.r * REDUCE_AMOUNT, m.color.g * REDUCE_AMOUNT,
+                  m.color.b * REDUCE_AMOUNT, m.color.a);
             }
+
+            Transform tsfm_door1 = tsfm.Find(FRIDGE_DOOR_1);
+            TransitionSequence ts_cv_door1 = SwitchUtilities.Create2ChangeVector_sequence(new List<GameObject> { tsfm_door1.gameObject },
+              0.0f, InteractionConst.OPEN_ENTER_PRD_MED, 0.0f, InteractionConst.OPEN_EXIT_PRD_MED, TargetProperty.Rotation,
+              new Vector3(0.0f, InteractionConst.DOOR_OPEN_DEGREES), InteractionConst.OPEN_ROI_DELTA,
+              InterruptBehavior.Ignore, InterruptBehavior.Revert,
+              InterruptBehavior.Ignore, InterruptBehavior.Revert, Link.Manual);
+            List_TS ts_door1 = new List_TS() { ts_cv_door1, ts_tgl, ts_tglEmsn };
+            ActivationSwitch door1 = new ActivationSwitch(HandPose.GrabHorizontalSmall, ActivationAction.Open,
+              new Vector3(0.12f, -0.48f, -0.68f), ts_door1, tsfm_door1);
+
+            Transform tsfm_door2 = tsfm.Find(FRIDGE_DOOR_2);
+            List_TS ts_door2 = SwitchUtilities.Create2ChangeVector_list(new List<GameObject>() { tsfm_door2.gameObject },
+              0.0f, 0.0f, InteractionConst.OPEN_ENTER_PRD_MED, InteractionConst.OPEN_EXIT_PRD_MED, TargetProperty.Rotation,
+              new Vector3(0.0f, InteractionConst.DOOR_OPEN_DEGREES), InteractionConst.OPEN_ROI_DELTA,
+              InterruptBehavior.Ignore, InterruptBehavior.Revert,
+              InterruptBehavior.Ignore, InterruptBehavior.Revert, Link.Manual);
+            HandInteraction.ActivationSwitch door2 = new HandInteraction.ActivationSwitch(HandPose.GrabHorizontalSmall,
+              ActivationAction.Open, new Vector3(0.12f, 0.37f, -0.68f), ts_door2, tsfm_door2);
+
+            HandInteraction hi = tsfm.gameObject.AddComponent<HandInteraction>();
+            hi.switches = new List<HandInteraction.ActivationSwitch>();
+            hi.switches.Add(door1);
+            hi.switches.Add(door2);
+
+
+            for (int j = 0; j < FRIDGE_NUM_DRAWERS; j++)
+            {
+                Transform drawer = tsfm.Find(FRIDGE_DRAWER + (j + 1));
+                List_TS ts_drawer = SwitchUtilities.Create2ChangeVector_list(new List<GameObject>() { drawer.gameObject },
+                  0.0f, 0.0f, InteractionConst.OPEN_ENTER_PRD_MED, InteractionConst.OPEN_EXIT_PRD_MED,
+                  TargetProperty.Position, InteractionConst.DRAWER_OPEN_AMOUNT, InteractionConst.OPEN_ROI_DELTA,
+                  InterruptBehavior.Ignore, InterruptBehavior.Revert,
+                  InterruptBehavior.Ignore, InterruptBehavior.Revert, Link.Manual);
+
+                HandInteraction.ActivationSwitch swtch = new HandInteraction.ActivationSwitch(HandPose.GrabHorizontalSmall,
+                  ActivationAction.Open, new Vector3(0.32f, 0.11f, 0.0f), ts_drawer, drawer);
+
+                hi.switches.Add(swtch);
+            }
+
+            hi.Initialize();
 
         }
     }
@@ -88,6 +132,12 @@ namespace StoryGenerator.SpecialBehavior
         public void Process(Transform tsfm)
         {
             const int STOVE_NUM_COILS = 4;
+            const string OVEN_DOOR = "MOD_APP_Oven_door_01";
+            const string OVEN_TRAY = "MOD_APP_Oven_tray_01";
+
+
+            UtilsAnnotator.AddNavMeshObstacle(tsfm.gameObject, new Vector3(-0.075f, 0.51f, 0.0f), new Vector3(0.832f, 1.08f, 1.002f));
+
             if (tsfm.gameObject.GetComponent<HandInteraction>() == null)
             {
                 State_object so = tsfm.gameObject.AddComponent<State_object>();
@@ -107,7 +157,8 @@ namespace StoryGenerator.SpecialBehavior
                         };
 
                 HandInteraction hi = tsfm.gameObject.AddComponent<HandInteraction>();
-                hi.switches = new List<HandInteraction.ActivationSwitch>(STOVE_NUM_COILS + 1);
+                hi.switches = new List<HandInteraction.ActivationSwitch>();
+                //new HandInteraction.ActivationSwitch[STOVE_NUM_COILS + 1];
 
                 for (int j = 0; j < STOVE_NUM_COILS; j++)
                 {
@@ -132,11 +183,34 @@ namespace StoryGenerator.SpecialBehavior
 
                     hi.switches[j] = swtch;
                 }
+
+                Transform ovenDoor = tsfm.Find(OVEN_DOOR);
+
+                List_TS ts = SwitchUtilities.Create2ChangeVector_list(new List<GameObject>() { ovenDoor.gameObject },
+                  0.0f, 0.0f, InteractionConst.OPEN_ENTER_PRD_MED, InteractionConst.OPEN_EXIT_PRD_MED, TargetProperty.Rotation,
+                  new Vector3(0.0f, 0.0f, InteractionConst.DOOR_OPEN_DEGREES), InteractionConst.OPEN_ROI_DELTA,
+                  InterruptBehavior.Ignore, InterruptBehavior.Revert,
+                  InterruptBehavior.Ignore, InterruptBehavior.Revert, Link.Manual);
+
+                ActivationSwitch ovenDoorSwitch = new ActivationSwitch(HandPose.GrabHorizontalSmall,
+                  ActivationAction.Open, new Vector3(0.03f, 0.48f, 0.0f), ts, ovenDoor);
+
+                hi.switches[STOVE_NUM_COILS] = ovenDoorSwitch;
                 hi.Initialize();
-                so = tsfm.gameObject.AddComponent<State_object>();
-                so.Initialize();
 
+                GameObject tray = tsfm.Find(OVEN_TRAY).gameObject;
+                if (tray != null)
+                {
+                    so = tsfm.gameObject.AddComponent<State_object>();
+                    so.Initialize();
 
+                    hi = tray.AddComponent<HandInteraction>();
+                    hi.allowPickUp = true;
+                    hi.grabHandPose = HandInteraction.HandPose.GrabHorizontalSmall;
+                    hi.handPosition = new Vector3(0.28f, 0.0f, 0.0f);
+
+                    hi.Initialize();
+                }
             }
         }
     }
@@ -178,7 +252,7 @@ namespace StoryGenerator.SpecialBehavior
                     hi_lid.grabHandPose = HandInteraction.HandPose.GrabVerticalSmall;
                     hi_lid.handPosition = new Vector3(0.13f, 0.065f, 0.0f);
                     hi_lid.switches = new List<HandInteraction.ActivationSwitch>();
-                    hi_lid.switches.Append(swch_lid);
+                    hi_lid.switches.Add(swch_lid);
                     hi_lid.Initialize();
 
                     // Annotate coffee maker
@@ -196,7 +270,7 @@ namespace StoryGenerator.SpecialBehavior
 
                     HandInteraction hi_coffeeMaker = tsfm.gameObject.AddComponent<HandInteraction>();
                     hi_coffeeMaker.switches = new List<HandInteraction.ActivationSwitch>();
-                    hi_lid.switches.Append(swch_lid);
+                    hi_lid.switches.Add(swch_lid);
                     hi_coffeeMaker.Initialize();
                 }
             }
@@ -259,7 +333,7 @@ namespace StoryGenerator.SpecialBehavior
 
                 HandInteraction hi = tsfm.gameObject.AddComponent<HandInteraction>();
                 hi.switches = new List<HandInteraction.ActivationSwitch>();
-                hi.switches.Append(swch);
+                hi.switches.Add(swch);
                 hi.Initialize();
             }
         }
@@ -275,6 +349,9 @@ namespace StoryGenerator.SpecialBehavior
             {
                 c.enabled = false;
             }
+            NavMeshObstacle nmo = tsfm.gameObject.GetComponent<NavMeshObstacle>();
+            if (nmo != null)
+                nmo.enabled = false;
         }
     }
 
@@ -339,7 +416,7 @@ namespace StoryGenerator.SpecialBehavior
 
                     HandInteraction hi = tsfm.gameObject.AddComponent<HandInteraction>();
                     hi.switches = new List<HandInteraction.ActivationSwitch>();
-                    hi.switches.Append(swch);
+                    hi.switches.Add(swch);
 
                     hi.Initialize();
                 }
@@ -380,11 +457,68 @@ namespace StoryGenerator.SpecialBehavior
 
                 HandInteraction hi = tsfm.gameObject.AddComponent<HandInteraction>();
                 hi.switches = new List<HandInteraction.ActivationSwitch>();
-                hi.switches.Append(swch);
+                hi.switches.Add(swch);
 
                 hi.Initialize();
 
             }
+        }
+    }
+
+    public class LightBehavior : PrefabBehavior
+    {
+
+        const string WALL_LAMP = "Wall_lamp";
+        const string CEILING_LAMP = "Ceiling_lamp";
+        public void Process(Transform tsfm)
+        {
+            State_object so = tsfm.gameObject.AddComponent<State_object>();
+            so.Initialize();
+
+            Transform lamps = tsfm.parent.parent.Find(UtilsAnnotator.LAMPS.GROUP_NAME);
+
+            Debug.Assert(lamps != null, "Cannot find the lamp objects");
+
+            List<GameObject> list_lightSources = new List<GameObject>();
+            for (int i = 0; i < lamps.childCount; i++)
+            {
+                Transform lamp = lamps.GetChild(i);
+
+                if (lamp.name.Contains(CEILING_LAMP) || lamp.name.Contains(WALL_LAMP))
+                {
+                    for (int j = 0; j < lamp.childCount; j++)
+                    {
+                        Transform t = lamp.GetChild(j);
+                        if (t.name.Equals(UtilsAnnotator.LAMPS.LIGHT_SOURCE))
+                        {
+                            list_lightSources.Add(t.gameObject);
+                        }
+                    }
+                }
+            }
+
+            // Find reflection probe, if exists. It tends to make things brighter.
+            Transform rp = tsfm.parent.parent.Find(UtilsAnnotator.LAMPS.REFLECTION_PROBE);
+            if (rp != null)
+            {
+                list_lightSources.Add(rp.gameObject);
+            }
+
+            Toggle tgl = new Toggle(list_lightSources);
+            TransitionSequence ts_light = new TransitionSequence(new List_TB() { tgl });
+
+            // When lights are toggled, the emission property of emissive materials
+            // must be toggled as well.
+            ToggleEmission tgl_emsn = new ToggleEmission(new List<GameObject>() { lamps.gameObject });
+            TransitionSequence ts_emsn = new TransitionSequence(new List_TB() { tgl_emsn });
+
+            ActivationSwitch swch = new ActivationSwitch(HandPose.Button, ActivationAction.SwitchOn,
+              new Vector3(0.0f, 0.02f, 0.0f), new List_TS() { ts_light, ts_emsn });
+
+            HandInteraction hi = tsfm.gameObject.AddComponent<HandInteraction>();
+            hi.switches = new List<HandInteraction.ActivationSwitch>();
+            hi.switches.Add(swch);
+            hi.Initialize();
         }
     }
 

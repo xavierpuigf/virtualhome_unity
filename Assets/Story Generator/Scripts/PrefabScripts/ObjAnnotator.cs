@@ -77,7 +77,7 @@ namespace StoryGenerator.HomeAnnotation
         public static readonly float OPEN_ROI_DELTA = 0.1f;
         public static Vector3 DRAWER_OPEN_AMOUNT = new Vector3(0.44f, 0.0f, 0.0f);
 
-        public static float DOOR_OPEN_DEGREES = -50.0f;
+        public static float DOOR_OPEN_DEGREES = -80.0f;
         public static float OPEN_ENTER_PRD_MED = 1.0f;
         public static float OPEN_EXIT_PRD_MED = 1.0f;
         public static float OPEN_ENTER_PRD_LONG = 1.7f;
@@ -165,13 +165,7 @@ namespace StoryGenerator.HomeAnnotation
             {
                 nmos.AddNavMeshObstacles(tsfm);
             }
-            //else
-            //{
-            //    SingleNMO nmo_new = new SingleNMO();
-            //    nmo_new.center = new float[3] { 0.0f, 0.0f, 0.0f };
-            //    nmo_new.size = new float[3]{0.0f, 0.0f, 0.0f};
-            //    nmo_new.AddNavMeshObstacle(tsfm);
-            //}
+
 
             if (colliders != null)
             {
@@ -473,7 +467,14 @@ namespace StoryGenerator.HomeAnnotation
                 phantomSwitch = new ActivationSwitch(HandPose.Button, ActivationAction.SwitchOn, pos, null);
 
             }
-            HandInteraction hi = go.AddComponent<HandInteraction>();
+            HandInteraction hi;
+            if (go.GetComponent<HandInteraction>())
+            {
+                hi = go.GetComponent<HandInteraction>();
+            }
+            else
+                hi = go.AddComponent<HandInteraction>();
+
             if (hi.switches == null)
             {
                 hi.switches = new List<ActivationSwitch>();
@@ -537,7 +538,7 @@ namespace StoryGenerator.HomeAnnotation
     public class PickupObject
     {
         public string hand_pose;
-        public float[] hand_position;
+        public float?[] hand_position;
         public int? child_pickup;
 
         public void Process(Transform tsfm)
@@ -549,7 +550,11 @@ namespace StoryGenerator.HomeAnnotation
                 hi.allowPickUp = true;
                 HandPose vh_hp = (HandPose)System.Enum.Parse(typeof(HandPose), hand_pose);
                 hi.grabHandPose = vh_hp;
-                hi.handPosition = new Vector3(hand_position[0], hand_position[1], hand_position[2]);
+                if (hand_position != null)
+                {
+                    hi.handPosition = new Vector3((float) hand_position[0], (float) hand_position[1], (float) hand_position[2]);
+
+                }
 
                 if (child_pickup != null)
                 {
@@ -666,10 +671,33 @@ namespace StoryGenerator.HomeAnnotation
             }
             else
             {
-                //SingleNMO nmo_new = new SingleNMO();
-                //nmo_new.center = new float[3] { 0.0f, 0.0f, 0.0f };
-                //nmo_new.size = new float[3] { 0.0f, 0.0f, 0.0f };
-                //nmo_new.AddNavMeshObstacle(tsfm);
+                // Unity calculates correct size of NMO for GOs below
+                string[] DEFAULT_NMOS = new string[] {
+                    "Bathtub_",
+                    "Nightstand_",
+                    "Bookshelf_",
+                    "table_",
+                    "stand_",
+                    "chair_",
+                    "Recliner_",
+                    "Bench",
+                    "Sofa",
+                    "counter_",
+                    "TV_Stand_",
+                    "Kitchen_table"
+                };
+                foreach (string str in DEFAULT_NMOS)
+                {
+                    if (tsfm.name.Contains(str))
+                    {
+
+                        SingleNMO nmo_new = new SingleNMO();
+                        nmo_new.center = new float[3] { 0.0f, 0.0f, 0.0f };
+                        nmo_new.size = new float[3] { 0.0f, 0.0f, 0.0f };
+                        nmo_new.AddNavMeshObstacle(tsfm);
+                        break;
+                    }
+                }
 
             }
 

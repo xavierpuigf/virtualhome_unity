@@ -596,6 +596,7 @@ namespace StoryGenerator
                         for (int i = 0; i < numCharacters; i++)
                         {
                             sExecutors[i].ClearScript();
+                            sExecutors[i].smooth_walk = !config.skip_animation;
                         }
 
                         ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
