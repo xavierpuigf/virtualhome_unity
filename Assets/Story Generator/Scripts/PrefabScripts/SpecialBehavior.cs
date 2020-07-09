@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+
 using System.Collections.Generic;
 using System.Linq;
 using StoryGenerator.CharInteraction;
@@ -522,4 +523,128 @@ namespace StoryGenerator.SpecialBehavior
         }
     }
 
+    public class KitchenCabinetBehavior : PrefabBehavior
+    {
+        public void Process(Transform tsfm)
+        {
+            // Create a cabinet for every door
+            List<GameObject> toAdd = new List<GameObject>();
+            List<GameObject> toDestroy = new List<GameObject>();
+
+            for (int child_id = 0; child_id < tsfm.childCount; child_id++)
+            {
+                Transform tsf = tsfm.GetChild(child_id);
+                if (tsf.gameObject.name.Contains("door"))
+                {
+                    toAdd.Add(tsf.gameObject);
+                }
+                else
+                {
+                    toDestroy.Add(tsf.gameObject);
+                }
+            }
+
+            foreach (GameObject tsfgo in toDestroy)
+            {
+                Object.Destroy(tsfgo);
+            }
+
+            foreach (GameObject tsfgo in toAdd)
+            {
+                
+                GameObject cabinet_piece = new GameObject("kitchen_cabinet");
+                
+                cabinet_piece.transform.SetParent(tsfm, false);
+
+                //cabinet_piece = Object.Instantiate(cabinet_piece);
+                //cabinet_piece.transform.localRotation = tsfgo.transform.localRotation;
+                cabinet_piece.transform.localPosition = tsfgo.transform.localPosition;
+                //cabinet_piece.transform.localRotation = Quaternion.Euler(0, 90, 0);
+
+                //cabinet_piece.transform.rotation = tsfgo.transform.rotation;
+                //cabinet_piece.transform.parent = tsfm;
+
+
+                tsfgo.transform.parent = cabinet_piece.transform;
+
+                // Add collider
+
+
+                GameObject collider_1 = new GameObject("collider");
+                //collider_1 = Object.Instantiate(collider_1);
+                //collider_1.transform.parent = cabinet_piece.transform;
+                collider_1.transform.SetParent(cabinet_piece.transform, false);
+                collider_1.AddComponent<BoxCollider>(new BoxCollider());
+                collider_1.transform.localPosition = new Vector3(-0.18f, -0.335f, 0.36f);
+                collider_1.transform.localScale = new Vector3(0.35f, 0.015f, 0.707f);
+                //collider_1.transform.localRotation = Quaternion.Euler(0, 90, 0);
+
+                GameObject collider_2 = new GameObject("collider");
+                //collider_2 = Object.Instantiate(collider_2);
+                //collider_2.transform.parent = cabinet_piece.transform;
+                collider_2.transform.SetParent(cabinet_piece.transform, false);
+                collider_2.AddComponent<BoxCollider>(new BoxCollider());
+                collider_2.transform.localPosition = new Vector3(-0.18f, -0.116f, 0.36f);
+                collider_2.transform.localScale = new Vector3(0.35f, 0.015f, 0.707f);
+                //collider_2.transform.localRotation = Quaternion.Euler(0, 90, 0);
+
+                GameObject collider_3 = new GameObject("collider");
+                //collider_3 = Object.Instantiate(collider_3);
+                //collider_3.transform.parent = cabinet_piece.transform;
+                //collider_3.transform.SetParent(cabinet_piece.transform, false);
+                collider_3.transform.SetParent(cabinet_piece.transform, false);
+                collider_3.AddComponent<BoxCollider>(new BoxCollider());
+                collider_3.transform.localPosition = new Vector3(-0.18f, 0.116f, 0.36f);
+                collider_3.transform.localScale = new Vector3(0.35f, 0.015f, 0.707f);
+                //collider_3.transform.localRotation = Quaternion.Euler(0, 90, 0); ;
+
+                GameObject collider_4 = new GameObject("collider");
+                //collider_4 = Object.Instantiate(collider_4);
+
+                collider_4.transform.SetParent(cabinet_piece.transform, false);
+                collider_4.AddComponent<BoxCollider>(new BoxCollider());
+                collider_4.transform.localPosition = new Vector3(-0.18f, 0.336f, 0.36f);
+                collider_4.transform.localScale = new Vector3(0.35f, 0.015f, 0.707f);
+                //collider_4.transform.localRotation = Quaternion.Euler(0, 90, 0);
+
+                GameObject collider_5 = new GameObject("collider");
+                //collider_5 = Object.Instantiate(collider_5);
+                //collider_5.transform.parent = cabinet_piece.transform;
+                collider_5.transform.SetParent(cabinet_piece.transform, false);
+                collider_5.AddComponent<BoxCollider>(new BoxCollider());
+                collider_5.transform.localPosition = new Vector3(-0.18f, 0.0f, 0.737f);
+                collider_5.transform.localScale = new Vector3(0.35f, 0.67f, 0.015f);
+                //collider_5.transform.localRotation = Quaternion.Euler(0, 90, 0);
+
+                GameObject collider_6 = new GameObject("collider");
+                //collider_6 = Object.Instantiate(collider_6);
+                collider_6.transform.SetParent(cabinet_piece.transform, false);
+                //collider_6.transform.parent = cabinet_piece.transform;
+                collider_6.AddComponent<BoxCollider>(new BoxCollider());
+                collider_6.transform.localPosition = new Vector3(-0.18f, 0.0f, -0.006f);
+                collider_6.transform.localScale = new Vector3(0.35f, 0.67f, 0.015f);
+                //collider_6.transform.localRotation = Quaternion.Euler(0, 90, 0);
+
+                GameObject collider_7 = new GameObject("collider");
+                //collider_7 = Object.Instantiate(collider_7);
+                //collider_7.transform.parent = cabinet_piece.transform;
+                collider_7.transform.SetParent(cabinet_piece.transform, false);
+                collider_7.AddComponent<BoxCollider>(new BoxCollider());
+                collider_7.transform.localPosition = new Vector3(-0.36f, 0.0f, 0.36f);
+                collider_7.transform.localScale = new Vector3(0.015f, 0.67f, 0.707f);
+                //collider_7.transform.localRotation = Quaternion.Euler(0, 90, 0); ;
+
+
+                ContainerSwitch cts = new ContainerSwitch();
+                cts.objName = "door";
+                cts.hand_pose = "GrabVerticalSmall";
+                cts.target_property = "Rotation";
+                cts.open_degrees = 70;
+                cts.sp = new float[] { 0.03f, -0.235f, 0.68f };
+                cts.AddSwitches(cabinet_piece.transform);
+
+
+            }
+        }
+    }
 }

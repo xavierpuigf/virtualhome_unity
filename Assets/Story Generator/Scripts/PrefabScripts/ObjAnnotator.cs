@@ -152,7 +152,15 @@ namespace StoryGenerator.HomeAnnotation
 
         public void Annotate(Transform tsfm)
         {
-
+            if (special_behavior != null)
+            {
+                string special_behavior_full_name = "StoryGenerator.SpecialBehavior." + special_behavior;
+                PrefabBehavior pb = (StoryGenerator.SpecialBehavior.PrefabBehavior)System.Activator.CreateInstance(Type.GetType(special_behavior_full_name));
+                if (pb != null)
+                {
+                    pb.Process(tsfm);
+                }
+            }
             if (other_properties != null)
             {
                 other_properties.Process(tsfm);
@@ -199,15 +207,7 @@ namespace StoryGenerator.HomeAnnotation
             {
                 pickup_obj.Process(tsfm);
             }
-            if (special_behavior != null)
-            {
-                string special_behavior_full_name = "StoryGenerator.SpecialBehavior." + special_behavior;
-                PrefabBehavior pb = (StoryGenerator.SpecialBehavior.PrefabBehavior)System.Activator.CreateInstance(Type.GetType(special_behavior_full_name));
-                if (pb != null)
-                {
-                    pb.Process(tsfm);
-                }
-            }
+
         }
     }
 
