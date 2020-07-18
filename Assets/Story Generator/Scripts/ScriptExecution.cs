@@ -3400,12 +3400,7 @@ namespace StoryGenerator.Utilities
         {
 
             Vector3 front_vec = go.transform.right;
-            if (go.name.StartsWith("Microwave_1") || go.name.StartsWith("Cabinet_1"))
-            {
-                front_vec = -go.transform.up;
-            }
-
-            else if (go.name == "Cabinet_2" || go.name.Contains("Microwave"))
+            if (go.name == "Cabinet_2" || go.name.Contains("Microwave") || go.name == "mH_FloorCabinet01" || go.name.StartsWith("Cabinet_1"))
             {
                 front_vec = go.transform.forward;
             }
