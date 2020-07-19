@@ -153,7 +153,7 @@ namespace StoryGenerator
 
         void ProcessHome(bool randomizeExecution)
         {
-            HomeAnnotator.ProcessHome(transform, randomizeExecution);
+            UtilsAnnotator.ProcessHome(transform, randomizeExecution);
             ColorEncoding.EncodeCurrentScene(transform);
             // Disable must come after color encoding. Otherwise, GetComponent<Renderer> failes to get
             // Renderer for the disabled objects.
@@ -558,7 +558,6 @@ namespace StoryGenerator
                         updateRecorders(config);
                     }
 
-                    // initialize the recorders
                     if (!config.skip_execution)
                     {
                         for (int i = 0; i < numCharacters; i++)
@@ -569,6 +568,11 @@ namespace StoryGenerator
                                 characters[i].SetSpeed(1.0f);
                         }
                     }
+                    if (config.skip_animation)
+                    {
+                        UtilsAnnotator.SetSkipAnimation(transform);
+                    }
+                    // initialize the recorders
                     if (config.recording)
                     {
                         for (int i = 0; i < numCharacters; i++)

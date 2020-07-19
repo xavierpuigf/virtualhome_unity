@@ -204,18 +204,29 @@ namespace StoryGenerator.CharInteraction
                 }
             }
 
+            public void UpdateStateObject()
+            {
+                StateObjectCheck();
+                so.ToggleState(this);
+            }
+
+            public void SetInstantTransition()
+            {
+                if (transitionSequences != null)
+                {
+                    foreach (TransitionSequence ts in transitionSequences)
+                    {
+                        ts.SetInstantTransition();
+                    }
+                }
+            }
+
             void StartMonitoringState()
             {
                 if ( StateObjectCheck() )
                 {
                     hi.StartCoroutine( so.MonitorState(this) );
                 }
-            }
-
-            public void UpdateStateObject()
-            {
-                StateObjectCheck();
-                so.ToggleState(this);
             }
 
             // returns whether it's OK to call methods on state_object or not.
@@ -296,6 +307,14 @@ namespace StoryGenerator.CharInteraction
                 idx++;
             }
 
+            public void SetInstantTransition()
+            {
+                foreach (TransitionBase tb in transitions)
+                {
+                    tb.SetInstantTransition();
+                }
+            }
+
             // For auto transition, Monitoring has to be executed more than once to keep track
             // of the state without waiting for next "Start" coroutine to be executed
             public int NumAutoLinks()
@@ -330,7 +349,7 @@ namespace StoryGenerator.CharInteraction
         public class Toggle : TransitionBase
         {
             public Toggle(List<GameObject> _targets, float _delay = 0.0f, InterruptBehavior _ib_delay = InterruptBehavior.Ignore) :
-              base(_targets, _delay, TOGGLE_DURATION, _ib_delay, InterruptBehavior.Ignore) {}
+              base(_targets, _delay, DURATION_INSTANT, _ib_delay, InterruptBehavior.Ignore) {}
 
             protected override void UpdatePropertyValue(float direction, float weight)
             {
@@ -363,7 +382,7 @@ namespace StoryGenerator.CharInteraction
             List<Material> list_emissiveMats = null;
 
             public ToggleEmission(List<GameObject> _targets, float _delay = 0.0f, InterruptBehavior _ib_delay = InterruptBehavior.Ignore) :
-              base(null, _delay, TOGGLE_DURATION, _ib_delay, InterruptBehavior.Ignore)
+              base(null, _delay, DURATION_INSTANT, _ib_delay, InterruptBehavior.Ignore)
             {
                 list_emissiveMats = Helper.FindMatNameMatch(_targets, EMISSIVE_MATERIALS);
             }
@@ -612,16 +631,16 @@ namespace StoryGenerator.CharInteraction
 
             public bool proceed {get; private set;} = true;
             // For toggles, use very small duration so that the UpdatePropertyValue can be called at least once
-            protected const float TOGGLE_DURATION = 0.00001f;
+            protected const float DURATION_INSTANT = 0.00001f;
 
             protected List<GameObject> targets;
-            protected readonly float delay;
-            protected readonly float duration;
             protected readonly InterruptBehavior ib_delay;
             protected readonly InterruptBehavior ib_transition;
             protected readonly bool useInitialValue; // Used for graudual changes (e.g. Vector3, Color)
 
             protected float normalizedTime_elapsed = 0.0f;
+            protected float delay;
+            protected float duration;
 
             bool interrupt = false;
             bool inTransition = false;
@@ -654,6 +673,12 @@ namespace StoryGenerator.CharInteraction
                     UseInitValue();
                 }
                 UpdatePropertyValue(1.0f, 1.0f);
+            }
+
+            public void SetInstantTransition()
+            {
+                delay = 0.0f;
+                duration = DURATION_INSTANT;
             }
 
             public IEnumerator Transition(HandInteraction hi)
@@ -907,6 +932,17 @@ namespace StoryGenerator.CharInteraction
             return switches[switchIdx].GID_2_effector_2_IO[gid][effectorType];
         }
       
+        public void SetInstantTransition()
+        {
+            if (switches != null)
+            {
+                foreach (ActivationSwitch sw in switches)
+                {
+                    sw.SetInstantTransition();
+                }
+            }
+        }
+
         void Awake()
         {
             if (!m_skipAwake) {
@@ -1164,7 +1200,6 @@ namespace StoryGenerator.CharInteraction
             }
             return -1;
         }
-
 
         // Get all the swi of corresponding action
         internal List<int> SwitchIndices(ActivationAction action)

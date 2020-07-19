@@ -52,6 +52,27 @@ namespace StoryGenerator.HomeAnnotation
     {
         static List<GameObject> m_GO_toDisable = new List<GameObject>();
 
+        public static void ProcessHome(Transform h, bool shouldRandomize)
+        {
+#if UNITY_EDITOR
+            UnityEditor.AI.NavMeshBuilder.ClearAllNavMeshes();
+            UnityEditor.AI.NavMeshBuilder.BuildNavMesh();
+#endif
+            if (shouldRandomize)
+            {
+                GlobalRandomization(h);
+            }
+            Reset();
+
+            var allChildren = h.GetComponentsInChildren<Transform>();
+            foreach (Transform child in allChildren)
+            {
+                ObjectAnnotator.AnnotateObj(child);
+            }
+
+            PostColorEncoding_DisableGameObjects();
+        }
+
         public static void Reset()
         {
             m_GO_toDisable.Clear();
@@ -154,6 +175,15 @@ namespace StoryGenerator.HomeAnnotation
             InteractionConst.OPEN_ENTER_PRD_LONG *= Random.Range(0.85f, 1.15f);
             InteractionConst.OPEN_EXIT_PRD_LONG *= Random.Range(0.85f, 1.15f);
             
+        }
+
+        public static void SetSkipAnimation(Transform h)
+        {
+            HandInteraction[] his = h.GetComponentsInChildren<HandInteraction> ();
+            foreach (HandInteraction hi in his)
+            {
+                hi.SetInstantTransition();
+            }
         }
 
         // TODO: brings this to another class
@@ -260,10 +290,6 @@ namespace StoryGenerator.HomeAnnotation
             hi.switches.Add(swch);
             hi.Initialize();
         }
-
-
-
-
     }
     static class SwitchUtilities
     {
