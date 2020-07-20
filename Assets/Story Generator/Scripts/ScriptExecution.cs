@@ -1258,7 +1258,7 @@ namespace StoryGenerator.Utilities
 
                     if (IsSwitchable(Vector3.zero, go, out switchPos, false))
                     {
-                        Vector3 newIP = switchPos + 0.75f * go.transform.right;
+                        Vector3 newIP = switchPos + 0.75f * GetObjectFrontVec(go);
                         float ipDist = (current.InteractionPosition - new Vector3(newIP.x, 0, newIP.z)).magnitude;
 
                         if (ipDist < minIPDelta || ipDist > maxIPDelta)
@@ -3329,7 +3329,7 @@ namespace StoryGenerator.Utilities
                     {
                         Vector3 pos = hi.switches[switchIndex].switchPosition;
                         pos = hi.switches[switchIndex].switchTransform.TransformPoint(pos);
-                        pos += 0.75f * go.transform.right;
+                        pos += 0.75f * GetObjectFrontVec(go);
                         if (!useIntPos || (pos - src).magnitude < 1.5f)
                         {
                             switchPos.Add(pos);
