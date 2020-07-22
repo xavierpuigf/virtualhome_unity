@@ -106,7 +106,7 @@ Check out the [docs](doc/build_exec) to learn how to generate the executable.
 Note that we provide the current executables in [here](https://github.com/xavierpuigf/virtualhome). 
 
 ## Documentation
-You can find more documentation of VirtualHome in the [docs](doc)
+You can find more documentation of VirtualHome in the [docs](doc).
 
 ## License
 VirtualHome is licensed under creative commons. See the License file for more details.
