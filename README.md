@@ -50,7 +50,7 @@ git clone https://github.com/xavierpuigf/virtualhome.git
 ```
 
 ### Including third party assets
-VirtualHome uses a set of third party assets to include more 3D objects in the environment, and provide realistic motion for the agents. If you want to develop on the simulator, you will need to purchase these assets separately and include them in the source code. Find [here](*) the documentation for how to install the assets.
+VirtualHome uses a set of third party assets to include more 3D objects in the environment, and provide realistic motions for the agents. If you want to develop on the simulator, you will need to purchase these assets separately and include them in the source code. Find [here](doc/third_party) the documentation for how to install the assets.
 
 **Note:** Purchasing these assets is only necessary if you want to work with the Unity Source Code. You can use the Unity Executables to generate videos or do RL research without purchasing any asset. The executables are found in the [VirtualHome API](https://github.com/xavierpuigf/virtualhome) repository and the [main webpage](www.virtual-home.org).
 

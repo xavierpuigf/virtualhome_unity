@@ -1,0 +1,39 @@
+# Third Party Assets
+
+VirtualHome uses a set of third party assets to include more 3D objects in the environment, and provide realistic motions for the agents. To make VirtualHome work, you will need to include these assets into the tool. 
+
+Note that *you do not need to purchase the assets* if you are only planning to use the executable, which you can download from [virtual-home.org](www.virtual-home.org). This section is only needed if you want to build your own executables, or render scripts using the editor.
+
+## Assets needed
+We use the following assets in VirtualHome, which you will need to purchase to develop the tool.
+
+| Asset Name  | Description | Price|
+| ----------- | ---------   |------|
+| [Complete Home Interior Pack](https://assetstore.unity.com/packages/3d/props/interior/complete-home-interior-pack-31049)      |  Contains 3D models of objects to populate the scenes, as well as the apartment layouts       |     35$      |
+| [Modern House Interior Pack](https://assetstore.unity.com/packages/3d/props/interior/modern-house-interior-props-48564)   | Contains objects to populate the scene       |    35$       |
+| [Final IK](https://assetstore.unity.com/packages/tools/animation/final-ik-14290) | Contains character animations, and tools to make the agent motions and object interactions more realistic. | 90$ |
+
+To build an executable, open the project, click on the top menu in Unity and select:
+
+
+## Including the assets in VirtualHome
+After cloning VirtualHome, try opening a scene
+
+```File > Open Scene > Story Generator/TestScene/TestScene_\*.unity. ```
+
+You will see an image as the one below. The cameras and a few objects are placed around an apartment layout, but there are mostly no objects, walls or textures. This means you need to include your assets. Follow the following steps to do that.
+
+![](assets/scene_empty.png)
+
+
+### Buying and Dowloading the assets
+Click on each of the asset links in the table above, add each asset into the card and purchase the assets using your Unity Account. Go into the *Unity Asset Store* and click on *My Assets*. You should see the 3 Assets you just purchased there. For each asset, click *Download* and after downloading click *Import*. This process should take a few minutes.
+
+After having downloaded and imported your assets, try opening the Unity Scene. It should look as follows.
+![](assets/scene_purchased.png)
+
+The new scene looks much more like an apartment, but one of the rooms is excessively lit. The only step left, is to patch the assets, which will slightly modify the assets to create a more realistic look into the scene.
+
+
+### Patching the assets
+Look into the Unity menu (where you have the option to open a new scene or build the executable). There should be a new menu item. called Patch. Once you click it, you will see MHIP and CHIP. Click on each of these items once to patch the assets you purchased. You are now ready to use VirtualHome
