@@ -1,5 +1,5 @@
 # VirtualHome Unity Source Code
-This repository contains the source code of the VirtualHome environment, a platform to simulate complex household activities via programs. If you just want to run the simulator you can go to the main [VirtualHome repository](https://github.com/xavierpuigf/virtualhome), containing the VirtualHome API and executables of the simulator for multiple platforms. 
+This repository contains the source code of the VirtualHome environment, a platform to simulate complex household activities via programs. If you just want to run the simulator you can go to the main [VirtualHome repository](https://github.com/xavierpuigf/virtualhome), containing the VirtualHome API and executables of the simulator for multiple platforms. You can check more information about the project in [virtual-home.org](https://www.virtual-home.org)
 
 <p align="center">
   <img height="300" src="doc/assets/banner.gif">
@@ -52,24 +52,27 @@ git clone https://github.com/xavierpuigf/virtualhome.git
 ### Including third party assets
 VirtualHome uses a set of third party assets to include more 3D objects in the environment, and provide realistic motion for the agents. If you want to develop on the simulator, you will need to purchase these assets separately and include them in the source code. Find [here](*) the documentation for how to install the assets.
 
-#### Note
-Purchasing these assets is only necessary if you want to work with the Unity Source Code. You can use the Unity Executables to generate videos or do RL research without purchasing any asset. The executables are found in the [VirtualHome API](https://github.com/xavierpuigf/virtualhome) repository and the [main webpage](www.virtual-home.org).
+**Note:** Purchasing these assets is only necessary if you want to work with the Unity Source Code. You can use the Unity Executables to generate videos or do RL research without purchasing any asset. The executables are found in the [VirtualHome API](https://github.com/xavierpuigf/virtualhome) repository and the [main webpage](www.virtual-home.org).
 
 ### Test the simulator
-After the previous steps you should be able to test the simulator. Open a scene in VirtualHome using File > Open Scene > Story Generator/TestScene/TestScene_\*.unity. Once you do that, you shold see in the Scene window an apartment. The following image corresponds to opening *TestScene_3.unity*.
+After the previous steps you should be able to test the simulator. Open a scene in VirtualHome using
+
+```File > Open Scene > Story Generator/TestScene/TestScene_\*.unity. ```
+
+Once you do that, you shold see in the Scene window an apartment. The following image corresponds to opening *TestScene_3.unity*.
 
 <p align="center">
   <img height="300" src="doc/assets/scene_view.png">
 </p>
 
 
-Then, press the play button ![](doc/assets/play.png) in Unity and make sure there are no error messages. If you see that the play button stays toggled, you are ready to go interact with the simulator.
+Then, press the play button ![](doc/assets/play.png) in Unity and make sure there are no error messages. If you see that the play button stays toggled, you are ready to interact with the simulator.
 
 
 ## Interacting with the simulator
-If you went through the previous steps and managed to press play without issues, you can start interacting with the simulator. For that, you need to use the [VirtualHome API](https://github.com/xavierpuigf/virtualhome). You will find all details in that repository.
+If you went through the previous steps and managed to press play without issues, you can start interacting with the simulator. For that, you need to use the [VirtualHome API](https://github.com/xavierpuigf/virtualhome). You will find all the details in that repository.
 
-If you have cloned the repository, you can test it by entering in the repository and opening python
+If you have cloned the repository, you can test it by entering in the repository and starting python
 
 ```bash
 cd virtualhome
@@ -98,12 +101,13 @@ You should see in Unity an agent walking towards the fridge. You can find more e
 ### Generating an executable
 You may want to interact with the simulator without using Unity. You can generate an executable so that VirtualHome runs without opening or installing Unity. You will then be able to run the tool both  on your desktop or in headless servers.
 
-Check out the [docs]() to learn how to generate the executable.
+Check out the [docs](doc/build_exec) to learn how to generate the executable.
 
 Note that we provide the current executables in [here](https://github.com/xavierpuigf/virtualhome). 
 
 ## Documentation
-You can find more documentation of VirtualHome in [doc](doc)
+You can find more documentation of VirtualHome in the [docs](doc)
+
 ## License
 VirtualHome is licensed under creative commons. See the License file for more details.
 
@@ -116,20 +120,3 @@ The VirtualHome API and code has been developed by the following people.
 - Kevin Ra
 - Andrew Liao
 
-
-# Patches for Paid Assets
-Paid assets aren't compatible with our code out of the box. 
-* __Complete Home Interior Pack__: Some Prefabs need to be relocated/renamed. Run a script by executing __top menu__ > __Patch__ > __CHIP__. Wait few minuties to complete.
-* __FInal IK__: Few lines of code needs some modification as of version. Refer to [this](doc/final_ik_mod.md)
-* __Modern House Interior Pack__:
-  * Importing the asset modifies contents of `Assets/PostProcessing`, leading to compile error. Use `git checkout Assets/PostProcessing/Editor/PropertyDrawers/MinDrawer.cs` to revert the change.
-  * Some Prefabs need to be relocated/renamed. Run a script by executing __top menu__ > __Patch__ > __MHIP__. Wait few minuties to complete.
-  * __NOTE__: Many of the newly introduced prefabs aren't being used in our code. You can modify `Assets/Resources/Data/object_prefab.json` to add more prefabs to each object class.
-
-# Tips to boost Unity Editor Performance
-* Disable scene lighting (it should be toggled off)
-![alt text](doc/Images4doc/scene_lighting.png "Scene Lighting")
-* Hide Game Window
-  * Doesn't matter when you are rendering but you are viewing or editing the scene, not showing the __Game Window__ significantly increases responsiveness (refer to the image below)
-  ![alt text](doc/Images4doc/hide_game_view.png "Workspace")
-  * Note that your window layout might be different from the image. This is just for reference.
