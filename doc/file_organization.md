@@ -1,7 +1,7 @@
 # Note
 * Only files/directories relevant to our projects are listed below
 * Directories with straight forward names are skipped as well.
-* Skipped some files that I don't have good understand with.
+
 
 # Assets
 #### Plugins

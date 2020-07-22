@@ -1,7 +1,9 @@
 # 1. Door Interaction Demo
-_Story Generator/DemoScenes/Door/Door.scene_
-![Door Scene](Images4doc/door_scene.png "Door Scene")
-![Door Driver](Images4doc/door_driver.png "Door Driver")
+The door functionalirity is not currently included. We will be including it in future versions. This documentation is for reference only.
+
+_Story Generatassetsor/DemoScenes/Door/Door.scene_
+![Door Scene](assets/door_scene.png "Door Scene")
+![Door Driver](assets/door_driver.png "Door Driver")
 
 In real life, most residential doors are opened either by pushing or by pulling. We imposed the same limtation to our code. This demo scene demonstrates this behaviour of our code. 
 
@@ -63,7 +65,7 @@ Stores interaction/IK related GameObjects and provides method to retrieve them (
 * If a door should be close immediately after opening, this method is preferred for natural looking animation. Decision between **CloseDoorBehind** and **CloseDoorFront** is determined by how the door was opened (push or pull).
 
 # 3. Current Limitations
-![Door](Images4doc/door.png "Door")
+![Door](assets/door.png "Door")
 
 ## 3.1 Opening Animation Limitations
 All door models from Complete_Home_Interior_Pack are opened with **left hand only**. Closing can be done with either hand. This is due to limitation of the following.
@@ -73,7 +75,7 @@ _Edit: These limitations can be overcomed. I found out you can flip the model by
 ### 3.1.1. Our Door Model
 * When you face the door, point of rotation on a hinge is on the left and door handle is on the right, as shown on the figure above. We don't have the other type of door model currently.
 
-### 3.1.2. Our Door Openingn Animation
+### 3.1.2. Our Door Opening Animation
 * Although our door models are openable with any hand in real life, we don't have animation that uses right hand to open the door and look natural. Simple IK can be used when pushing a door with right hand though.
 
 ## 3.2 Stochastic

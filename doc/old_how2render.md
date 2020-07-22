@@ -1,4 +1,4 @@
-# 1. Check your settings (under Edit > Project Settings)
+# DEPRECATED
 
 ## 1.1. Player Settings
 * Under Other Setting, set __Color Space__ to __Linear__.

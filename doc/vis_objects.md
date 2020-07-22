@@ -1,15 +1,18 @@
-# 1. What is a lightbox?
-![alt text](Images4doc/lightbox.jpg "Lightbox")
+# Viewing individual objects
+This documentation explains how to visualize single objects in Unity. We use a script to load objects, illuminate them, and rotate them around a given axis, for easy visualization.
+
+## 1. What is a lightbox?
+![alt text](assets/lightbox.jpg "Lightbox")
 
 A lightbox is a enclosure that lights up an object of interest (in the image above, it's a shoe) with a soft light.
 
-# 2. How does the code work?
+## 2. How does the code work?
 * The code loads prefabs and rotates a camera around a pivot.
 * The movement of the camera covers a hemisphere, centered at the object.
 * The distance from the object is calculated on each iteration
 * Using Newton's method, the calculated distance guarantees that the object's size on the image will be within the range specified in the json file.
 
-# 3. How do I use it?
+## 3. How do I use it?
 * Copy __lightbox.json__ file under __ConfigExample__ to __Config__ directory
 * Adjust __lightbox.json__ (details are given on the following section)
 * Open __Lightbox__ scene under __Assets__/__Story Generator__/__Lightbox__
@@ -17,7 +20,7 @@ A lightbox is a enclosure that lights up an object of interest (in the image abo
 * Play the scene
 * Once it's completed, open the __saveLocation__ directory provided in the __lightbox.json__ file.
 
-# 4. lightbox.json Details
+## 4. lightbox.json Details
 * __fieldOfView__ - Field of view of the camera. The object will fulfill the specified proportion (min/maxProportion) of the image no matter what. This is used for how much perspective projection you want.
 * __backgroundRGB__ - The background color of the image.
 * __minProportion__ - Minimum proportion relative to the screen resolution allowed.
@@ -51,7 +54,7 @@ A lightbox is a enclosure that lights up an object of interest (in the image abo
     * Copy __center__ and the __size__ of the __Box Collider__ to the json file.
     * Remove the prefab in the scene.
 
-# 5. Gif Examples
+## 5. Gif Examples
 * Setting:
   * Game window = 200 x 200
   * fieldOfView = 30
@@ -61,7 +64,7 @@ A lightbox is a enclosure that lights up an object of interest (in the image abo
   * camAngleDelta=  45
   * brightness = 1.2
 
-![alt text](Images4doc/lightbox_bed.gif "Bed")
-![alt text](Images4doc/lightbox_gin.gif "Gin")
-![alt text](Images4doc/lightbox_hanger.gif "Hanger")
-![alt text](Images4doc/lightbox_light.gif "Light")
+![alt text](assets/lightbox_bed.gif "Bed")
+![alt text](assets/lightbox_gin.gif "Gin")
+![alt text](assets/lightbox_hanger.gif "Hanger")
+![alt text](assets/lightbox_light.gif "Light")
