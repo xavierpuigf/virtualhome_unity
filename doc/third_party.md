@@ -19,7 +19,7 @@ To build an executable, open the project, click on the top menu in Unity and sel
 ## Including the assets in VirtualHome
 After cloning VirtualHome, open the project in Unity and try opening a scene
 
-```File > Open Scene > Assets/Story Generator/TestScene/TestScene_*.unity. ```
+```File > Open Scene > Assets/Story Generator/TestScene/TestScene.unity. ```
 
 You will see an image as the one below. The cameras and a few objects are placed around an apartment layout, but there are mostly no objects, walls or textures. This means you need to include your assets. Follow the steps below to do that.
 
@@ -36,4 +36,19 @@ The new scene looks much more like an apartment, but one of the rooms is excessi
 
 
 ### Patching the assets
+The assets need to be slightly modified to make VirtualHome work. You should follow 2 steps.
+
+#### Solving error in `MinDrawer.cs`
+When copying over the assets there will be an "unambiguous reference" error in a file called `MinDrawer.cs`. This is a known issue. To correct it, simply go to:
+
+``` Assets/PostProcessing/Ediroe/PropertyDrawers/MinDrawer.cs ```
+
+and add, before the namespace declaration, the following code:
+
+```c#
+using MinAttribute = UnityEngine.PostProcessing.MinAttribute;
+```
+
+
+#### Automatically Patching Assets
 Look into the Unity menu (where you have the option to open a new scene or build the executable). There should be a new menu item. called Patch. Once you click it, you will see MHIP and CHIP. Click on each of these items once to patch the assets you purchased. You are now ready to use VirtualHome
