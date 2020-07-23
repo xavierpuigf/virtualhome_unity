@@ -57,7 +57,7 @@ VirtualHome uses a set of third party assets to include more 3D objects in the e
 ### Test the simulator
 After the previous steps you should be able to test the simulator. Open a scene in VirtualHome using
 
-```File > Open Scene > Story Generator/TestScene/TestScene_*.unity. ```
+```File > Open Scene > Assets/Story Generator/TestScene/TestScene_*.unity. ```
 
 Once you do that, you shold see in the Scene window an apartment. The following image corresponds to opening *TestScene_3.unity*.
 

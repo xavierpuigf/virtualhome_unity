@@ -17,22 +17,22 @@ To build an executable, open the project, click on the top menu in Unity and sel
 
 
 ## Including the assets in VirtualHome
-After cloning VirtualHome, try opening a scene
+After cloning VirtualHome, open the project in Unity and try opening a scene
 
-```File > Open Scene > Story Generator/TestScene/TestScene_\*.unity. ```
+```File > Open Scene > Assets/Story Generator/TestScene/TestScene_*.unity. ```
 
-You will see an image as the one below. The cameras and a few objects are placed around an apartment layout, but there are mostly no objects, walls or textures. This means you need to include your assets. Follow the following steps to do that.
+You will see an image as the one below. The cameras and a few objects are placed around an apartment layout, but there are mostly no objects, walls or textures. This means you need to include your assets. Follow the steps below to do that.
 
 ![](assets/scene_empty.png)
 
 
 ### Buying and Dowloading the assets
-Click on each of the asset links in the table above, add each asset into the card and purchase the assets using your Unity Account. Go into the *Unity Asset Store* and click on *My Assets*. You should see the 3 Assets you just purchased there. For each asset, click *Download* and after downloading click *Import*. This process should take a few minutes.
+Click on each of the asset links in the table above, and purchase them assets using your Unity Account. Go into the *Unity Asset Store* and click on *My Assets*. You should see the 3 Assets you just purchased there. For each asset, click *Download* and after downloading click *Import*. This process should take a few minutes.
 
 After having downloaded and imported your assets, try opening the Unity Scene. It should look as follows.
 ![](assets/scene_purchased.png)
 
-The new scene looks much more like an apartment, but one of the rooms is excessively lit. The only step left, is to patch the assets, which will slightly modify the assets to create a more realistic look into the scene.
+The new scene looks much more like an apartment, but one of the rooms is excessively lit. The only step left, is to patch the assets, which will slightly modifies the assets to create a more realistic look into the scene.
 
 
 ### Patching the assets
