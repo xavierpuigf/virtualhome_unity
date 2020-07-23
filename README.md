@@ -50,14 +50,14 @@ git clone https://github.com/xavierpuigf/virtualhome.git
 ```
 
 ### Including third party assets
-VirtualHome uses a set of third party assets to include more 3D objects in the environment, and provide realistic motions for the agents. If you want to develop on the simulator, you will need to purchase these assets separately and include them in the source code. Find [here](doc/third_party) the documentation for how to install the assets.
+VirtualHome uses a set of third party assets to include more 3D objects in the environment, and provide realistic motions for the agents. If you want to develop on the simulator, you will need to purchase these assets separately and include them in the source code. Find [here](doc/third_party.md) the documentation for how to install the assets.
 
 **Note:** Purchasing these assets is only necessary if you want to work with the Unity Source Code. You can use the Unity Executables to generate videos or do RL research without purchasing any asset. The executables are found in the [VirtualHome API](https://github.com/xavierpuigf/virtualhome) repository and the [main webpage](www.virtual-home.org).
 
 ### Test the simulator
 After the previous steps you should be able to test the simulator. Open a scene in VirtualHome using
 
-```File > Open Scene > Story Generator/TestScene/TestScene_\*.unity. ```
+```File > Open Scene > Story Generator/TestScene/TestScene_*.unity. ```
 
 Once you do that, you shold see in the Scene window an apartment. The following image corresponds to opening *TestScene_3.unity*.
 
@@ -101,7 +101,7 @@ You should see in Unity an agent walking towards the fridge. You can find more e
 ### Generating an executable
 You may want to interact with the simulator without using Unity. You can generate an executable so that VirtualHome runs without opening or installing Unity. You will then be able to run the tool both  on your desktop or in headless servers.
 
-Check out the [docs](doc/build_exec) to learn how to generate the executable.
+Check out the [docs](doc/build_exec.md) to learn how to generate the executable.
 
 Note that we provide the current executables in [here](https://github.com/xavierpuigf/virtualhome). 
 
