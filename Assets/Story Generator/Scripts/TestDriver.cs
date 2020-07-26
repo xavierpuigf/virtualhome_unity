@@ -241,7 +241,7 @@ namespace StoryGenerator
                     Vector3 position_vec = camera_config.position;
                     Vector3 rotation_vec = camera_config.rotation;
                     go.transform.localPosition = position_vec;
-                    go.transform.localRotation = Quaternion.LookRotation(rotation_vec);
+                    go.transform.localEulerAngles = rotation_vec;
 
                     cameras.Add(new_camera);
                     response.message = "New camera created. Id:" + camera_name;
