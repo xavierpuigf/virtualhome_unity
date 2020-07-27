@@ -268,66 +268,67 @@ namespace StoryGenerator.Utilities
                 // Check if object transformation is available
 
                 bool object_inst = false;
-                if (obj.prefab_name != null && this.TransferTransform)
+                GameObject loadedObj = null;
+                if (obj.prefab_name != null)
                 {
-                    GameObject loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(obj.prefab_name)) as GameObject;
-                    if (loadedObj == null)
+                    loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(obj.prefab_name)) as GameObject;
+                }
+                if (loadedObj == null)
+                {
+                    List<string> names = dataProviders.NameEquivalenceProvider.GetEquivalentNames(obj.class_name);
+                    if (names.Count > 0)
                     {
-                        List<string> names = dataProviders.NameEquivalenceProvider.GetEquivalentNames(obj.class_name);
-                        if (names.Count > 0)
+                        List<string> fileNames;
+                        if (TryGetAssets(names[0], out fileNames))
                         {
-                            List<string> fileNames;
-                            if (TryGetAssets(names[0], out fileNames))
-                            {
 
-                                loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(fileNames[0])) as GameObject;
-                            }
+                            loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(fileNames[0])) as GameObject;
                         }
-
                     }
-                    if (loadedObj != null)
+
+                }
+                if (loadedObj != null)
+                {
+
+                    List<EnvironmentObject> objectsInRelation;
+                    if (edgeMap.TryGetValue(Tuple.Create(obj.id, ObjectRelation.INSIDE), out objectsInRelation))
                     {
-
-                        List<EnvironmentObject> objectsInRelation;
-                        if (edgeMap.TryGetValue(Tuple.Create(obj.id, ObjectRelation.INSIDE), out objectsInRelation))
+                        if (loadedObj != null && GameObjectUtils.GetCollider(loadedObj) != null)
                         {
-                            if (loadedObj != null && GameObjectUtils.GetCollider(loadedObj) != null)
+                            Transform destObjRoom = GameObjectUtils.GetRoomTransform(objectsInRelation[0].transform);
+                            GameObject newGo = UnityEngine.Object.Instantiate(loadedObj, destObjRoom) as GameObject;
+                            newGo.name = loadedObj.name;
+                            if (obj.obj_transform == null)
                             {
-                                Transform destObjRoom = GameObjectUtils.GetRoomTransform(objectsInRelation[0].transform);
-                                GameObject newGo = UnityEngine.Object.Instantiate(loadedObj, destObjRoom) as GameObject;
-                                newGo.name = loadedObj.name;
-                                if (obj.obj_transform == null)
-                                {
-                                    if (obj.bounding_box == null)
-                                        object_inst = false;
-                                    else
-                                    {
-                                        // Set position based on bounding box
-                                        ObjectBounds lo = ObjectBounds.FromGameObject(newGo);
-                                        Vector3 loc = new Vector3(lo.center[0], lo.center[1], lo.center[2]);
-                                        Vector3 objc = new Vector3(obj.bounding_box.center[0], obj.bounding_box.center[1], obj.bounding_box.center[2]);
-                                        newGo.transform.position = newGo.transform.position - loc + objc;
-                                        object_inst = true;
-                                        ColorEncoding.EncodeGameObject(newGo);
-                                    }
-
-                                }
+                                if (obj.bounding_box == null)
+                                    object_inst = false;
                                 else
                                 {
-                                    Vector3 position = obj.obj_transform.GetPosition();
-                                    Quaternion rotation = obj.obj_transform.GetRotation();
-                                    newGo.transform.position = position;
-                                    newGo.transform.rotation = rotation;
+                                    // Set position based on bounding box
+                                    ObjectBounds lo = ObjectBounds.FromGameObject(newGo);
+                                    Vector3 loc = new Vector3(lo.center[0], lo.center[1], lo.center[2]);
+                                    Vector3 objc = new Vector3(obj.bounding_box.center[0], obj.bounding_box.center[1], obj.bounding_box.center[2]);
+                                    newGo.transform.position = newGo.transform.position - loc + objc;
                                     object_inst = true;
-
                                     ColorEncoding.EncodeGameObject(newGo);
                                 }
 
                             }
+                            else
+                            {
+                                Vector3 position = obj.obj_transform.GetPosition();
+                                Quaternion rotation = obj.obj_transform.GetRotation();
+                                newGo.transform.position = position;
+                                newGo.transform.rotation = rotation;
+                                object_inst = true;
+
+                                ColorEncoding.EncodeGameObject(newGo);
+                            }
+
                         }
                     }
                 }
-
+            
 
 
                 if (!object_inst)
