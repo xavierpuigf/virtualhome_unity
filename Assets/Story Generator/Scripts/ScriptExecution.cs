@@ -1548,6 +1548,11 @@ namespace StoryGenerator.Utilities
 
                     if (FindInteractionPoint(current.InteractionPosition, go, InteractionType.UNSPECIFIED, out pos, out tpos, intPos, minIPDelta))
                     {
+
+                        //GameObject capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                        //capsule.transform.position = pos;
+                        //capsule.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+
                         Vector3? lookat_pos = null;
                         Vector3 walk_pos;
                         Vector3 new_pos = new Vector3(pos.x, 0.0f, pos.z);
@@ -3400,7 +3405,11 @@ namespace StoryGenerator.Utilities
         {
 
             Vector3 front_vec = go.transform.right;
-            if (go.name == "Cabinet_2" || go.name.Contains("Microwave") || go.name == "mH_FloorCabinet01" || go.name.StartsWith("Cabinet_1"))
+            if (go.name.StartsWith("Microwave_1") || go.name.StartsWith("Cabinet_1"))
+            {
+                front_vec = -go.transform.up;
+            }
+            else if (go.name == "Cabinet_2" || go.name.Contains("Microwave") || go.name == "mH_FloorCabinet01")
             {
                 front_vec = go.transform.forward;
             }

@@ -139,6 +139,14 @@ namespace StoryGenerator.CharInteraction
             {
                 handPose = hp;
                 action = aa;
+                if (swchTsfm != null)
+                {
+                    originalPosition = swchTsfm.TransformPoint(swchPos);
+                }
+                else
+                {
+                    originalPosition = Vector3.zero;
+                }
                 switchTransform = swchTsfm;
                 switchPosition = swchPos;
                 transitionSequences = ts;
@@ -151,6 +159,14 @@ namespace StoryGenerator.CharInteraction
             {
                 handPose = hp;
                 action = aa;
+                if (swchTsfm != null)
+                {
+                    originalPosition = swchTsfm.TransformPoint(swchPos);
+                }
+                else
+                {
+                    originalPosition = Vector3.zero;
+                }
                 switchTransform = swchTsfm;
                 switchPosition = swchPos;
                 transitionSequences = new List<TransitionSequence>() { new TransitionSequence(tb, tt) };
