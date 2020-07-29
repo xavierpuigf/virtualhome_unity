@@ -14,6 +14,7 @@ using StoryGenerator.SceneState;
 using System.Text.RegularExpressions;
 using RootMotion.FinalIK;
 using StoryGenerator.Scripts;
+using StoryGenerator.Utilities;
 using System.Text;
 using StoryGenerator.DoorProperties;
 using System.Threading;
@@ -1108,8 +1109,8 @@ namespace StoryGenerator.Utilities
                 if (this.find_solution)
                 {
                     string allowedRoom = current.GetString("ROOM_CONSTRAINT");
-
-                    if (allowedRoom != null && allowedRoom != roomSelector.ExtractRoomName(go.RoomName()))
+                    string obj_room_name = go.RoomName();
+                    if (allowedRoom != null && allowedRoom != roomSelector.ExtractRoomName(obj_room_name))
                         continue;
                 }
 

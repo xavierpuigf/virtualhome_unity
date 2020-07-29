@@ -666,7 +666,7 @@ namespace StoryGenerator
                         for (int i = 0; i < numCharacters; i++)
                         {
                             Recorder rec = recorders[i];
-                            if (!rec.Recording)
+                            if (!sExecutors[i].Success)
                             {
                                 //response.success = false;
                                 response.message += $"ScriptExcutor {i}: ";
