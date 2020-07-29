@@ -182,7 +182,7 @@ namespace StoryGenerator.SpecialBehavior
                     ActivationSwitch swtch = new ActivationSwitch(HandPose.GrabVerticalSmall,
                       ActivationAction.SwitchOn, switchPositions[j], tb, links);
 
-                    hi.switches[j] = swtch;
+                    hi.switches.Add(swtch);
                 }
 
                 Transform ovenDoor = tsfm.Find(OVEN_DOOR);
@@ -196,7 +196,7 @@ namespace StoryGenerator.SpecialBehavior
                 ActivationSwitch ovenDoorSwitch = new ActivationSwitch(HandPose.GrabHorizontalSmall,
                   ActivationAction.Open, new Vector3(0.03f, 0.48f, 0.0f), ts, ovenDoor);
 
-                hi.switches[STOVE_NUM_COILS] = ovenDoorSwitch;
+                hi.switches.Add(ovenDoorSwitch);
                 hi.Initialize();
 
                 GameObject tray = tsfm.Find(OVEN_TRAY).gameObject;
