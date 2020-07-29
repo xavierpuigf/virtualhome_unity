@@ -686,7 +686,7 @@ namespace StoryGenerator
                             {
                                 response.success = true;
                                 success_per_agent[i] = true;
-                                rec.MarkTermination();
+                                    rec.MarkTermination();
                                 rec.Recording = false;
                                 rec.Animator.speed = 0;
                                 CreateSceneInfoFile(rec.OutputDirectory, new SceneData()
@@ -1027,7 +1027,7 @@ namespace StoryGenerator
                             switch (config.camera_mode[cam_id])
                             {
                                 case "FIRST_PERSON":
-                                    cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.FORWARD_VIEW_CAMERA_NAME, true);
+                                    cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.FORWARD_VIEW_CAMERA_NAME, false);
                                     break;
                                 case "PERSON_TOP":
                                     cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.TOP_CHARACTER_CAMERA_NAME, false);

@@ -271,8 +271,10 @@ namespace StoryGenerator.SpecialBehavior
 
                     HandInteraction hi_coffeeMaker = tsfm.gameObject.AddComponent<HandInteraction>();
                     hi_coffeeMaker.switches = new List<HandInteraction.ActivationSwitch>();
-                    hi_lid.switches.Add(swch_lid);
+                    hi_coffeeMaker.switches.Add(swch_button);
                     hi_coffeeMaker.Initialize();
+
+
                 }
             }
         }

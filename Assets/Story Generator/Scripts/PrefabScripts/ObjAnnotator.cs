@@ -33,7 +33,7 @@ Target search:
     name
     child_no
 
-2. 
+2. stov
     name
     child_no: X, X, 
 
