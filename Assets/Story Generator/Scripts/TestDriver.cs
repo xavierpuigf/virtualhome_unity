@@ -344,7 +344,7 @@ namespace StoryGenerator
                             Randomize = config.randomize_execution,
                             IgnoreObstacles = config.ignore_obstacles,
                             AnimateCharacter = config.animate_character,
-                            TransferTransform = config.exact_expansion
+                            TransferTransform = config.transfer_transform
                         };
 
                         if (networkRequest.stringParams.Count > 2 && !string.IsNullOrEmpty(networkRequest.stringParams[2])) {
@@ -1423,7 +1423,7 @@ namespace StoryGenerator
         public int random_seed = -1;
         public bool ignore_obstacles = false;
         public bool animate_character = false;
-        public bool exact_expansion = true;
+        public bool transfer_transform = true;
     }
 
     public class CharacterConfig

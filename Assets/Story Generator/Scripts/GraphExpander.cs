@@ -269,24 +269,28 @@ namespace StoryGenerator.Utilities
 
                 bool object_inst = false;
                 GameObject loadedObj = null;
-                if (obj.prefab_name != null)
+                if (this.TransferTransform)
                 {
-                    loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(obj.prefab_name)) as GameObject;
-                }
-                if (loadedObj == null)
-                {
-                    List<string> names = dataProviders.NameEquivalenceProvider.GetEquivalentNames(obj.class_name);
-                    if (names.Count > 0)
+                    if (obj.prefab_name != null)
                     {
-                        List<string> fileNames;
-                        if (TryGetAssets(names[0], out fileNames))
-                        {
-
-                            loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(fileNames[0])) as GameObject;
-                        }
+                        loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(obj.prefab_name)) as GameObject;
                     }
+                    if (loadedObj == null)
+                    {
+                        List<string> names = dataProviders.NameEquivalenceProvider.GetEquivalentNames(obj.class_name);
+                        if (names.Count > 0)
+                        {
+                            List<string> fileNames;
+                            if (TryGetAssets(names[0], out fileNames))
+                            {
 
+                                loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(fileNames[0])) as GameObject;
+                            }
+                        }
+
+                    }
                 }
+                
                 if (loadedObj != null)
                 {
 
@@ -301,7 +305,12 @@ namespace StoryGenerator.Utilities
                             if (obj.obj_transform == null)
                             {
                                 if (obj.bounding_box == null)
+                                {
                                     object_inst = false;
+                                    UnityEngine.Object.Destroy(loadedObj);
+
+                                }
+                                    
                                 else
                                 {
                                     // Set position based on bounding box
@@ -1056,7 +1065,7 @@ namespace StoryGenerator.Utilities
                         // go.hideFlags = HideFlags.HideAndDontSave;
                         go.transform.parent = character.transform;
                         go.transform.localPosition = new Vector3(0, 1.8f, 0.15f);
-                        go.transform.localRotation = Quaternion.Euler(20, 0, 0);
+                        go.transform.localRotation = Quaternion.Euler(30, 0, 0);
 
                         newCameras.Add(camera);
                     }
