@@ -27,7 +27,7 @@ You will see an image as the one below. The cameras and a few objects are placed
 
 
 ### Buying and Dowloading the assets
-Click on each of the asset links in the table above, and purchase them assets using your Unity Account. Go into the *Unity Asset Store* and click on *My Assets*. You should see the 3 Assets you just purchased there. For each asset, click *Download* and after downloading click *Import*. This process should take a few minutes.
+Click on each of the asset links in the table above, and purchase them assets using your Unity Account. In the Unity Editor, go into the *Unity Asset Store* and click on *My Assets*. You should see the 3 Assets you just purchased there. For each asset, click *Download* and after downloading click *Import*. This process should take a few minutes.
 
 After having downloaded and imported your assets, try opening the Unity Scene. It should look as follows.
 ![](assets/scene_purchased.png)
