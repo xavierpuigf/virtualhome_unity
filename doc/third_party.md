@@ -32,7 +32,7 @@ Click on each of the asset links in the table above, and purchase them assets us
 After having downloaded and imported your assets, try opening the Unity Scene. It should look as follows.
 ![](assets/scene_purchased.png)
 
-The new scene looks much more like an apartment, but one of the rooms is excessively lit. The only step left, is to patch the assets, which will slightly modifies the assets to create a more realistic look into the scene.
+The new scene looks much more like an apartment, but one of the rooms is excessively lit. The only step left is to patch the assets, which will slightly modify the assets to create a more realistic look into the scene.
 
 
 ### Patching the assets
