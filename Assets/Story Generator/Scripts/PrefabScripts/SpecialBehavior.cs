@@ -645,6 +645,8 @@ namespace StoryGenerator.SpecialBehavior
                 cts.sp = new float[] { 0.03f, -0.235f, 0.68f };
                 cts.AddSwitches(cabinet_piece.transform);
 
+                cabinet_piece.AddComponent<MeshRenderer>();
+
 
             }
         }

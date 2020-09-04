@@ -235,7 +235,10 @@ namespace StoryGenerator.Recording
             Color clr_class_self = Color.white;
 
             Renderer[] arry_rdr = tsfm.GetComponents<Renderer>();
-
+            if (tsfm.name.ToLower().Equals("kitchen_cabinet"))
+            {
+                Debug.Log(tsfm.name);
+            }
             if (m_instanceGroup_prefab.ContainsKey(tsfm.name)) {
                 id_inst_self = ColorEncoding.GetInstID();
                 id_inst_parent = id_inst_self;
