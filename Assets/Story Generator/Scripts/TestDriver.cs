@@ -1247,7 +1247,7 @@ namespace StoryGenerator
                 List<GameObject> rooms = ScriptUtils.FindAllRooms(transform);
                 foreach (GameObject r in rooms)
                 {
-                    if (r.GetComponent<Properties_room>() != null)
+                    if (r.GetComponent<Properties_room>() == null)
                         r.AddComponent<Properties_room>();
                 }
 
