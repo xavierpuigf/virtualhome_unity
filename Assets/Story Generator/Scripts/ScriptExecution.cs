@@ -3404,7 +3404,7 @@ namespace StoryGenerator.Utilities
 
         private static Vector3 GetObjectFrontVec(GameObject go)
         {
-
+            // TODO: put this in a separate json file
             Vector3 front_vec = go.transform.right;
             if (go.name.StartsWith("Microwave_1") || go.name.StartsWith("Cabinet_1"))
             {
@@ -3413,6 +3413,10 @@ namespace StoryGenerator.Utilities
             else if (go.name == "Cabinet_2" || go.name.Contains("Microwave") || go.name == "mH_FloorCabinet01")
             {
                 front_vec = go.transform.forward;
+            }
+            else if (go.name.Contains("APP_Toaster"))
+            {
+                front_vec = -go.transform.right;
             }
 
 
