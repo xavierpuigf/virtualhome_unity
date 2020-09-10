@@ -319,6 +319,7 @@ namespace StoryGenerator.Utilities
                                     Vector3 objc = new Vector3(obj.bounding_box.center[0], obj.bounding_box.center[1], obj.bounding_box.center[2]);
                                     newGo.transform.position = newGo.transform.position - loc + objc;
                                     object_inst = true;
+                                    obj.transform = newGo.transform;
                                     ColorEncoding.EncodeGameObject(newGo);
                                 }
 

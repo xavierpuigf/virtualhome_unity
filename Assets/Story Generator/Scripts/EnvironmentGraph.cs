@@ -378,12 +378,12 @@ namespace StoryGenerator.Utilities
             GameObject gameObject = transform.gameObject;
             string prefabName = gameObject.name;
 
-            if (!gameObject.activeInHierarchy && !isInGraph(gameObject))
+            if (!gameObject.activeInHierarchy && !IsInGraph(gameObject))
             {
                 // Skip inactive objects and their children
                 return;
             }
-            else if (!gameObject.activeInHierarchy && isInGraph(gameObject))
+            else if (!gameObject.activeInHierarchy && IsInGraph(gameObject))
             {
                 // Remove inactive objects and their children
                 graph.nodes.Remove(objectNodeMap[gameObject]);
@@ -393,7 +393,7 @@ namespace StoryGenerator.Utilities
                     childTransform.gameObject.SetActive(false);
                 }
             }
-            else if (gameObject.activeInHierarchy && !isInGraph(gameObject))
+            else if (gameObject.activeInHierarchy && !IsInGraph(gameObject))
             {
                 if (transform.CompareTag(Tags.TYPE_ROOM))
                 {
@@ -416,6 +416,7 @@ namespace StoryGenerator.Utilities
                         category = transform.name;
 
                     EnvironmentObject o = AddObject(transform, category);
+                    
                     if (o != null && roomObject != null)
                     {
                         AddRoomRelation(o, roomObject);  // Add IN relation to room
@@ -616,10 +617,7 @@ namespace StoryGenerator.Utilities
         {
             return objectNodeMap.Keys.Contains(go) && graph.nodes.Contains(objectNodeMap[go]);
         }
-        private Boolean isInGraph(GameObject go)
-        {
-            return objectNodeMap.Keys.Contains(go) && graph.nodes.Contains(objectNodeMap[go]);
-        }
+        
         private EnvironmentObject AddObject(Transform transform, String category)
         {
             GameObject gameObject = transform.gameObject;

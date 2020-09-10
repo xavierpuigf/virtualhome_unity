@@ -524,6 +524,20 @@ namespace StoryGenerator.SpecialBehavior
             hi.Initialize();
         }
     }
+    public class FloorCabinetBehavior : PrefabBehavior
+    {
+        public void Process(Transform tsfm)
+        {
+            for (int child_id = 0; child_id < tsfm.childCount; child_id++)
+            {
+                Transform tsf = tsfm.GetChild(child_id);
+                if (tsf.gameObject.name.Equals(tsfm.name))
+                {
+                    tsf.gameObject.name = tsfm.name + "Child";
+                }
+            }
+        }
+    }
 
     public class KitchenCabinetBehavior : PrefabBehavior
     {
