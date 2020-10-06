@@ -157,7 +157,6 @@ namespace StoryGenerator.Utilities
 
         public string prefab_name { get; set; }  // GameObject name
 
-        [JsonIgnore]
         public ObjectTransform obj_transform { get; set; }
 
         public ObjectBounds bounding_box { get; set; }  // Axis aligned bounding box
@@ -630,7 +629,7 @@ namespace StoryGenerator.Utilities
             className = ScriptUtils.TransformClassName(className);
 
             ObjectBounds bounds;
-
+            
             if (className == DoorClassName) {
                 bounds = DoorBounds(gameObject);
             } else {

@@ -360,7 +360,7 @@ namespace StoryGenerator
                         response.message = JsonConvert.SerializeObject(result.Messages);
 
                         // TODO: Do we need this?
-                        currentGraphCreator.SetGraph(graph);
+                        //currentGraphCreator.SetGraph(graph);
                         currentGraph = currentGraphCreator.UpdateGraph(transform);
                         animationEnumerators.AddRange(result.enumerators);
                         expandSceneCount++;

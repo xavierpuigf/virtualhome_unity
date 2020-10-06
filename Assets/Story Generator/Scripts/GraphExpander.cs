@@ -218,7 +218,7 @@ namespace StoryGenerator.Utilities
                     if (sceneObj.class_name == "character") {
                         sceneCharacterObject = sceneObj;
                     }
-
+                    
                     if (this.TransferTransform && obj.obj_transform != null && obj.prefab_name == sceneObj.prefab_name)
                     {
                         sceneObj.transform.position = obj.obj_transform.GetPosition();
