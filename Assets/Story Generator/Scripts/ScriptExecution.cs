@@ -3993,7 +3993,7 @@ namespace StoryGenerator.Utilities
                 case InteractionType.PUTIN:
                     if (string.IsNullOrEmpty(name1))
                         throw new ScriptReaderException($"No second argument for [{sl.Interaction}]");
-                    sExecutor.AddAction(new PutAction(sl.LineNumber, sExecutor.GetObjectSelector(name0, instance0), name0, instance0, name1, instance1, sl.Interaction == InteractionType.PUTIN));
+                    sExecutor.AddAction(new PutAction(sl.LineNumber, sExecutor.GetObjectSelector(name1, instance1), name0, instance0, name1, instance1, sl.Interaction == InteractionType.PUTIN));
                     break;
                 case InteractionType.PUTOBJBACK:
                     sExecutor.AddAction(new PutBackAction(sl.LineNumber, name0, instance0));

@@ -1315,6 +1315,20 @@ namespace StoryGenerator
                     var nma = newCharacter.GetComponent<NavMeshAgent>();
                     nma.Warp(position);
                 }
+                else if (mode == "fix_room")
+                {
+                    List<GameObject> rooms_selected = new List<GameObject>();
+                    foreach (GameObject room in rooms)
+                    {
+                        if (room.name == destRoom.name)
+                        {
+                            rooms_selected.Add(room);
+                        }
+                    }
+                    var nma = newCharacter.GetComponent<NavMeshAgent>();
+                    nma.Warp(ScriptUtils.FindRandomCCPosition(rooms_selected, cc));
+                    newCharacter.transform.rotation *= Quaternion.Euler(0, UnityEngine.Random.Range(-180.0f, 180.0f), 0);
+                }
                 // Must be called after correct char placement so that char's location doesn't change
                 // after instantiation.
                 if (recorder.saveSceneStates)
