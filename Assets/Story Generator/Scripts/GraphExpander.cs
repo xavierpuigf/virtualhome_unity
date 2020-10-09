@@ -358,7 +358,7 @@ namespace StoryGenerator.Utilities
                         if (HandleCreateInsideRoom(obj))
                             continue;
                     }
-                    expanderResult.AddItem(UNPLACED, obj.class_name);
+                    expanderResult.AddItem(UNPLACED, obj.class_name + "." + obj.id.ToString());
                 }
 
             }
@@ -375,7 +375,7 @@ namespace StoryGenerator.Utilities
 
                     // Report error if holding of obj has changed 
                     if (heldObjsRH.Contains(obj) || heldObjsLH.Contains(obj)) {
-                        expanderResult.AddItem(MISSING_INT, obj.class_name);
+                        expanderResult.AddItem(MISSING_INT, obj.class_name + "." + obj.id.ToString());
                         continue;
                     }
                 }
