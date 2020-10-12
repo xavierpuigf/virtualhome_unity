@@ -283,8 +283,11 @@ namespace StoryGenerator.Utilities
                             List<string> fileNames;
                             if (TryGetAssets(names[0], out fileNames))
                             {
-
-                                loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(fileNames[0])) as GameObject;
+                                if (obj.obj_transform != null || obj.bounding_box != null)
+                                {
+                                    loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(fileNames[0])) as GameObject;
+                                }
+                                
                             }
                         }
 
@@ -306,6 +309,7 @@ namespace StoryGenerator.Utilities
                             {
                                 if (obj.bounding_box == null)
                                 {
+                                    // We should never be getting here...
                                     object_inst = false;
                                     UnityEngine.Object.Destroy(loadedObj);
 
@@ -501,7 +505,6 @@ namespace StoryGenerator.Utilities
                 foreach (EnvironmentObject obj2 in objectsInRelation) {
                     if (obj2.category != EnvironmentGraphCreator.RoomsCategory) {
                         EnvironmentObject sceneObj2;
-
                         if (alignment.TryGetValue(obj2.id, out sceneObj2)) {
                             if (TryPlaceObject(obj, sceneObj2, true)) {
                                 return true;
