@@ -209,6 +209,7 @@ namespace StoryGenerator.Utilities
         public static List<Vector3> CalculatePutPositions(Vector3 intPos, GameObject go, GameObject goDest, bool putInside,
             bool ignoreObstacles)
         {
+
             return CalculatePutPositions(intPos, GetBounds(go), go.transform.position, goDest, putInside, ignoreObstacles);
         }
 
@@ -216,6 +217,7 @@ namespace StoryGenerator.Utilities
         public static List<Vector3> CalculatePutPositions(Vector3 intPos, Bounds srcBounds, Vector3 srcPos, GameObject goDest, 
             bool putInside, bool ignoreObstacles)
         {
+
             // "Optimal" distance from character to search for space (0.5 meters)
             Bounds destBounds = GetBounds(goDest);
             Vector3 dir = destBounds.center - intPos;
@@ -286,6 +288,7 @@ namespace StoryGenerator.Utilities
                     float hity;
 
                     if (HitFlatSurface(srcBounds, srcDelta, goDest, out hity)) {
+
                         float yDelta = hity - (srcBounds.min.y + srcDelta.y);
                         Vector3 delta = srcDelta + new Vector3(0, yDelta, 0);
 
@@ -302,7 +305,10 @@ namespace StoryGenerator.Utilities
         // hitHeight is y coordinate of hit points
         public static bool HitFlatSurface(Bounds goBounds, Vector3 goDelta, GameObject destGo, out float hitHeight)
         {
+            
+
             Bounds b = new Bounds(goBounds.center + goDelta + 0.02f * Vector3.up, goBounds.extents);
+            
             Vector3 bMin = b.min;
             Vector3 bMax = b.max;
 
@@ -310,6 +316,7 @@ namespace StoryGenerator.Utilities
             hitHeight = 0;
 
             if (!CheckHitDown(bMin, ref hitTransform, ref hitHeight)) return false;
+
             if (!GameObjectUtils.IsInPath(destGo, hitTransform)) return false;
             if (!CheckHitDown(new Vector3(bMin.x, bMin.y, bMax.z), ref hitTransform, ref hitHeight)) return false;
             if (!CheckHitDown(new Vector3(bMax.x, bMin.y, bMin.z), ref hitTransform, ref hitHeight)) return false;

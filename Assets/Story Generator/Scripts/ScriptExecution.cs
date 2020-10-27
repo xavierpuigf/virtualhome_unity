@@ -1306,7 +1306,7 @@ namespace StoryGenerator.Utilities
                     }
                     else
                     {
-                        if (FindInteractionPoint(current.InteractionPosition, go, InteractionType.UNSPECIFIED, out pos, out tpos, intPos, minIPDelta, 2.0f, null, true))
+                        if (FindInteractionPoint(current.InteractionPosition, go, InteractionType.UNSPECIFIED, out pos, out tpos, intPos, minIPDelta, 2.0f, null, null, true))
                         {
                             State s = new State(current, a, pos, ExecuteGoto);
 
@@ -1546,8 +1546,17 @@ namespace StoryGenerator.Utilities
 
                     Vector3 pos;
                     Vector3 tpos;
-
-                    if (FindInteractionPoint(current.InteractionPosition, go, InteractionType.UNSPECIFIED, out pos, out tpos, intPos, minIPDelta))
+                    float? maxDistObject = null;
+                    if (teleport)
+                    {
+                        // Make sure we are close enough
+                        ObjectBounds bounds_object = ObjectBounds.FromGameObject(go);
+                        ObjectBounds bounds_char = ObjectBounds.FromGameObject(characterControl.gameObject);
+                        float b1 = Math.Max(bounds_char.bounds.extents.x, bounds_char.bounds.extents.z);
+                        float b2 = Math.Max(bounds_object.bounds.extents.x, bounds_object.bounds.extents.z);
+                        maxDistObject = Math.Max(b1, b2) + 1.3f;
+                    }
+                    if (FindInteractionPoint(current.InteractionPosition, go, InteractionType.UNSPECIFIED, out pos, out tpos, intPos, minIPDelta, null, maxDistObject))
                     {
 
                         //GameObject capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
@@ -1662,7 +1671,7 @@ namespace StoryGenerator.Utilities
         }
 
         private bool FindInteractionPoint(Vector3 interaction_pos, GameObject go, InteractionType interaction, out Vector3 ip, out Vector3 tpos,
-                                          Vector3? intPos, float minIPDelta, float? maxIPDelta = null, int? object_id = null, bool ignore_visiblity = false)
+                                          Vector3? intPos, float minIPDelta, float? maxIPDelta = null, float? maxDistObject = null, int? object_id = null, bool ignore_visiblity = false)
         {
             HandInteraction hi = go.GetComponent<HandInteraction>();
             List<Vector3> ipl = null;
@@ -1735,14 +1744,26 @@ namespace StoryGenerator.Utilities
             foreach (Vector3 pos in ipl)
             {
                 float ipDistance = (interaction_pos - new Vector3(pos.x, 0, pos.z)).magnitude;
+                float objectDistance = 0.0f;
 
+                if (maxDistObject.HasValue)
+                {
+                    Bounds center_obj = GameObjectUtils.GetBounds(go);
+                    objectDistance = (new Vector3(center_obj.center.x, 0.0f, center_obj.center.z) - new Vector3(pos.x, 0, pos.z)).magnitude;
+
+                }
                 if (ipDistance >= minIPDelta)
                 {
                     if (!maxIPDelta.HasValue || (maxIPDelta.HasValue && ipDistance <= maxIPDelta))
                     {
-                        tpos = tposl[it];
-                        ip = pos;
-                        return true;
+
+                        if (!maxDistObject.HasValue || maxDistObject.HasValue && objectDistance <= maxDistObject)
+                        {
+                            
+                            tpos = tposl[it];
+                            ip = pos;
+                            return true;
+                        }
                     }
                 }
             }
@@ -2165,7 +2186,7 @@ namespace StoryGenerator.Utilities
                     sod = current.AddScriptGameObject(a.Name, go, goPos, pos);
                     //return ProcessOpenAction(a, current);
                 }
-                else if (FindInteractionPoint(current.InteractionPosition, go, InteractionType.UNSPECIFIED, out pos, out tpos, intPos, 0.0f, 1.0f, null, true))
+                else if (FindInteractionPoint(current.InteractionPosition, go, InteractionType.UNSPECIFIED, out pos, out tpos, intPos, 0.0f, 1.0f, null, null, true))
                 {
                     sod = current.AddScriptGameObject(a.Name, go, goPos, pos);
                 }
@@ -3470,13 +3491,27 @@ namespace StoryGenerator.Utilities
                     Vector3 cEnd = new Vector3(center.x, nma.height - nma.radius + ObstructionHeight, center.z);
 
                     // Check for space
-                    if (!Physics.CheckCapsule(cStart, cEnd, nma.radius))
+                    if (!Physics.CheckCapsule(cStart, cEnd, nma.radius*0.75f))
                     {
+                        //GameObject capsulegoal = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                        //capsulegoal.transform.position = (Vector3)center;
+                        //capsulegoal.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+                        //capsulegoal.GetComponent<MeshRenderer>().material.color = Color.green;
+                        //capsulegoal.GetComponent<CapsuleCollider>().enabled = false;
+
                         if (go == null || ignore_visibility || IsVisibleFromSegment(go, center, 0.2f, 2.5f, 0.2f, true))
                         {
                             result.Add(center);
                             break; // for each angle, take the closest radius
                         }
+                    }
+                    else
+                    {
+                        //GameObject capsulegoal = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                        //capsulegoal.transform.position = (Vector3)center;
+                        //capsulegoal.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+                        //capsulegoal.GetComponent<MeshRenderer>().material.color = Color.red;
+                        //capsulegoal.GetComponent<CapsuleCollider>().enabled = false;
                     }
                 }
                 if (rMin < 0.0f) // if radius is approx. zero, take only one angle

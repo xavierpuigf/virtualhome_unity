@@ -77,7 +77,7 @@ namespace StoryGenerator.HomeAnnotation
         public static readonly float OPEN_ROI_DELTA = 0.1f;
         public static Vector3 DRAWER_OPEN_AMOUNT = new Vector3(0.44f, 0.0f, 0.0f);
 
-        public static float DOOR_OPEN_DEGREES = -80.0f;
+        public static float DOOR_OPEN_DEGREES = -85.0f;
         public static float OPEN_ENTER_PRD_MED = 1.0f;
         public static float OPEN_EXIT_PRD_MED = 1.0f;
         public static float OPEN_ENTER_PRD_LONG = 1.7f;
@@ -86,7 +86,7 @@ namespace StoryGenerator.HomeAnnotation
         public static void Reset()
         {
             DRAWER_OPEN_AMOUNT = new Vector3(0.44f, 0.0f, 0.0f);
-            DOOR_OPEN_DEGREES = -50.0f;
+            DOOR_OPEN_DEGREES = -85.0f;
             OPEN_ENTER_PRD_MED = 1.0f;
             OPEN_EXIT_PRD_MED = 1.0f;
             OPEN_ENTER_PRD_LONG = 1.7f;

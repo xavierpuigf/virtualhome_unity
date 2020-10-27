@@ -1062,8 +1062,8 @@ namespace StoryGenerator
                     }
                 }
             }
-            Debug.Log($"config.recording : {config.recording}");
-            Debug.Log($"cameraCtrl is not null2? : {cameraControl != null}");
+            //Debug.Log($"config.recording : {config.recording}");
+            //Debug.Log($"cameraCtrl is not null2? : {cameraControl != null}");
             rec.Recording = config.recording;
 
             rec.currentCameraMode = config.camera_mode;

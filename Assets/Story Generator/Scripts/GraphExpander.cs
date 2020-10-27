@@ -438,6 +438,7 @@ namespace StoryGenerator.Utilities
                         HandleCharacterInsidePlacing(obj, objsInRelation, sceneObjsInRelation, GetObjectsInRelation(edgeMap, obj, ObjectRelation.CLOSE),
                             GetObjectsInRelation(sceneEdgeMap, obj, ObjectRelation.CLOSE));
                     } else {
+                 
                         HandleInsidePlacing(obj, objsInRelation, sceneObjsInRelation);
                     }
                 }
@@ -914,11 +915,10 @@ namespace StoryGenerator.Utilities
         {
             List<string> names = dataProviders.NameEquivalenceProvider.GetEquivalentNames(srcClassName);
             int numPrefabsChecked = 0;
-
+            
             if (Randomize) {
                 RandomUtils.Permute(names);
             }
-
             foreach (string name in names) {
                 List<string> fileNames;
 
@@ -930,6 +930,7 @@ namespace StoryGenerator.Utilities
                     }
 
                     foreach (string fileName in fileNames) {
+
                         numPrefabsChecked++;
                         if (PlaceObject(inside, srcClassName, fileName, dest, centerDelta, out newGo)) {
                             // Debug.Log($"Put {srcClassName} to {dest.class_name}, inside: {inside}");
