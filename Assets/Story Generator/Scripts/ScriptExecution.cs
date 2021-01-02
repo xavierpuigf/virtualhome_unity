@@ -1734,8 +1734,8 @@ namespace StoryGenerator.Utilities
                     {
                         tposl.Add(go.transform.position);
                     }
-                    RandomUtils.PermuteHead(ipl, 7); // permute 5 closest positions
-
+                    if (randomizeExecution)
+                        RandomUtils.PermuteHead(ipl, 7); // permute 7 closest positions
                 }
                 if (object_id.HasValue)
                     interaction_cache.SetInteractionPoints(interaction, (int)object_id, ipl, tposl);
