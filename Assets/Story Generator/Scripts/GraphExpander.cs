@@ -223,7 +223,14 @@ namespace StoryGenerator.Utilities
                     {
                         sceneObj.transform.position = obj.obj_transform.GetPosition();
                         sceneObj.transform.rotation = obj.obj_transform.GetRotation();
-                        sceneObj.bounding_box = ObjectBounds.FromGameObject(sceneObj.transform.gameObject);
+                        if (sceneObj.category == "Rooms")
+                        {
+                            sceneObj.bounding_box = new ObjectBounds(sceneObj.transform.gameObject.GetComponent<RoomProperties.Properties_room>().bounds); 
+                        }
+                        else
+                        {
+                            sceneObj.bounding_box = ObjectBounds.FromGameObject(sceneObj.transform.gameObject);
+                        }
                         id_transformed.Add(obj.id);
                     }
 
