@@ -813,11 +813,12 @@ namespace StoryGenerator.Utilities
         private IObjectSelectorProvider objectSelectorProvider;
         private IGameObjectPropertiesCalculator propCalculator;     // Class which can caclulate interaction positions
         public List<ScriptPair> script;                            // Script (filled with subsequent calls of AddAction)
+        public List<ScriptLine> sLines;            // Original Script 
         private CharacterControl characterControl;                  // Class which can execute actions (Walk, Grab, etc.)
         private List<ICameraControl> cameraControls;                        // Camera control class
         private int gotoExecDepth;
         private System.Diagnostics.Stopwatch execStartTime;
-        private ProcessingReport report;
+        public ProcessingReport report;
         private bool randomizeExecution;                            // Randomize selection of interaction position
         private Recorder recorder;
         private int processingTimeLimit = 20 * 1000;                // Max search time for admissible solution (in milliseconds)
@@ -830,11 +831,11 @@ namespace StoryGenerator.Utilities
         public static Hashtable actionsPerLine = new Hashtable();
         public static int currRunlineNo = 0; // The line no being executed now
         public static int currActionsFinished = 0; // The number of actions finished for currRunLineNo. Moving to the next line if currActionsFinished == actionsPerLine[currRunlineNo];
+        
 
         // *****
         private TestDriver caller;
 
-        //private IList<ScriptLine> sLines { get; set; }
 
         public ScriptExecutor(IList<GameObject> nameList, RoomSelector roomSelector,
             IObjectSelectorProvider objectSelectorProvider, Recorder rcdr, int charIndex, InteractionCache interaction_cache, bool smooth_walk = false)
@@ -851,6 +852,7 @@ namespace StoryGenerator.Utilities
 
             propCalculator = new DefaultGameObjectPropertiesCalculator();
             script = new List<ScriptPair>();
+            sLines = new List<ScriptLine>();
             recorder = rcdr;
             report = new ProcessingReport();
         }
@@ -881,11 +883,13 @@ namespace StoryGenerator.Utilities
             chc.report = report;
             cameraControls = cac;
             script.Clear();
+            sLines.Clear();
         }
 
         public void ClearScript()
         {
             script.Clear();
+            sLines.Clear();
         }
 
         private IEnumerable<GameObject> SelectObjects(IObjectSelector selector)
@@ -3869,7 +3873,7 @@ namespace StoryGenerator.Utilities
         }
     }
 
-    class ScriptLine
+    public class ScriptLine
     {
         public InteractionType Interaction { get; set; }
         public IList<Tuple<string, int>> Parameters { get; set; }
@@ -3882,19 +3886,71 @@ namespace StoryGenerator.Utilities
         }
     }
 
+    public class ScriptChecker
+    {
+        public static List<Tuple<int, Tuple<String, String>>> SolveConflicts(List<ScriptExecutor> sExecutors)
+        {
+
+            // Solve conflicts when multiple agents are trying to open/grab the same object
+            Dictionary<int, List<int>> dict_conflicts = new Dictionary<int, List<int>>();
+            Dictionary<int, InteractionType> action_conflicts = new Dictionary<int, InteractionType> ();
+            List < Tuple<int, Tuple<String, String>> > conflict_messages = new List<Tuple<int, Tuple<String, String>>>();
+            for (int i = 0; i < sExecutors.Count(); i++)
+            {
+                for (int script_index = 0; script_index < sExecutors[i].sLines.Count(); script_index++)
+                {
+                    if (sExecutors[i].sLines[script_index].Interaction == InteractionType.OPEN ||
+                        sExecutors[i].sLines[script_index].Interaction == InteractionType.CLOSE ||
+                        sExecutors[i].sLines[script_index].Interaction == InteractionType.GRAB){
+                        int index_object = sExecutors[i].sLines[script_index].Parameters[0].Item2;
+                        if (!dict_conflicts.ContainsKey(index_object))
+                        {
+
+                            dict_conflicts[index_object] = new List<int>();
+                            action_conflicts[index_object] = sExecutors[i].sLines[script_index].Interaction;
+                        }
+                        
+                        dict_conflicts[index_object].Add(i);
+                    }
+                }
+            }
+
+            foreach (KeyValuePair<int, List<int>> kvp in dict_conflicts)
+            {
+                if (kvp.Value.Count() > 1)
+                {
+                    InteractionType conflict_action = action_conflicts[kvp.Key];
+                    int index_char_perform = RandomUtils.Choose(kvp.Value);
+                    for (int i = 0; i < kvp.Value.Count(); i++)
+                    {
+                        int index_char = kvp.Value[i];
+                        if (index_char != index_char_perform)
+                        {
+                            sExecutors[index_char].script.Clear();
+                            sExecutors[index_char].sLines.Clear();
+                            Tuple<String, String> ct = new Tuple<String, String> ("PROCESS UNDEF", $"Agent {index_char_perform} tried to do the same action");
+                            if (conflict_action == InteractionType.OPEN)
+                               ct = new Tuple<String, String>("PROCESS OPEN", $"Agent {index_char_perform} tried to open the object at the same time");
+
+                            if (conflict_action == InteractionType.CLOSE)
+                               ct = new Tuple<String, String>("PROCESS CLOSE", $"Agent {index_char_perform} tried to open the object at the same time");
+
+
+                            if (conflict_action == InteractionType.GRAB)
+                                ct = new Tuple<String, String>("PROCESS GRAB", $"Agent {index_char_perform} tried to grab the object at the same time");
+
+
+                            conflict_messages.Add(new Tuple<int, Tuple<string, string>>(index_char, ct));
+                        }
+                    }
+                }
+            }
+            return conflict_messages;
+        }
+    }
+
     public class ScriptReader
     {
-
-        public static void ReadScript(ScriptExecutor sExecutor, string fileName,
-            ActionEquivalenceProvider actionEquivProvider, string scriptPath = @"ActionScripts/")
-        {
-            IList<ScriptLine> sLines = ReadScriptLines(scriptPath + fileName, actionEquivProvider);
-
-            for (int i = 0; i < sLines.Count; i++)
-            {
-                ScriptLineToAction(sExecutor, i, sLines);
-            }
-        }
 
         public static void ParseScript(List<ScriptExecutor> sExecutors, IList<string> scriptLines,
             ActionEquivalenceProvider actionEquivProvider)
@@ -3918,7 +3974,7 @@ namespace StoryGenerator.Utilities
                 if (sl != null)
                     sLines.Add(sl);
             }
-            //sExecutor.sLines = new List<ScriptLine>(sLines);
+            sExecutor.sLines = new List<ScriptLine>(sLines);
             for (int i = 0; i < sLines.Count; i++)
             {
                 ScriptLineToAction(sExecutor, i, sLines);
@@ -4048,25 +4104,6 @@ namespace StoryGenerator.Utilities
 
         }
 
-        static IList<ScriptLine> ReadScriptLines(string fileName, ActionEquivalenceProvider actionEquivProvider)
-        {
-            var result = new List<ScriptLine>();
-
-            using (System.IO.StreamReader file = new System.IO.StreamReader(fileName))
-            {
-                string line;
-                int lineNo = 0;
-
-                while ((line = file.ReadLine()) != null)
-                {
-                    var sl = ParseLine(line, lineNo++, actionEquivProvider);
-
-                    if (sl != null)
-                        result.Add(sl);
-                }
-            }
-            return result;
-        }
 
         private static ScriptLine ParseLine(string line, int lineNo, ActionEquivalenceProvider actionEquivProvider)
         {

@@ -611,25 +611,35 @@ namespace StoryGenerator
                         parseSuccess = false;
                         response.success = false;
                         response.message = $"Error parsing script: {e.Message}";
+                        continue;
                     }
 
                     //s_SimulatePerfMarker.Begin();
-                    
+
 
                     if (parseSuccess)
                     {
+                        List<Tuple<int, Tuple<String, String>>> error_messages = new List<Tuple<int, Tuple<String, String>>>();
+                        if (!config.find_solution)
+                            error_messages = ScriptChecker.SolveConflicts(sExecutors);
                         for (int i = 0; i < numCharacters; i++)
                         {
                             StartCoroutine(sExecutors[i].ProcessAndExecute(config.recording, this));
-                            //yield return sExecutors[i].ProcessAndExecute(true, this);
                         }
 
                         while (finishedChars != numCharacters)
                         {
                             yield return new WaitForSeconds(0.01f);
                         }
-                    }
 
+                        // Add back errors from concurrent actions
+
+                        for (int error_index = 0; error_index < error_messages.Count; error_index++)
+                        {
+                            sExecutors[error_messages[error_index].Item1].report.AddItem(error_messages[error_index].Item2.Item1, error_messages[error_index].Item2.Item2);
+                        }
+
+                    }
 
                     //s_SimulatePerfMarker.End();
 
@@ -641,49 +651,65 @@ namespace StoryGenerator
                     response.message = "";
                     response.success = false;
                     bool[] success_per_agent = new bool[numCharacters];
-
+                    
+                    bool agent_failed_action = false;
+                    Dictionary <int, Dictionary <String, String> > messages = new Dictionary<int, Dictionary<String, String> > ();
                     if (!config.recording)
                     {
                         for (int i = 0; i < numCharacters; i++)
                         {
+                            Dictionary<String, String> current_message = new Dictionary<String, String>();
+
                             if (!sExecutors[i].Success)
                             {
-                                //response.success = false;
-                                response.message += $"ScriptExcutor {i}: ";
-                                response.message += sExecutors[i].CreateReportString();
-                                response.message += "\n";
+                                String message = "";
+                                message += $"ScriptExcutor {i}: ";
+                                message += sExecutors[i].CreateReportString();
+                                message += "\n";
+                                current_message["message"] = message;
+
                                 success_per_agent[i] = false;
+                                agent_failed_action = true;
                             }
                             else
                             {
+                                current_message["message"] = "Success";
                                 response.success = true;
                                 success_per_agent[i] = true;
                             }
+                            messages[i] = current_message;
                         }
                     }
                     else
                     {
                         for (int i = 0; i < numCharacters; i++)
                         {
+                            Dictionary<String, String> current_message = new Dictionary<String, String>();
                             Recorder rec = recorders[i];
                             if (!sExecutors[i].Success)
                             {
                                 //response.success = false;
-                                response.message += $"ScriptExcutor {i}: ";
-                                response.message += sExecutors[i].CreateReportString();
-                                response.message += "\n";
+                                String message = "";
+                                message += $"ScriptExcutor {i}: ";
+                                message += sExecutors[i].CreateReportString();
+                                message += "\n";
+                                current_message["message"] = message;
                             }
                             else if (rec.Error != null)
                             {
                                 //Directory.Delete(rec.OutputDirectory);
                                 //response.success = false;
-                                response.message += $"Recorder {i}: ";
-                                response.message += recorder.Error.Message;
-                                response.message += "\n";
+                                agent_failed_action = true;
+                                String message = "";
+                                message += $"Recorder {i}: ";
+                                message += recorder.Error.Message;
+                                message += "\n";
                                 rec.Recording = false;
+                                current_message["message"] = message;
                             }
                             else
                             {
+                                current_message["message"] = "Success";
                                 response.success = true;
                                 success_per_agent[i] = true;
                                     rec.MarkTermination();
@@ -696,15 +722,23 @@ namespace StoryGenerator
                                 });
                                 rec.CreateTextualGTs();
                             }
+
+
+                            messages[i] = current_message;
                         }
                     }
 
-
+                    // If any of the agent fails an action, report failure
+                    if (parseSuccess)
+                    {
+                        response.message = JsonConvert.SerializeObject(messages);
+                    }
+                    if (agent_failed_action)
+                        response.success = false;
                     ISet<GameObject> changedObjs = new HashSet<GameObject>();
                     IDictionary<Tuple<string, int>, ScriptObjectData> script_object_changed = new Dictionary<Tuple<string, int>, ScriptObjectData>();
                     List<ActionObjectData> last_action = new List<ActionObjectData>();
                     bool single_action = true;
-
                     for (int char_index = 0; char_index < numCharacters; char_index++)
                     {
                         if (success_per_agent[char_index])
