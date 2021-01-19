@@ -61,8 +61,6 @@ namespace StoryGenerator
         private List<ScriptExecutor> sExecutors = new List<ScriptExecutor>();
         private List<GameObject> rooms = new List<GameObject>();
 
-
-
         WaitForSeconds WAIT_AFTER_END_OF_SCENE = new WaitForSeconds(3.0f);
 
         [Serializable]
@@ -113,13 +111,15 @@ namespace StoryGenerator
             if (networkRequest == null) {
                 commServer.UnlockProcessing(); // Allow to proceed with requests
             }
-            StartCoroutine(ProcessNetworkRequest());
+            //StartCoroutine(ProcessNetworkRequest());
+            StartCoroutine(ProcessInputRequest());
         }
         
         private void InitServer()
         {
             string[] args = Environment.GetCommandLineArgs();
             var argDict = DriverUtils.GetParameterValues(args);
+            //Debug.Log(argDict);
             string portString = null;
             int port = DefaultPort;
 
@@ -188,6 +188,117 @@ namespace StoryGenerator
                 yield return enumerator.Current;
         }
 
+        IEnumerator ProcessInputRequest()
+        {
+            sceneCameras = ScriptUtils.FindAllCameras(transform);
+            numSceneCameras = sceneCameras.Count;
+            cameras = sceneCameras.ToList();
+            cameras.AddRange(CameraExpander.AddRoomCameras(transform));
+            CameraUtils.DeactivateCameras(cameras);
+            OneTimeInitializer cameraInitializer = new OneTimeInitializer();
+            OneTimeInitializer homeInitializer = new OneTimeInitializer();
+            EnvironmentGraphCreator currentGraphCreator = null;
+            EnvironmentGraph currentGraph = null;
+            //int expandSceneCount = 0;
+
+            InitRooms();
+
+            //add one character by default
+            CharacterConfig configchar = new CharacterConfig();//JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
+            CharacterControl newchar;
+            newchar = AddCharacter(configchar.character_resource, false, configchar.mode, configchar.character_position, configchar.initial_room);
+
+
+            characters.Add(newchar);
+            CurrentStateList.Add(null);
+            numCharacters++;
+            List<Camera> charCameras = CameraExpander.AddCharacterCameras(newchar.gameObject, transform, "");
+            CameraUtils.DeactivateCameras(charCameras);
+            cameras.AddRange(charCameras);
+            cameraInitializer.initialized = false;
+
+            if (currentGraph == null)
+            {
+                currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
+                currentGraph = currentGraphCreator.CreateGraph(transform);
+            }
+            else
+            {
+                currentGraph = currentGraphCreator.UpdateGraph(transform);
+            }
+            bool keyPressed = false;
+
+            ExecutionConfig config = new ExecutionConfig();
+            IObjectSelectorProvider objectSelectorProvider = new InstanceSelectorProvider(currentGraph);
+            IList<GameObject> objectList = ScriptUtils.FindAllObjects(transform);
+            createRecorders(config);
+            sExecutors = InitScriptExecutors(config, objectSelectorProvider, sceneCameras, objectList);
+
+            while (true)
+            {
+                List<string> scriptLines = new List<string>();
+                if (Input.GetKeyDown(KeyCode.UpArrow))
+                {
+                    string move = "<char0> [walkforward]";
+                    scriptLines.Add(move);
+                    Debug.Log("move forward");
+                    keyPressed = true;
+                }
+                else if (Input.GetKeyDown(KeyCode.LeftArrow))
+                {
+                    string move = "<char0> [turnleft]";
+                    scriptLines.Add(move);
+                    Debug.Log("move left");
+                    keyPressed = true;
+                }
+                else if (Input.GetKeyDown(KeyCode.RightArrow))
+                {
+                    string move = "<char0> [turnright]";
+                    scriptLines.Add(move);
+                    Debug.Log("move right");
+                    keyPressed = true;
+                }
+                //TODO: add going backwards and clean up Input code
+           
+                if (Input.GetMouseButtonDown(0))
+                {
+                    Debug.Log("mouse down");
+                    //TODO: Find coordinates, use camera matrix + projection matrix?
+
+                    //RaycastHit rayHit; //= new RaycastHit();
+
+                    /*foreach (Camera c in cameras)
+                    {
+                        Debug.Log("Camera " + c.name);
+                        
+                        Ray ray = c.ScreenPointToRay(Input.mousePosition);
+                        
+                        bool hit = Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out rayHit);
+                    }*/
+                    //Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                    //bool hit = Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out rayHit);
+                    /*if (hit)
+                    {
+                        Debug.Log("Hit " + rayHit.transform.gameObject.name); //checking object name
+                        //float distance = 4.5; //how do you quantify this distance?
+                        //Vector3 point = ray.origin; //+ (ray.direction * distance); 
+                        //Debug.Log("point " + point);
+                    }*/
+                }
+
+                if (keyPressed)
+                {
+                    sExecutors[0].ClearScript();
+                    ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
+                    StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
+                    keyPressed = false;
+                }
+                yield return null;
+
+            }
+
+        }
+
         IEnumerator ProcessNetworkRequest()
         {
             // There is not always a character
@@ -205,6 +316,31 @@ namespace StoryGenerator
             int expandSceneCount = 0;
 
             InitRooms();
+
+            //add one character by default
+            CharacterConfig configchar = new CharacterConfig();//JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
+            CharacterControl newchar;
+            newchar = AddCharacter(configchar.character_resource, false, configchar.mode, configchar.character_position, configchar.initial_room);
+
+
+            characters.Add(newchar);
+            CurrentStateList.Add(null);
+            numCharacters++;
+            List<Camera> charCameras = CameraExpander.AddCharacterCameras(newchar.gameObject, transform, "");
+            CameraUtils.DeactivateCameras(charCameras);
+            cameras.AddRange(charCameras);
+            cameraInitializer.initialized = false;
+
+            if (currentGraph == null)
+            {
+                //currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
+                currentGraph = currentGraphCreator.CreateGraph(transform);
+            }
+            else
+            {
+                currentGraph = currentGraphCreator.UpdateGraph(transform);
+            }
+            
 
             while (true) {
                 Debug.Log("Waiting for request");
@@ -441,7 +577,7 @@ namespace StoryGenerator
                 else if (networkRequest.action == "add_character")
                 {
                     CharacterConfig config = JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
-                    CharacterControl newchar;
+                    //CharacterControl newchar;
                     newchar = AddCharacter(config.character_resource, false, config.mode, config.character_position, config.initial_room);
 
                     if (newchar != null)
@@ -449,7 +585,7 @@ namespace StoryGenerator
                         characters.Add(newchar);
                         CurrentStateList.Add(null);
                         numCharacters++;
-                        List<Camera> charCameras = CameraExpander.AddCharacterCameras(newchar.gameObject, transform, "");
+                        charCameras = CameraExpander.AddCharacterCameras(newchar.gameObject, transform, "");
                         CameraUtils.DeactivateCameras(charCameras);
                         cameras.AddRange(charCameras);
                         cameraInitializer.initialized = false;
@@ -482,7 +618,6 @@ namespace StoryGenerator
                     Vector3 position = config.character_position;
                     int char_index = config.char_index;
                     Debug.Log($"move_char to : {position}");
-
 
                     List<GameObject> rooms = ScriptUtils.FindAllRooms(transform);
                     foreach (GameObject r in rooms)
@@ -596,6 +731,7 @@ namespace StoryGenerator
                     {
                         List<string> scriptLines = networkRequest.stringParams.ToList();
                         scriptLines.RemoveAt(0);
+
                         // not ok, has video
                         for (int i = 0; i < numCharacters; i++)
                         {
@@ -611,35 +747,25 @@ namespace StoryGenerator
                         parseSuccess = false;
                         response.success = false;
                         response.message = $"Error parsing script: {e.Message}";
-                        continue;
                     }
 
                     //s_SimulatePerfMarker.Begin();
-
+                    
 
                     if (parseSuccess)
                     {
-                        List<Tuple<int, Tuple<String, String>>> error_messages = new List<Tuple<int, Tuple<String, String>>>();
-                        if (!config.find_solution)
-                            error_messages = ScriptChecker.SolveConflicts(sExecutors);
                         for (int i = 0; i < numCharacters; i++)
                         {
                             StartCoroutine(sExecutors[i].ProcessAndExecute(config.recording, this));
+                            //yield return sExecutors[i].ProcessAndExecute(true, this);
                         }
 
                         while (finishedChars != numCharacters)
                         {
                             yield return new WaitForSeconds(0.01f);
                         }
-
-                        // Add back errors from concurrent actions
-
-                        for (int error_index = 0; error_index < error_messages.Count; error_index++)
-                        {
-                            sExecutors[error_messages[error_index].Item1].report.AddItem(error_messages[error_index].Item2.Item1, error_messages[error_index].Item2.Item2);
-                        }
-
                     }
+
 
                     //s_SimulatePerfMarker.End();
 
@@ -651,65 +777,49 @@ namespace StoryGenerator
                     response.message = "";
                     response.success = false;
                     bool[] success_per_agent = new bool[numCharacters];
-                    
-                    bool agent_failed_action = false;
-                    Dictionary <int, Dictionary <String, String> > messages = new Dictionary<int, Dictionary<String, String> > ();
+
                     if (!config.recording)
                     {
                         for (int i = 0; i < numCharacters; i++)
                         {
-                            Dictionary<String, String> current_message = new Dictionary<String, String>();
-
                             if (!sExecutors[i].Success)
                             {
-                                String message = "";
-                                message += $"ScriptExcutor {i}: ";
-                                message += sExecutors[i].CreateReportString();
-                                message += "\n";
-                                current_message["message"] = message;
-
+                                //response.success = false;
+                                response.message += $"ScriptExcutor {i}: ";
+                                response.message += sExecutors[i].CreateReportString();
+                                response.message += "\n";
                                 success_per_agent[i] = false;
-                                agent_failed_action = true;
                             }
                             else
                             {
-                                current_message["message"] = "Success";
                                 response.success = true;
                                 success_per_agent[i] = true;
                             }
-                            messages[i] = current_message;
                         }
                     }
                     else
                     {
                         for (int i = 0; i < numCharacters; i++)
                         {
-                            Dictionary<String, String> current_message = new Dictionary<String, String>();
                             Recorder rec = recorders[i];
                             if (!sExecutors[i].Success)
                             {
                                 //response.success = false;
-                                String message = "";
-                                message += $"ScriptExcutor {i}: ";
-                                message += sExecutors[i].CreateReportString();
-                                message += "\n";
-                                current_message["message"] = message;
+                                response.message += $"ScriptExcutor {i}: ";
+                                response.message += sExecutors[i].CreateReportString();
+                                response.message += "\n";
                             }
                             else if (rec.Error != null)
                             {
                                 //Directory.Delete(rec.OutputDirectory);
                                 //response.success = false;
-                                agent_failed_action = true;
-                                String message = "";
-                                message += $"Recorder {i}: ";
-                                message += recorder.Error.Message;
-                                message += "\n";
+                                response.message += $"Recorder {i}: ";
+                                response.message += recorder.Error.Message;
+                                response.message += "\n";
                                 rec.Recording = false;
-                                current_message["message"] = message;
                             }
                             else
                             {
-                                current_message["message"] = "Success";
                                 response.success = true;
                                 success_per_agent[i] = true;
                                     rec.MarkTermination();
@@ -722,23 +832,15 @@ namespace StoryGenerator
                                 });
                                 rec.CreateTextualGTs();
                             }
-
-
-                            messages[i] = current_message;
                         }
                     }
 
-                    // If any of the agent fails an action, report failure
-                    if (parseSuccess)
-                    {
-                        response.message = JsonConvert.SerializeObject(messages);
-                    }
-                    if (agent_failed_action)
-                        response.success = false;
+
                     ISet<GameObject> changedObjs = new HashSet<GameObject>();
                     IDictionary<Tuple<string, int>, ScriptObjectData> script_object_changed = new Dictionary<Tuple<string, int>, ScriptObjectData>();
                     List<ActionObjectData> last_action = new List<ActionObjectData>();
                     bool single_action = true;
+
                     for (int char_index = 0; char_index < numCharacters; char_index++)
                     {
                         if (success_per_agent[char_index])
