@@ -234,6 +234,11 @@ namespace StoryGenerator
             createRecorders(config);
             sExecutors = InitScriptExecutors(config, objectSelectorProvider, sceneCameras, objectList);
 
+            Camera currentCamera = cameras.Find(c => c.name.Equals("Character_Camera_Fwd"));
+            currentCamera.gameObject.SetActive(true);
+            //recorders[0].CamCtrls[cameras.IndexOf(currentCamera)].Activate(true);
+
+
             while (true)
             {
                 List<string> scriptLines = new List<string>();
@@ -263,27 +268,56 @@ namespace StoryGenerator
                 if (Input.GetMouseButtonDown(0))
                 {
                     Debug.Log("mouse down");
-                    //TODO: Find coordinates, use camera matrix + projection matrix?
 
-                    //RaycastHit rayHit; //= new RaycastHit();
+                    RaycastHit rayHit;
+                    
+                    Ray ray = currentCamera.ScreenPointToRay(Input.mousePosition);
+                    bool hit = Physics.Raycast(ray, out rayHit);
+                    if (hit)
+                    {
+                        Transform t = rayHit.transform;
+                        InstanceSelectorProvider objectInstanceSelectorProvider = (InstanceSelectorProvider)objectSelectorProvider;
 
-                    /*foreach (Camera c in cameras)
-                    {
-                        Debug.Log("Camera " + c.name);
+                        while (t != null && !objectInstanceSelectorProvider.objectIdMap.ContainsKey(t.gameObject))
+                        {
+                            t = t.parent;
+                        }
                         
-                        Ray ray = c.ScreenPointToRay(Input.mousePosition);
-                        
-                        bool hit = Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out rayHit);
-                    }*/
-                    //Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-                    //bool hit = Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out rayHit);
-                    /*if (hit)
-                    {
-                        Debug.Log("Hit " + rayHit.transform.gameObject.name); //checking object name
-                        //float distance = 4.5; //how do you quantify this distance?
-                        //Vector3 point = ray.origin; //+ (ray.direction * distance); 
-                        //Debug.Log("point " + point);
-                    }*/
+                        //Debug.Log("Hit " + t.gameObject.name); 
+                        EnvironmentObject obj;
+                        currentGraphCreator.objectNodeMap.TryGetValue(t.gameObject, out obj);
+                        string objectName = obj.class_name;
+                        int objectId = obj.id;
+                        Debug.Log("object name " + objectName);
+
+                        ICollection<string> objProperties = obj.properties;
+                        //TODO: create buttons - grab and open
+                        if (objProperties.Contains("CAN_OPEN"))
+                        {
+                            Debug.Log("open");
+                            
+                            string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
+                            Debug.Log(action);
+                            scriptLines.Add(action);
+                            keyPressed = true;
+                        }
+                        else if (objProperties.Contains("GRABBABLE"))
+                        {
+                            Debug.Log("grab");
+                            
+                            string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
+                            Debug.Log(action);
+                            scriptLines.Add(action);
+                            keyPressed = true;
+                        }
+
+                        // coordinate of click
+                        Vector2 mousePos = new Vector2();
+                        mousePos.x = Input.mousePosition.x;
+                        mousePos.y = currentCamera.pixelHeight - Input.mousePosition.y;
+                        Vector3 point = currentCamera.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, currentCamera.nearClipPlane));
+                        Debug.Log("point " + point);
+                    }
                 }
 
                 if (keyPressed)
@@ -1490,14 +1524,16 @@ namespace StoryGenerator
     internal class InstanceSelectorProvider : IObjectSelectorProvider
     {
         private Dictionary<int, GameObject> idObjectMap;
+        public Dictionary<GameObject, int> objectIdMap;
 
         public InstanceSelectorProvider(EnvironmentGraph currentGraph)
         {
-            idObjectMap = new Dictionary<int, GameObject>(); 
-
+            idObjectMap = new Dictionary<int, GameObject>();
+            objectIdMap = new Dictionary<GameObject, int>();
             foreach (EnvironmentObject eo in currentGraph.nodes) {
                 if (eo.transform != null) {
                     idObjectMap[eo.id] = eo.transform.gameObject;
+                    objectIdMap[eo.transform.gameObject] = eo.id;
                 }
             }
         }
