@@ -105,7 +105,6 @@ namespace StoryGenerator
 
             ProcessHome(false);
             DeleteChar();
-
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
 
             if (networkRequest == null) {
@@ -190,6 +189,7 @@ namespace StoryGenerator
 
         IEnumerator ProcessInputRequest()
         {
+            yield return null;
             sceneCameras = ScriptUtils.FindAllCameras(transform);
             numSceneCameras = sceneCameras.Count;
             cameras = sceneCameras.ToList();
