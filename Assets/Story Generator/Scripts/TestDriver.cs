@@ -5,6 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.EventSystems;
+using UnityEngine.Events;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using StoryGenerator.HomeAnnotation;
 using StoryGenerator.Recording;
@@ -20,7 +23,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using StoryGenerator.CharInteraction;
 using Unity.Profiling;
-
+using StoryGenerator.Helpers;
 
 namespace StoryGenerator
 {
@@ -238,25 +241,40 @@ namespace StoryGenerator
             currentCamera.gameObject.SetActive(true);
             //recorders[0].CamCtrls[cameras.IndexOf(currentCamera)].Activate(true);
 
+            // Buttons: grab, open, putleft, putright, close
+            GameObject go = new GameObject();
+            RectTransform rect = go.transform as RectTransform;//new RectTransform();
+            go.AddComponent<Button>();
+            go.name = "Button";
+            
+            //go.transform.SetParent(rect);
+            //go.transform.localScale = new Vector3(1, 1, 1);
+
+            Button button = go.GetComponent<Button>();
+            GameObject gochild = new GameObject();
+            gochild.AddComponent<Text>();
+            gochild.transform.SetParent(go.transform);
+
+            go.SetActive(false);
 
             while (true)
             {
                 List<string> scriptLines = new List<string>();
-                if (Input.GetKeyDown(KeyCode.UpArrow))
+                if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
                 {
                     string move = "<char0> [walkforward]";
                     scriptLines.Add(move);
                     Debug.Log("move forward");
                     keyPressed = true;
                 }
-                else if (Input.GetKeyDown(KeyCode.LeftArrow))
+                else if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
                 {
                     string move = "<char0> [turnleft]";
                     scriptLines.Add(move);
                     Debug.Log("move left");
                     keyPressed = true;
                 }
-                else if (Input.GetKeyDown(KeyCode.RightArrow))
+                else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
                 {
                     string move = "<char0> [turnright]";
                     scriptLines.Add(move);
@@ -283,33 +301,64 @@ namespace StoryGenerator
                             t = t.parent;
                         }
                         
-                        //Debug.Log("Hit " + t.gameObject.name); 
                         EnvironmentObject obj;
                         currentGraphCreator.objectNodeMap.TryGetValue(t.gameObject, out obj);
                         string objectName = obj.class_name;
                         int objectId = obj.id;
                         Debug.Log("object name " + objectName);
-
+                        
                         ICollection<string> objProperties = obj.properties;
-                        //TODO: create buttons - grab and open
+                        
+                        //TODO: grabbing/putting with right and left hands
+                        State currentState = this.CurrentStateList[0];
+                        GameObject rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
+                        GameObject lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
+                        EnvironmentObject obj1;
+                        EnvironmentObject obj2;
+                        currentGraphCreator.objectNodeMap.TryGetValue(characters[0].gameObject, out obj1);
+                        Character character_graph;
+                        currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
+
+                        //TODO: create buttons 
+
                         if (objProperties.Contains("CAN_OPEN"))
                         {
+                            go.SetActive(true);
                             Debug.Log("open");
-                            
-                            string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
-                            Debug.Log(action);
-                            scriptLines.Add(action);
-                            keyPressed = true;
+                            //TODO: make Button appear
+                            button.GetComponentInChildren<Text>().text = "open";
+
+                            //GUI.Button(new Rect(10, 140, 180, 20), "open", "box");
+                            button.onClick.AddListener(() =>
+                            {
+                                Debug.Log("opened");
+                                string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
+                                Debug.Log(action);
+                                scriptLines.Add(action);
+                                keyPressed = true;
+                                go.SetActive(false);
+                            });
                         }
                         else if (objProperties.Contains("GRABBABLE"))
                         {
+                            go.SetActive(true);
                             Debug.Log("grab");
-                            
-                            string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
-                            Debug.Log(action);
-                            scriptLines.Add(action);
-                            keyPressed = true;
+
+                            //TODO: make Button appear
+                            button.GetComponentInChildren<Text>().text = "grab";
+                            //GUI.Button(new Rect(10, 140, 180, 20), "grab", "box");
+                            button.onClick.AddListener(() =>
+                            {
+                                Debug.Log("grabbed");
+                                string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
+                                Debug.Log(action);
+                                scriptLines.Add(action);
+                                keyPressed = true;
+                                go.SetActive(false);
+                            });
                         }
+
+                        //TODO: put, close
 
                         // coordinate of click
                         Vector2 mousePos = new Vector2();
@@ -1631,6 +1680,44 @@ namespace StoryGenerator
         public bool skip_execution = false;
         public bool skip_animation = false;
     }
+    /*
+    public class ButtonTest : Button, IPointerClickHandler
+    {
+        private string _text = "button";
+        private Button baseButton;
+        public Action Callback;
+
+        public string Text
+        {
+            get { return _text;  }
+            set { GetComponentInChildren<Text>().text = value; _text = value; }
+        }
+
+        void Start()
+        {
+            baseButton = GetComponent<Button>();
+            if (onClick != null)
+                baseButton.onClick = onClick;
+            baseButton.GetComponentInChildren<Text>().text = text;
+        }
+    }
+
+    public class ButtonHandler : MonoBehaviour
+    {
+        //public GameObject button;
+        //public Text txt;
+        //public RectTransform rect;
+
+        /*public void SetText(string text)
+        {
+            //Text t = transform.Find("Text").GetComponent<Text>();
+            //t.text = text;
+            txt.text = text;
+        }*/
+
+
+
+    }*/
 
     public class DataProviders
     {
