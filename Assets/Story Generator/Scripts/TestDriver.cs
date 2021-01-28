@@ -258,12 +258,13 @@ namespace StoryGenerator
 
             go.SetActive(false);
 
+            // Create canvas and event system
             GameObject newCanvas = new GameObject("Canvas");
             Canvas canv = newCanvas.AddComponent<Canvas>();
             canv.renderMode = RenderMode.ScreenSpaceOverlay;
             newCanvas.AddComponent<CanvasScaler>();
             newCanvas.AddComponent<GraphicRaycaster>();
-
+            GameObject eventSystem = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
 
             while (true)
             {
