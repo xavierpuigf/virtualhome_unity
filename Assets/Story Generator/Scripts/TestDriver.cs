@@ -258,6 +258,13 @@ namespace StoryGenerator
 
             go.SetActive(false);
 
+            GameObject newCanvas = new GameObject("Canvas");
+            Canvas canv = newCanvas.AddComponent<Canvas>();
+            canv.renderMode = RenderMode.ScreenSpaceOverlay;
+            newCanvas.AddComponent<CanvasScaler>();
+            newCanvas.AddComponent<GraphicRaycaster>();
+
+
             while (true)
             {
                 List<string> scriptLines = new List<string>();
