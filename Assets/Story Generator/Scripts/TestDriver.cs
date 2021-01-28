@@ -24,6 +24,7 @@ using System.Threading.Tasks;
 using StoryGenerator.CharInteraction;
 using Unity.Profiling;
 using StoryGenerator.Helpers;
+using TMPro;
 
 namespace StoryGenerator
 {
@@ -319,12 +320,12 @@ namespace StoryGenerator
                         Character character_graph;
                         currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
 
-                        //TODO: create buttons 
-
+                        
                         if (objProperties.Contains("CAN_OPEN"))
                         {
                             go.SetActive(true);
                             Debug.Log("open");
+                            AddButton("Open");
                             //TODO: make Button appear
                             button.GetComponentInChildren<Text>().text = "open";
 
@@ -382,6 +383,20 @@ namespace StoryGenerator
 
         }
 
+        // TODO: move this to utils
+        void AddButton(string text)
+        {
+            //TODO: create buttons 
+            GameObject buttonPrefab = Resources.Load("UI/UIButton") as GameObject;
+            GameObject curr_button = (GameObject)Instantiate(buttonPrefab);
+            curr_button.GetComponentInChildren<TextMeshPro>().text = text;
+            var panel = GameObject.Find("Canvas");
+            curr_button.transform.position = panel.transform.position;
+            curr_button.GetComponent<RectTransform>().SetParent(panel.transform);
+            curr_button.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, 0, 100);
+            curr_button.layer = 5;
+
+        }
         IEnumerator ProcessNetworkRequest()
         {
             // There is not always a character
@@ -1680,44 +1695,45 @@ namespace StoryGenerator
         public bool skip_execution = false;
         public bool skip_animation = false;
     }
-    /*
-    public class ButtonTest : Button, IPointerClickHandler
-    {
-        private string _text = "button";
-        private Button baseButton;
-        public Action Callback;
+    ///*
+    //public class ButtonTest : Button, IPointerClickHandler
+    //{
+    //    private string _text = "button";
+    //    private Button baseButton;
+    //    public Action Callback;
 
-        public string Text
-        {
-            get { return _text;  }
-            set { GetComponentInChildren<Text>().text = value; _text = value; }
-        }
+    //    public string Text
+    //    {
+    //        get { return _text;  }
+    //        set { GetComponentInChildren<Text>().text = value; _text = value; }
+    //    }
 
-        void Start()
-        {
-            baseButton = GetComponent<Button>();
-            if (onClick != null)
-                baseButton.onClick = onClick;
-            baseButton.GetComponentInChildren<Text>().text = text;
-        }
-    }
+    //    void Start()
+    //    {
+    //        baseButton = GetComponent<Button>();
+    //        if (onClick != null)
+    //            baseButton.onClick = onClick;
+    //        baseButton.GetComponentInChildren<Text>().text = text;
+    //    }
+    //}
 
-    public class ButtonHandler : MonoBehaviour
-    {
-        //public GameObject button;
-        //public Text txt;
-        //public RectTransform rect;
+    //public class ButtonHandler : MonoBehaviour
+    //{
+    //    //public GameObject button;
+    //    //public Text txt;
+    //    //public RectTransform rect;
 
-        /*public void SetText(string text)
-        {
-            //Text t = transform.Find("Text").GetComponent<Text>();
-            //t.text = text;
-            txt.text = text;
-        }*/
+    //    /*public void SetText(string text)
+    //    {
+    //        //Text t = transform.Find("Text").GetComponent<Text>();
+    //        //t.text = text;
+    //        txt.text = text;
+    //    }*/
 
 
 
-    }*/
+    //}
+    
 
     public class DataProviders
     {
