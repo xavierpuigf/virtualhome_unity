@@ -261,9 +261,10 @@ namespace StoryGenerator
         const float MIN_TURN_AMOUNT = 0.025f;
         const float ALMOST_TOUCHING = 0.95f;
 
-        const float MIN_DISPLACEMENT = 5.0f;
+        const float MIN_DISPLACEMENT = 3.0f;
         const float MAX_FRAMES_STOP = 50.0f;
-        
+        const float MAX_TIME_STOP = 5.0f;
+
         const string ANIM_STR_FORWARD = "Forward";
         const string ANIM_STR_TURN = "Turn";
         const string ANIM_STR_SIT = "Sit";
@@ -493,16 +494,17 @@ namespace StoryGenerator
             Debug.Assert(m_nma.pathStatus == NavMeshPathStatus.PathComplete, "Path is not complete");
             float init_dist = m_nma.remainingDistance;
             float total_displacement = init_dist - m_nma.remainingDistance;
-            int cont = 0;
+            //int cont = 0;
 
-
+            var init_time = Time.time;
 
             for (float distanceDiff = float.PositiveInfinity;
               distanceDiff > 0 && ((rcdr == null) || ( (rcdr != null) && !rcdr.BreakExecution() ));
               distanceDiff = m_nma.remainingDistance - m_nma.stoppingDistance)
             {
                 total_displacement = init_dist - m_nma.remainingDistance;
-                if (total_displacement < MIN_DISPLACEMENT && cont > MAX_FRAMES_STOP)
+                var current_time = Time.time - init_time;
+                if (total_displacement < MIN_DISPLACEMENT && current_time > MAX_TIME_STOP)
                 {
                     m_nma.isStopped = true;
                     if (rcdr != null)
@@ -515,8 +517,7 @@ namespace StoryGenerator
                     //cont = 0;
 
                 }
-                cont += 1;
-
+                
 
                 Vector3 velo = m_nma.desiredVelocity;
                 // Convert the world relative moveInput vector into a local-relative
