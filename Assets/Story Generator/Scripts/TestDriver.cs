@@ -337,13 +337,14 @@ namespace StoryGenerator
                         Character character_graph;
                         currentGraphCreator.characters.TryGetValue(obj1, out character_graph);*/
 
+                        bool otherAction = false;
 
                         if (objProperties.Contains("CAN_OPEN"))
                         {
                             
                             Debug.Log("open");
                             AddButton("Open");
-                            //TODO: make Button appear
+                            
                             go = GameObject.Find("OpenButton");
                             go.SetActive(true);
                             Button button = go.GetComponent<Button>();
@@ -355,15 +356,18 @@ namespace StoryGenerator
                                 string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
                                 Debug.Log(action);
                                 scriptLines.Add(action);
-                                keyPressed = true;
-                                //go.SetActive(false);
+                                sExecutors[0].ClearScript();
+                                ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
+                                StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
+                                go.SetActive(false);
+                                otherAction = true;
                             });
                         }
                         else if (objProperties.Contains("GRABBABLE"))
                         {
                             Debug.Log("grab");
                             AddButton("Grab");
-                            //TODO: make Button appear
+                            
                             go = GameObject.Find("GrabButton");
                             go.SetActive(true);
                             Button button = go.GetComponent<Button>();
@@ -374,15 +378,22 @@ namespace StoryGenerator
                                 Debug.Log("grabbed");
                                 string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
                                 Debug.Log(action);
-                                Debug.Log("Before " + scriptLines.Count);
                                 scriptLines.Add(action);
-                                Debug.Log("After " + scriptLines.Count);
-                                keyPressed = true;
-                                //go.SetActive(false);
+                                sExecutors[0].ClearScript();
+                                ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
+                                StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
+                                Debug.Log("action completed");
+                                go.SetActive(false);
+                                otherAction = true;
                             });
                             Debug.Log("scriptlines after button click " + scriptLines.Count);
                         }
 
+
+                        if (otherAction)
+                        {
+                            go.SetActive(false);
+                        }
                         //TODO: put, close
 
                         // coordinate of click
@@ -393,20 +404,18 @@ namespace StoryGenerator
                         Debug.Log("point " + point);*/
                     }
                 }
-                //Debug.Log("scriptlines after if statements " + scriptLines.Count);
+
                 if (keyPressed)
                 {
                     Debug.Log("key pressed");
-                    //Debug.Log("ACTION " + action);
                     sExecutors[0].ClearScript();
-                    Debug.Log("scriptlines count " + scriptLines.Count);
                     ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
-                    //Debug.Log(scriptLines[0]);
                     StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
                     go.SetActive(false);
                     keyPressed = false;
                     Debug.Log("action executed");
                 }
+                
                 yield return null;
 
             }
