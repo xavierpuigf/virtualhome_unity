@@ -75,7 +75,7 @@ namespace StoryGenerator
             public int frameRate;
         }
 
-        void Start()
+        IEnumerator Start()
         {
             recorder = GetComponent<Recorder>();
 
@@ -113,6 +113,7 @@ namespace StoryGenerator
             DeleteChar();
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
 
+            yield return null;
             if (networkRequest == null)
             {
                 commServer.UnlockProcessing(); // Allow to proceed with requests
@@ -275,9 +276,9 @@ namespace StoryGenerator
 
             GameObject go = new GameObject();
 
+            List<string> scriptLines = new List<string>();
             while (true)
             {
-                List<string> scriptLines = new List<string>();
                 if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
                 {
                     string move = "<char0> [walkforward]";
@@ -354,11 +355,11 @@ namespace StoryGenerator
                             {
                                 Debug.Log("opened");
                                 string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
-                                Debug.Log(action);
                                 scriptLines.Add(action);
-                                sExecutors[0].ClearScript();
-                                ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
-                                StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
+                                //sExecutors[0].ClearScript();
+                                //ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
+                                //StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
+                                keyPressed = true;
                                 go.SetActive(false);
                                 otherAction = true;
                             });
@@ -379,9 +380,9 @@ namespace StoryGenerator
                                 string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
                                 Debug.Log(action);
                                 scriptLines.Add(action);
-                                sExecutors[0].ClearScript();
-                                ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
-                                StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
+                                //sExecutors[0].ClearScript();
+                                //ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
+                                //StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
                                 Debug.Log("action completed");
                                 go.SetActive(false);
                                 otherAction = true;
@@ -390,10 +391,10 @@ namespace StoryGenerator
                         }
 
 
-                        if (otherAction)
-                        {
-                            go.SetActive(false);
-                        }
+                        //if (otherAction)
+                        //{
+                        //    go.SetActive(false);
+                        //}
                         //TODO: put, close
 
                         // coordinate of click
@@ -409,11 +410,13 @@ namespace StoryGenerator
                 {
                     Debug.Log("key pressed");
                     sExecutors[0].ClearScript();
+                    Debug.Log(scriptLines[0]);
                     ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
                     StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
                     go.SetActive(false);
                     keyPressed = false;
                     Debug.Log("action executed");
+                    scriptLines.Clear();
                 }
                 
                 yield return null;
@@ -429,8 +432,8 @@ namespace StoryGenerator
             GameObject buttonPrefab = Resources.Load("UI/UIButton") as GameObject;
             GameObject curr_button = (GameObject)Instantiate(buttonPrefab);
             curr_button.name = text + "Button";
-            curr_button.GetComponentInChildren<TextMeshPro>().text = text;
-            curr_button.GetComponentInChildren<TextMeshPro>().color = Color.black; //does this actually work?
+            curr_button.GetComponentInChildren<TextMeshProUGUI>().text = text;
+            curr_button.GetComponentInChildren<TextMeshProUGUI>().color = Color.black; //does this actually work?
             var panel = GameObject.Find("Canvas");
             curr_button.transform.position = panel.transform.position;
             curr_button.GetComponent<RectTransform>().SetParent(panel.transform);
