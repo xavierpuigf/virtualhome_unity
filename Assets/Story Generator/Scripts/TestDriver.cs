@@ -200,7 +200,7 @@ namespace StoryGenerator
 
         IEnumerator ProcessInputRequest()
         {
-            //yield return null;
+            yield return null;
             sceneCameras = ScriptUtils.FindAllCameras(transform);
             numSceneCameras = sceneCameras.Count;
             cameras = sceneCameras.ToList();
@@ -250,21 +250,6 @@ namespace StoryGenerator
             //recorders[0].CamCtrls[cameras.IndexOf(currentCamera)].Activate(true);
 
             // Buttons: grab, open, putleft, putright, close
-            /*
-            GameObject go = new GameObject();
-            RectTransform rect = go.transform as RectTransform;//new RectTransform();
-            go.AddComponent<Button>();
-            go.name = "Button";
-
-            //go.transform.SetParent(rect);
-            //go.transform.localScale = new Vector3(1, 1, 1);
-
-            Button button = go.GetComponent<Button>();
-            GameObject gochild = new GameObject();
-            gochild.AddComponent<Text>();
-            gochild.transform.SetParent(go.transform);
-
-            go.SetActive(false);*/
 
             // Create canvas and event system
             GameObject newCanvas = new GameObject("Canvas");
@@ -274,8 +259,17 @@ namespace StoryGenerator
             newCanvas.AddComponent<GraphicRaycaster>();
             GameObject eventSystem = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
 
-            GameObject go = new GameObject();
+            AddButton("Open");
+            AddButton("Grab");
 
+            GameObject goOpen = GameObject.Find("OpenButton");
+            GameObject goGrab = GameObject.Find("GrabButton");
+
+            goOpen.SetActive(false);
+            goGrab.SetActive(false);
+
+            //Boolean openableOrGrabbable = false;
+            //Boolean openedOrGrabbed = false;
             List<string> scriptLines = new List<string>();
             while (true)
             {
@@ -301,7 +295,10 @@ namespace StoryGenerator
                     keyPressed = true;
                 }
                 //TODO: add going backwards and clean up Input code
-                //string action = ""; //debugging
+
+                
+                
+                
                 if (Input.GetMouseButtonDown(0))
                 {
                     Debug.Log("mouse down");
@@ -338,63 +335,60 @@ namespace StoryGenerator
                         Character character_graph;
                         currentGraphCreator.characters.TryGetValue(obj1, out character_graph);*/
 
-                        bool otherAction = false;
-
                         if (objProperties.Contains("CAN_OPEN"))
                         {
                             
                             Debug.Log("open");
-                            AddButton("Open");
+                            //AddButton("Open");
                             
-                            go = GameObject.Find("OpenButton");
-                            go.SetActive(true);
-                            Button button = go.GetComponent<Button>();
-                            //button.GetComponentInChildren<Text>().text = "open";
+                            //go = GameObject.Find("OpenButton");
+                            //go.tag = "Button";
+                            goOpen.SetActive(true);
+                            Button buttonOpen = goOpen.GetComponent<Button>();
 
-                            button.onClick.AddListener(() =>
+                            //openableOrGrabbable = true;
+
+                            buttonOpen.onClick.AddListener(() =>
                             {
                                 Debug.Log("opened");
                                 string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
                                 scriptLines.Add(action);
-                                //sExecutors[0].ClearScript();
-                                //ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
-                                //StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
+                                //openedOrGrabbed = true;
+                                goOpen.SetActive(false);
                                 keyPressed = true;
-                                go.SetActive(false);
-                                otherAction = true;
+                                
+                                buttonOpen.onClick.RemoveAllListeners();
+                                //Destroy(button.gameObject);
                             });
                         }
                         else if (objProperties.Contains("GRABBABLE"))
                         {
                             Debug.Log("grab");
-                            AddButton("Grab");
-                            
-                            go = GameObject.Find("GrabButton");
-                            go.SetActive(true);
-                            Button button = go.GetComponent<Button>();
-                            //button.GetComponentInChildren<Text>().text = "grab";
+                            //AddButton("Grab");
 
-                            button.onClick.AddListener(() =>
+                            //go = GameObject.Find("GrabButton");
+                            //go.tag = "Button";
+                            goGrab.SetActive(true);
+                            Button buttonGrab = goGrab.GetComponent<Button>();
+
+                            //openableOrGrabbable = true;
+
+                            buttonGrab.onClick.AddListener(() =>
                             {
                                 Debug.Log("grabbed");
                                 string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
                                 Debug.Log(action);
                                 scriptLines.Add(action);
-                                //sExecutors[0].ClearScript();
-                                //ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
-                                //StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
-                                Debug.Log("action completed");
-                                go.SetActive(false);
-                                otherAction = true;
+                                //openedOrGrabbed = true;
+                                goGrab.SetActive(false);
+                                keyPressed = true;
+
+                                buttonGrab.onClick.RemoveAllListeners();
+                                //Destroy(button.gameObject);
                             });
-                            Debug.Log("scriptlines after button click " + scriptLines.Count);
                         }
 
 
-                        //if (otherAction)
-                        //{
-                        //    go.SetActive(false);
-                        //}
                         //TODO: put, close
 
                         // coordinate of click
@@ -406,19 +400,58 @@ namespace StoryGenerator
                     }
                 }
 
+                /*if (openableOrGrabbable)
+                {
+                    foreach (GameObject gameObj in GameObject.FindGameObjectsWithTag("Button"))
+                    {
+                        Destroy(gameObj);
+                    }
+                    //Destroy(button.gameObject);
+                }*/
+
                 if (keyPressed)
                 {
                     Debug.Log("key pressed");
+                    goOpen.SetActive(false);
+                    goGrab.SetActive(false);
                     sExecutors[0].ClearScript();
-                    Debug.Log(scriptLines[0]);
+                    Debug.Log("Scriptlines " + scriptLines[0]);
+                    Debug.Log("Scriptlines count " + scriptLines.Count);
                     ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
                     StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
-                    go.SetActive(false);
+                    
+                    scriptLines.Clear();
                     keyPressed = false;
                     Debug.Log("action executed");
-                    scriptLines.Clear();
+                    /*if (openableOrGrabbable)
+                    {
+                        try
+                        {
+                            foreach (GameObject gameObj in GameObject.FindGameObjectsWithTag("Button"))
+                            {
+                                Destroy(gameObj);
+                            }
+                        }
+                        catch
+                        {
+
+                        }
+                        openableOrGrabbable = false;
+                    }*/
+                    
+                    
+                    //go.SetActive(false);
+                    //Debug.Log("destroyed");
+                    //Destroy(go);
+                    /*
+                    if (openedOrGrabbed)
+                    {
+                        Debug.Log("destroyed");
+                        Destroy(go);
+
+                    }*/
                 }
-                
+
                 yield return null;
 
             }
@@ -432,6 +465,7 @@ namespace StoryGenerator
             GameObject buttonPrefab = Resources.Load("UI/UIButton") as GameObject;
             GameObject curr_button = (GameObject)Instantiate(buttonPrefab);
             curr_button.name = text + "Button";
+            //curr_button.tag = "Button";
             curr_button.GetComponentInChildren<TextMeshProUGUI>().text = text;
             curr_button.GetComponentInChildren<TextMeshProUGUI>().color = Color.black; //does this actually work?
             var panel = GameObject.Find("Canvas");
