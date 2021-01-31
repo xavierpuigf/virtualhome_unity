@@ -1291,6 +1291,9 @@ namespace StoryGenerator.Utilities
                     Vector3 tpos;
                     if (FindInteractionPoint(current.InteractionPosition, go, InteractionType.UNSPECIFIED, out pos, out tpos, intPos, minIPDelta))
                     {
+                        //GameObject capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                        //capsule.transform.position = pos;
+                        //capsule.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
                         State s = new State(current, a, pos, ExecuteGoto);
 
                         s.AddScriptGameObject(a.Name, go, goPos, pos);
@@ -2763,6 +2766,11 @@ namespace StoryGenerator.Utilities
             }
             else
             {
+
+                //GameObject capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                //capsule.transform.position = s.InteractionPosition;
+                //capsule.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+
                 yield return characterControl.StartCoroutine(characterControl.walkOrRunTo(!run,
                     s.GetTempEnumerable("ALTERNATIVE_IPS", s.InteractionPosition), lookAt));
             }
@@ -2780,6 +2788,8 @@ namespace StoryGenerator.Utilities
                 //nma.autoBraking = true;
                 nma.autoRepath = true;
                 nma.stoppingDistance = 0.3f;
+
+
                 yield return characterControl.StartCoroutine(characterControl.walkOrRunTo(!run, s.InteractionPosition, next_look));
             }
             else
@@ -3848,7 +3858,7 @@ namespace StoryGenerator.Utilities
 
         internal IObjectSelector GetRoomOrObjectSelector(string name, int instance)
         {
-            if (roomSelector.IsRoomName(name))
+            if (roomSelector.IsRoomName(name) && this.find_solution)
             {
                 return roomSelector.GetRoomSelector(name);
             }
