@@ -325,6 +325,13 @@ namespace StoryGenerator
 
                         ICollection<string> objProperties = obj.properties;
 
+                        // coordinate of click
+                        Vector2 mousePos = new Vector2();
+                        mousePos.x = Input.mousePosition.x;
+                        mousePos.y = currentCamera.pixelHeight - Input.mousePosition.y;
+                        Vector3 point = currentCamera.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, currentCamera.nearClipPlane));
+                        Debug.Log("point " + point);
+
                         //TODO: grabbing/putting with right and left hands
                         /*State currentState = this.CurrentStateList[0];
                         GameObject rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
@@ -335,7 +342,7 @@ namespace StoryGenerator
                         Character character_graph;
                         currentGraphCreator.characters.TryGetValue(obj1, out character_graph);*/
 
-                        if (objProperties.Contains("CAN_OPEN"))
+                        if (objProperties.Contains("CAN_OPEN") && !goOpen.activeSelf)
                         {
                             
                             Debug.Log("open");
@@ -345,7 +352,7 @@ namespace StoryGenerator
                             //go.tag = "Button";
                             goOpen.SetActive(true);
                             Button buttonOpen = goOpen.GetComponent<Button>();
-
+                            goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x, 100);
                             //openableOrGrabbable = true;
 
                             buttonOpen.onClick.AddListener(() =>
@@ -361,7 +368,7 @@ namespace StoryGenerator
                                 //Destroy(button.gameObject);
                             });
                         }
-                        else if (objProperties.Contains("GRABBABLE"))
+                        else if (objProperties.Contains("GRABBABLE") && !goGrab.activeSelf)
                         {
                             Debug.Log("grab");
                             //AddButton("Grab");
@@ -370,7 +377,7 @@ namespace StoryGenerator
                             //go.tag = "Button";
                             goGrab.SetActive(true);
                             Button buttonGrab = goGrab.GetComponent<Button>();
-
+                            goGrab.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x, 100);
                             //openableOrGrabbable = true;
 
                             buttonGrab.onClick.AddListener(() =>
@@ -391,12 +398,6 @@ namespace StoryGenerator
 
                         //TODO: put, close
 
-                        // coordinate of click
-                        /*Vector2 mousePos = new Vector2();
-                        mousePos.x = Input.mousePosition.x;
-                        mousePos.y = currentCamera.pixelHeight - Input.mousePosition.y;
-                        Vector3 point = currentCamera.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, currentCamera.nearClipPlane));
-                        Debug.Log("point " + point);*/
                     }
                 }
 
