@@ -347,12 +347,14 @@ namespace StoryGenerator
                             
                             Debug.Log("open");
                             //AddButton("Open");
-                            
+
                             //go = GameObject.Find("OpenButton");
                             //go.tag = "Button";
+                            goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Open " + objectName;
+                            float width = goOpen.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
                             goOpen.SetActive(true);
                             Button buttonOpen = goOpen.GetComponent<Button>();
-                            goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x, 100);
+                            goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width/2, width);
                             //openableOrGrabbable = true;
 
                             buttonOpen.onClick.AddListener(() =>
@@ -375,9 +377,11 @@ namespace StoryGenerator
 
                             //go = GameObject.Find("GrabButton");
                             //go.tag = "Button";
+                            goGrab.GetComponentInChildren<TextMeshProUGUI>().text = "Grab " + objectName;
+                            float width = goGrab.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
                             goGrab.SetActive(true);
                             Button buttonGrab = goGrab.GetComponent<Button>();
-                            goGrab.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x, 100);
+                            goGrab.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width/2, width);
                             //openableOrGrabbable = true;
 
                             buttonGrab.onClick.AddListener(() =>
@@ -469,6 +473,7 @@ namespace StoryGenerator
             //curr_button.tag = "Button";
             curr_button.GetComponentInChildren<TextMeshProUGUI>().text = text;
             curr_button.GetComponentInChildren<TextMeshProUGUI>().color = Color.black; //does this actually work?
+            curr_button.GetComponentInChildren<TextMeshProUGUI>().enableWordWrapping = false;
             var panel = GameObject.Find("Canvas");
             curr_button.transform.position = panel.transform.position;
             curr_button.GetComponent<RectTransform>().SetParent(panel.transform);
