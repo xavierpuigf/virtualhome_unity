@@ -1036,6 +1036,20 @@ namespace StoryGenerator.Utilities
         }
     }
 
+    class CharacterCamera
+    {
+        public Vector3 localPosition;
+        public Quaternion localRotation;
+        public string name;
+
+        public CharacterCamera(string name, Vector3 localPos, Quaternion localRot)
+        {
+            this.name = name;
+            this.localPosition = localPos;
+            this.localRotation = localRot;
+        }
+    }
+
     class CameraExpander
     {
         public const string FRONT_CHARACTER_CAMERA_NAME = "Character_Camera_Front";
@@ -1043,6 +1057,59 @@ namespace StoryGenerator.Utilities
         public const string FORWARD_VIEW_CAMERA_NAME = "Character_Camera_Fwd";
         public const string FROM_BACK_CAMERA_NAME = "Character_Camera_FBack";
         public const string FROM_LEFT_CAMERA_NAME = "Character_Camera_FLeft";
+        public const string FROM_RIGHT_CAMERA_NAME = "Character_Camera_FRight";
+        public const string RIGHT_CAMERA_NAME = "Character_Camera_Right";
+        public const string LEFT_CAMERA_NAME = "Character_Camera_Left";
+        public const string CAMERA_BACK_NAME = "Character_Camera_Back";
+
+        // Cam names interface
+        public const string INT_FRONT_CHARACTER_CAMERA_NAME = "PERSON_FRONT";
+        public const string INT_TOP_CHARACTER_CAMERA_NAME = "PERSON_TOP";
+        public const string INT_FORWARD_VIEW_CAMERA_NAME = "FIRST_PERSON";
+        public const string INT_FROM_BACK_CAMERA_NAME = "PERSON_FROM_BACK";
+        public const string INT_FROM_LEFT_CAMERA_NAME = "PERSON_FROM_LEFT";
+        public const string INT_FROM_RIGHT_CAMERA_NAME = "PERSON_FROM_RIGHT";
+        public const string INT_RIGHT_CAMERA_NAME = "PERSON_RIGHT";
+        public const string INT_LEFT_CAMERA_NAME = "PERSON_LEFT";
+        public const string INT_CAMERA_BACK_NAME = "PERSON_BACK";
+
+        public static Dictionary <string, CharacterCamera> char_cams = new Dictionary<string, CharacterCamera>();
+
+        static public void ResetCameraExpander() {
+            char_cams.Clear();
+            char_cams[INT_FRONT_CHARACTER_CAMERA_NAME] = new CharacterCamera(FRONT_CHARACTER_CAMERA_NAME, 1.5f * Vector3.forward, Quaternion.LookRotation(Vector3.back));
+            char_cams[INT_TOP_CHARACTER_CAMERA_NAME] = new CharacterCamera(TOP_CHARACTER_CAMERA_NAME, new Vector3(0, 4.5f, 0), Quaternion.LookRotation(Vector3.down));
+            char_cams[INT_FORWARD_VIEW_CAMERA_NAME] = new CharacterCamera(FORWARD_VIEW_CAMERA_NAME, new Vector3(0, 1.8f, 0.15f), Quaternion.Euler(30, 0, 0));
+            char_cams[INT_FROM_BACK_CAMERA_NAME] = new CharacterCamera(FROM_BACK_CAMERA_NAME, new Vector3(0, 2.0f, -1.2f), Quaternion.Euler(20, 0, 0));
+            char_cams[INT_FROM_LEFT_CAMERA_NAME] = new CharacterCamera(FROM_LEFT_CAMERA_NAME, new Vector3(-0.7f, 1.9f, 0.6f), Quaternion.Euler(32, 120, 0));
+
+            char_cams[INT_RIGHT_CAMERA_NAME] = new CharacterCamera(RIGHT_CAMERA_NAME, new Vector3(0, 1.8f, 0.3f), Quaternion.Euler(20, 90, 0));
+            char_cams[INT_LEFT_CAMERA_NAME] = new CharacterCamera(LEFT_CAMERA_NAME, new Vector3(0, 1.8f, 0.3f), Quaternion.Euler(20, -90, 0));
+            char_cams[INT_CAMERA_BACK_NAME] = new CharacterCamera(CAMERA_BACK_NAME, new Vector3(0, 1.8f, -0.3f), Quaternion.Euler(20, 180, 0));
+
+        }
+        static public bool HasCam(string cam_name)
+        {
+            return char_cams.ContainsKey(cam_name);
+        }
+        static public bool AddNewCamera(string camera_name, Vector3 position, Quaternion rotation)
+        {
+            if (char_cams.ContainsKey(camera_name))
+                return false;
+            string camera_name_obj = "Added_CharCam_" + camera_name;
+
+            char_cams[camera_name] = new CharacterCamera(camera_name_obj, position, rotation);
+            return true;
+        }
+        static public List<String> GetCamNames()
+        {
+            return char_cams.Keys.ToList(); 
+        }
+
+        //public static void AddCharacterCameraConfig(string name, Vector3 localPos, Vector3 localRot)
+        //{
+        //    char_cams.Add(new CharacterCamera(name, localPos, localRot));
+        //}
 
         public static List<Camera> AddRoomCameras(Transform transform)
         {
@@ -1064,158 +1131,69 @@ namespace StoryGenerator.Utilities
         public static List<Camera> AddCharacterCameras(GameObject character, Transform transform, string cameraName)
         {
             List<Camera> newCameras = new List<Camera>();
-
-            switch (cameraName)
+            CharacterCamera out_cam;
+            if (char_cams.TryGetValue(cameraName, out out_cam))
             {
-                case FORWARD_VIEW_CAMERA_NAME:
+                GameObject go;
+                Transform ts = character.transform.Find(out_cam.name);
+                if (ts != null)
+                {
+                    go = ts.gameObject;
+                    Camera camera = go.GetComponent<Camera>();
+                    newCameras.Add(camera);
+                }
+                else
+                {
+
+
+                    go = new GameObject(out_cam.name, typeof(Camera));
+                    Camera camera = go.GetComponent<Camera>();
+                    camera.renderingPath = RenderingPath.UsePlayerSettings;
+
+                    if (cameraName == FORWARD_VIEW_CAMERA_NAME)
                     {
-                        // Forward-view camera
-                        GameObject go = new GameObject(FORWARD_VIEW_CAMERA_NAME, typeof(Camera));
-                        Camera camera = go.GetComponent<Camera>();
-                        camera.renderingPath = RenderingPath.UsePlayerSettings;
-
-                        // go.hideFlags = HideFlags.HideAndDontSave;
-                        go.transform.parent = character.transform;
-                        go.transform.localPosition = new Vector3(0, 1.8f, 0.15f);
-                        go.transform.localRotation = Quaternion.Euler(30, 0, 0);
-
-                        newCameras.Add(camera);
-                    }
-                    break;
-                case TOP_CHARACTER_CAMERA_NAME:
-                    {
-                        // Top-view camera
-                        GameObject go = new GameObject(TOP_CHARACTER_CAMERA_NAME, typeof(Camera));
-                        Camera camera = go.GetComponent<Camera>();
-                        camera.renderingPath = RenderingPath.UsePlayerSettings;
-
-                        // go.hideFlags = HideFlags.HideAndDontSave;
-                        go.transform.parent = character.transform;
-                        go.transform.localPosition = new Vector3(0, 4.5f, 0);
-                        go.transform.localRotation = Quaternion.LookRotation(Vector3.down);
-
-                        newCameras.Add(camera);
-                    }
-                    break;
-                case FROM_BACK_CAMERA_NAME:
-                    {
-                        // Top-view camera
-                        GameObject go = new GameObject(FROM_BACK_CAMERA_NAME, typeof(Camera));
-                        Camera camera = go.GetComponent<Camera>();
-
-                        camera.renderingPath = RenderingPath.UsePlayerSettings;
-
-                        //// go.hideFlags = HideFlags.HideAndDontSave;
-                        //go.AddComponent(typeof(CameraFollow));
-                        //go.GetComponent<CameraFollow>().target = character.transform;
-                        //go.GetComponent<CameraFollow>().offset_pos = new Vector3(0, 2.0f, -1.2f);
-                        //go.GetComponent<CameraFollow>().offset_rot = Quaternion.Euler(20, 0, 0);
-
-                        go.transform.parent = character.transform;
-                        go.transform.localPosition = new Vector3(0, 2.0f, -1.2f);
-                        go.transform.localRotation = Quaternion.Euler(20, 0, 0);
-
-                        //go.transform.localPosition = new Vector3(-1.4f, 1.7f, 1.0f);
-                        //go.transform.localRotation = Quaternion.Euler(20, 120, 0);
-
-
-                        newCameras.Add(camera);
-                    }
-                    break;
-                case FROM_LEFT_CAMERA_NAME:
-                    {
-                        // Top-view camera
-                        GameObject go = new GameObject(FROM_LEFT_CAMERA_NAME, typeof(Camera));
-                        Camera camera = go.GetComponent<Camera>();
-                        camera.renderingPath = RenderingPath.UsePlayerSettings;
-
-                        // go.hideFlags = HideFlags.HideAndDontSave;
-                        go.transform.parent = character.transform;
-
-
-                        go.transform.localPosition = new Vector3(-0.7f, 1.9f, 0.6f);
-                        go.transform.localRotation = Quaternion.Euler(32, 120, 0);
-
-
-                        newCameras.Add(camera);
-                    }
-                    break;
-
-                default:
-                    {
-                        // Top-view camera
-                        GameObject go = new GameObject(TOP_CHARACTER_CAMERA_NAME, typeof(Camera));
-                        Camera camera = go.GetComponent<Camera>();
-                        camera.renderingPath = RenderingPath.UsePlayerSettings;
-
-                        // go.hideFlags = HideFlags.HideAndDontSave;
-                        go.transform.parent = character.transform;
-                        go.transform.localPosition = new Vector3(0, 4.5f, 0);
-                        go.transform.localRotation = Quaternion.LookRotation(Vector3.down);
-
-                        newCameras.Add(camera);
-
-                        // Forward-view camera
-                        go = new GameObject(FORWARD_VIEW_CAMERA_NAME, typeof(Camera));
-                        camera = go.GetComponent<Camera>();
-                        camera.renderingPath = RenderingPath.UsePlayerSettings;
                         camera.nearClipPlane = 0.1f;
-
-                        // go.hideFlags = HideFlags.HideAndDontSave;
-                        go.transform.parent = character.transform;
-                        go.transform.localPosition = new Vector3(0, 1.8f, 0.15f);
-                        go.transform.localRotation = Quaternion.Euler(20, 0, 0);
-
-                        newCameras.Add(camera);
-
-                        // Right-view camera
-                        go = new GameObject("Character_Camera_right", typeof(Camera));
-                        camera = go.GetComponent<Camera>();
-
-                        go.hideFlags = HideFlags.HideAndDontSave;
-                        go.transform.parent = character.transform;
-                        go.transform.localPosition = new Vector3(0, 1.8f, 0.3f);
-                        go.transform.localRotation = Quaternion.Euler(20, 90, 0);
-
-                        newCameras.Add(camera);
-
-                        // Left-view camera
-                        go = new GameObject("Character_Camera_left", typeof(Camera));
-                        camera = go.GetComponent<Camera>();
-
-                        go.hideFlags = HideFlags.HideAndDontSave;
-                        go.transform.parent = character.transform;
-                        go.transform.localPosition = new Vector3(0, 1.8f, 0.3f);
-                        go.transform.localRotation = Quaternion.Euler(20, -90, 0);
-
-                        newCameras.Add(camera);
-
-                        // Back-view camera
-                        go = new GameObject("Character_Camera_back", typeof(Camera));
-                        camera = go.GetComponent<Camera>();
-
-                        go.hideFlags = HideFlags.HideAndDontSave;
-                        go.transform.parent = character.transform;
-                        go.transform.localPosition = new Vector3(0, 1.8f, -0.3f);
-                        go.transform.localRotation = Quaternion.Euler(20, 180, 0);
-                        newCameras.Add(camera);
-
-                        // Front-view camera
-                        go = new GameObject(FRONT_CHARACTER_CAMERA_NAME, typeof(Camera));
-                        camera = go.GetComponent<Camera>();
-                        camera.renderingPath = RenderingPath.UsePlayerSettings;
-
-                        // go.hideFlags = HideFlags.HideAndDontSave;
-                        go.transform.parent = character.transform;
-
-                        // Temporary, will be changed when requested
-                        go.transform.localPosition = 1.5f * Vector3.forward;
-                        go.transform.localRotation = Quaternion.LookRotation(Vector3.back);
-
-                        newCameras.Add(camera);
                     }
-                    break;
+                    go.transform.parent = character.transform;
+                    go.transform.localPosition = out_cam.localPosition;
+                    go.transform.localRotation = out_cam.localRotation;
+                    newCameras.Add(camera);
+                }
+                
             }
+            else
+            {
+                // Do Near Clip Plane 0.1 for forward_view_camera_name
+                foreach (KeyValuePair<string, CharacterCamera> entry in char_cams)
+                {
+                    cameraName = entry.Key;
+                    out_cam = entry.Value;
+
+                    GameObject go;
+                    Transform ts = character.transform.Find(out_cam.name);
+                    if (ts != null)
+                    {
+                        go = ts.gameObject;
+                    }
+                    else
+                    {
+
+                        go = new GameObject(out_cam.name, typeof(Camera));
+                    }
+                    Camera camera = go.GetComponent<Camera>();
+                    camera.renderingPath = RenderingPath.UsePlayerSettings;
+
+                    if (cameraName == FORWARD_VIEW_CAMERA_NAME)
+                    {
+                        camera.nearClipPlane = 0.1f;
+                    }
+                    go.transform.parent = character.transform;
+                    go.transform.localPosition = out_cam.localPosition;
+                    go.transform.localRotation = out_cam.localRotation;
+                    newCameras.Add(camera);
+                }
+            }
+        
             //for (int i = 0; i < newCameras.Count; i++)
             //{
             //    //CameraUtils.InitCamera(newCameras[i]);

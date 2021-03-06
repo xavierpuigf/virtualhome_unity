@@ -206,6 +206,8 @@ namespace StoryGenerator
 
             InitRooms();
 
+            CameraExpander.ResetCameraExpander();
+
             while (true) {
                 Debug.Log("Waiting for request");
 
@@ -218,6 +220,10 @@ namespace StoryGenerator
                 if (networkRequest.action == "camera_count"){
                     response.success = true;
                     response.value = cameras.Count;
+                } else if (networkRequest.action == "character_cameras")
+                {
+                    response.success = true;
+                    response.message = JsonConvert.SerializeObject(CameraExpander.GetCamNames());
                 } else if (networkRequest.action == "camera_data") {
                     cameraInitializer.Initialize(() => CameraUtils.InitCameras(cameras));
 
@@ -249,7 +255,37 @@ namespace StoryGenerator
                     cameraInitializer.initialized = false;
                     CameraUtils.DeactivateCameras(cameras);
 
-                } else if (networkRequest.action == "camera_image") {
+                }
+                else if (networkRequest.action == "add_character_camera")
+                {
+                    CameraConfig camera_config = JsonConvert.DeserializeObject<CameraConfig>(networkRequest.stringParams[0]);
+                    String camera_name = camera_config.camera_name;
+                    Quaternion rotation = new Quaternion();
+                    rotation.eulerAngles = camera_config.rotation;
+
+                    bool cam_added = CameraExpander.AddNewCamera(camera_name, camera_config.position, rotation);
+                    if (characters.Count > 0)
+                    {
+                        response.success = false;
+                        response.message = "Error: you should add these cameras before defining the characters";
+                    }
+                    else
+                    {
+                        if (cam_added)
+                        {
+                            response.success = true;
+                            response.message = "New camera defined with name: " + camera_name;
+                        }
+                        else
+                        {
+                            response.success = false;
+                            response.message = "Error: a camera with this name already exists";
+                        }
+                    }
+                    
+
+                }
+                else if (networkRequest.action == "camera_image") {
                     
                     cameraInitializer.Initialize(() => CameraUtils.InitCameras(cameras));
 
@@ -853,6 +889,7 @@ namespace StoryGenerator
                     characters = new List<CharacterControl>();
                     sExecutors = new List<ScriptExecutor>();
                     cameras = cameras.GetRange(0, numSceneCameras);
+                    CameraExpander.ResetCameraExpander();
 
                     if (networkRequest.intParams?.Count > 0)
                     {
@@ -996,7 +1033,7 @@ namespace StoryGenerator
 
         private FrontCameraControl CreateFrontCameraControls(GameObject character)
         {
-            List<Camera> charCameras = CameraExpander.AddCharacterCameras(character, transform, CameraExpander.FORWARD_VIEW_CAMERA_NAME);
+            List<Camera> charCameras = CameraExpander.AddCharacterCameras(character, transform, CameraExpander.INT_FORWARD_VIEW_CAMERA_NAME);
             CameraUtils.DeactivateCameras(charCameras);
             Camera camera = charCameras.First(c => c.name == CameraExpander.FORWARD_VIEW_CAMERA_NAME);
             return new FrontCameraControl(camera);
@@ -1049,50 +1086,51 @@ namespace StoryGenerator
 
                         CharacterControl chc = characters[rec.charIdx];
                         int index_cam = 0;
+                        bool cam_ctrl = false;
                         if (int.TryParse(config.camera_mode[cam_id], out index_cam))
                         {
                             //Camera cam = new Camera();
                             //cam.CopyFrom(sceneCameras[index_cam]);
                             Camera cam = cameras[index_cam];
                             cameraControl = new FixedCameraControl(cam);
+                            cam_ctrl = true;
                         }
                         else
                         {
-                            switch (config.camera_mode[cam_id])
+                            if (config.camera_mode[cam_id] == "PERSON_FRONT")
                             {
-                                case "FIRST_PERSON":
-                                    cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.FORWARD_VIEW_CAMERA_NAME, false);
-                                    break;
-                                case "PERSON_TOP":
-                                    cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.TOP_CHARACTER_CAMERA_NAME, false);
-                                    break;
-                                case "PERSON_FROM_BACK":
-                                    cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.FROM_BACK_CAMERA_NAME, false);
-                                    break;
-                                case "PERSON_FROM_LEFT":
-                                    cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.FROM_LEFT_CAMERA_NAME, false);
-                                    break;
-                                case "PERSON_FRONT":
-                                    cameraControl = CreateFrontCameraControls(chc.gameObject);
-                                    break;
-                                // case "TOP_VIEW":
-                                //     // every character has 6 cameras
-                                //     Camera top_cam = new Camera();
-                                //     top_cam.CopyFrom(cameras[cameras.Count - 6 * numCharacters - 1]);
-                                //     cameraControl = new FixedCameraControl(top_cam);
-                                //     break;
-                                default:
+                                cameraControl = CreateFrontCameraControls(chc.gameObject);
+                                cam_ctrl = true;
+                            }
+                            else
+                            {
+                                if (config.camera_mode[cam_id] == "AUTO")
+                                {
                                     AutoCameraControl autoCameraControl = new AutoCameraControl(sceneCameras, chc.transform, new Vector3(0, 1.0f, 0));
                                     autoCameraControl.RandomizeCameras = config.randomize_execution;
                                     autoCameraControl.CameraChangeEvent += rec.UpdateCameraData;
                                     cameraControl = autoCameraControl;
-                                    break;
+                                    cam_ctrl = true;
+                                }
+                                else
+                                {
+
+                                    if (CameraExpander.HasCam(config.camera_mode[cam_id]))
+                                    {
+                                        cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.char_cams[config.camera_mode[cam_id]].name, false);
+                                        cam_ctrl = true;
+                                    }
+                                }
                             }
 
+
+                        }
+                        if (cam_ctrl)
+                        {
+                            cameraControl.Activate(true);
+                            rec.CamCtrls[cam_id] = cameraControl;
                         }
 
-                        cameraControl.Activate(true);
-                        rec.CamCtrls[cam_id] = cameraControl;
                     }
                 }
             }
@@ -1462,6 +1500,7 @@ namespace StoryGenerator
         public Vector3 rotation = new Vector3(0.0f, 0.0f, 0.0f);
         public Vector3 position = new Vector3(0.0f, 0.0f, 0.0f);
         public float focal_length = 0.0f;
+        public string camera_name = "default";
 
     }
 
