@@ -1012,7 +1012,7 @@ namespace StoryGenerator.Utilities
             if (!close) {
                 Vector3 o1Too2 = o2.bounding_box.bounds.ClosestPoint(o1.bounding_box.bounds.center);
                 Vector3 o1center = o1.bounding_box.bounds.center;
-                if (o1.class_name == "characer" || o2.class_name == "character")
+                if (o1.class_name == "character" || o2.class_name == "character")
                 {
 
                     o1center.y = 0.0f;

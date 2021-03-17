@@ -67,6 +67,9 @@ namespace StoryGenerator
 
         WaitForSeconds WAIT_AFTER_END_OF_SCENE = new WaitForSeconds(3.0f);
 
+        private Color startcolor;
+        Renderer rend;
+
         [Serializable]
         class SceneData
         {
@@ -139,6 +142,27 @@ namespace StoryGenerator
         private void OnApplicationQuit()
         {
             commServer?.Stop();
+        }
+
+        void OnMouseEnter()
+        {
+            if (GetComponent<Renderer>() != null)
+            {
+                Debug.Log("HIGHLIGHT");
+                rend = GetComponent<Renderer>();
+                startcolor = rend.material.color;
+                rend.material.color = Color.yellow;
+            }
+            
+        }
+
+        void OnMouseExit()
+        {
+            if (rend != null)
+            {
+                Debug.Log("UNHIGHLIGHT");
+                rend.material.color = startcolor;
+            }
         }
 
         void DeleteChar()
@@ -238,6 +262,9 @@ namespace StoryGenerator
                 currentGraph = currentGraphCreator.UpdateGraph(transform);
             }
             bool keyPressed = false;
+            bool leftExecuted = false;
+            bool rightExecuted = false;
+            bool click = false;
 
             ExecutionConfig config = new ExecutionConfig();
             IObjectSelectorProvider objectSelectorProvider = new InstanceSelectorProvider(currentGraph);
@@ -261,15 +288,19 @@ namespace StoryGenerator
 
             AddButton("Open");
             AddButton("Grab");
+            AddButton("PutLeft");
+            AddButton("PutRight");
 
             GameObject goOpen = GameObject.Find("OpenButton");
             GameObject goGrab = GameObject.Find("GrabButton");
+            GameObject goPutLeft = GameObject.Find("PutLeftButton");
+            GameObject goPutRight = GameObject.Find("PutRightButton");
 
             goOpen.SetActive(false);
             goGrab.SetActive(false);
+            goPutLeft.SetActive(false);
+            goPutRight.SetActive(false);
 
-            //Boolean openableOrGrabbable = false;
-            //Boolean openedOrGrabbed = false;
             List<string> scriptLines = new List<string>();
             while (true)
             {
@@ -296,8 +327,7 @@ namespace StoryGenerator
                 }
                 //TODO: add going backwards and clean up Input code
 
-                
-                
+
                 
                 if (Input.GetMouseButtonDown(0))
                 {
@@ -309,6 +339,7 @@ namespace StoryGenerator
                     bool hit = Physics.Raycast(ray, out rayHit);
                     if (hit)
                     {
+                        click = true;
                         Transform t = rayHit.transform;
                         InstanceSelectorProvider objectInstanceSelectorProvider = (InstanceSelectorProvider)objectSelectorProvider;
 
@@ -323,8 +354,17 @@ namespace StoryGenerator
                         int objectId = obj.id;
                         Debug.Log("object name " + objectName);
 
-                        ICollection<string> objProperties = obj.properties;
+                        rend = t.GetComponent<Renderer>();
 
+                        //TODO: add Halo around objects, activating and disactivating
+                        /*GameObject haloPrefab = Resources.Load("Halo") as GameObject;
+                        GameObject halo = (GameObject)Instantiate(haloPrefab);
+                        halo.transform.SetParent(t, false);
+                        */
+
+                        ICollection<string> objProperties = obj.properties;
+                        ISet<Utilities.ObjectState> objStates = obj.states;
+                        
                         // coordinate of click
                         Vector2 mousePos = new Vector2();
                         mousePos.x = Input.mousePosition.x;
@@ -333,56 +373,90 @@ namespace StoryGenerator
                         Debug.Log("point " + point);
 
                         //TODO: grabbing/putting with right and left hands
-                        /*State currentState = this.CurrentStateList[0];
+                        State currentState = this.CurrentStateList[0];
                         GameObject rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
                         GameObject lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
                         EnvironmentObject obj1;
                         EnvironmentObject obj2;
+                        EnvironmentObject obj3;
                         currentGraphCreator.objectNodeMap.TryGetValue(characters[0].gameObject, out obj1);
                         Character character_graph;
-                        currentGraphCreator.characters.TryGetValue(obj1, out character_graph);*/
+                        currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
 
                         if (objProperties.Contains("CAN_OPEN") && !goOpen.activeSelf)
                         {
-                            
-                            Debug.Log("open");
-                            //AddButton("Open");
-
-                            //go = GameObject.Find("OpenButton");
-                            //go.tag = "Button";
-                            goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Open " + objectName;
-                            float width = goOpen.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
-                            goOpen.SetActive(true);
-                            Button buttonOpen = goOpen.GetComponent<Button>();
-                            goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width/2, width);
-                            //openableOrGrabbable = true;
-
-                            buttonOpen.onClick.AddListener(() =>
+                            //TODO: fix highlight
+                            if (rend != null)
                             {
-                                Debug.Log("opened");
-                                string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
-                                scriptLines.Add(action);
-                                //openedOrGrabbed = true;
-                                goOpen.SetActive(false);
-                                keyPressed = true;
+                                startcolor = rend.material.color;
+                                Debug.Log("rend not null! " + rend.material.color);
+                                rend.material.color = Color.yellow;
+                            }
+
+                            if (objStates.Contains(Utilities.ObjectState.CLOSED))
+                            {
+                                Debug.Log("open");
+                                goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Open " + objectName;
+                                float width = goOpen.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
+                                goOpen.SetActive(true);
+                                Button buttonOpen = goOpen.GetComponent<Button>();
+                                goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width / 2, width);
                                 
-                                buttonOpen.onClick.RemoveAllListeners();
-                                //Destroy(button.gameObject);
-                            });
+                                buttonOpen.onClick.AddListener(() =>
+                                {
+                                    Debug.Log("opened");
+                                    objStates.Remove(Utilities.ObjectState.CLOSED);
+                                    objStates.Add(Utilities.ObjectState.OPEN);
+                                    string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
+                                    scriptLines.Add(action);
+                                    goOpen.SetActive(false);
+                                    keyPressed = true;
+
+                                    buttonOpen.onClick.RemoveAllListeners();
+                                });
+                            }
+                            else if (objStates.Contains(Utilities.ObjectState.OPEN))
+                            {
+                                Debug.Log("close");
+                                goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Close " + objectName;
+                                float width = goOpen.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
+                                goOpen.SetActive(true);
+                                Button buttonOpen = goOpen.GetComponent<Button>();
+                                goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width / 2, width);
+
+                                buttonOpen.onClick.AddListener(() =>
+                                {
+                                    Debug.Log("closed");
+                                    objStates.Remove(Utilities.ObjectState.OPEN);
+                                    objStates.Add(Utilities.ObjectState.CLOSED);
+                                    string action = String.Format("<char0> [close] <{0}> ({1})", objectName, objectId);
+                                    scriptLines.Add(action);
+                                    goOpen.SetActive(false);
+                                    keyPressed = true;
+
+                                    buttonOpen.onClick.RemoveAllListeners();
+                                });
+                            }
+
+
                         }
                         else if (objProperties.Contains("GRABBABLE") && !goGrab.activeSelf)
                         {
                             Debug.Log("grab");
-                            //AddButton("Grab");
 
-                            //go = GameObject.Find("GrabButton");
-                            //go.tag = "Button";
+                            //TODO: fix highlight
+                            if (rend != null)
+                            {
+                                startcolor = rend.material.color;
+                                Debug.Log("rend not null! " + rend.material.color);
+                                rend.material.color = Color.yellow;
+                            }
+
                             goGrab.GetComponentInChildren<TextMeshProUGUI>().text = "Grab " + objectName;
                             float width = goGrab.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
                             goGrab.SetActive(true);
                             Button buttonGrab = goGrab.GetComponent<Button>();
                             goGrab.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width/2, width);
-                            //openableOrGrabbable = true;
 
                             buttonGrab.onClick.AddListener(() =>
                             {
@@ -390,71 +464,110 @@ namespace StoryGenerator
                                 string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
                                 Debug.Log(action);
                                 scriptLines.Add(action);
-                                //openedOrGrabbed = true;
                                 goGrab.SetActive(false);
                                 keyPressed = true;
 
                                 buttonGrab.onClick.RemoveAllListeners();
-                                //Destroy(button.gameObject);
                             });
                         }
 
+                        else if (objProperties.Contains("SURFACES") && (rh != null || lh != null) && (!goPutLeft.activeSelf || !goPutRight.activeSelf))
+                        {
+                            Debug.Log("put");
 
-                        //TODO: put, close
+                            if (lh != null)
+                            {
+                                currentGraphCreator.objectNodeMap.TryGetValue(lh, out obj2);
+                                Debug.Log("Put " + obj2.class_name + " on " + objectName);
+                                goPutLeft.GetComponentInChildren<TextMeshProUGUI>().text = "Put " + obj2.class_name + " on " + objectName;
+                                float width = goPutLeft.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
+                                goPutLeft.SetActive(true);
+
+                                Button buttonPutLeft = goPutLeft.GetComponent<Button>();
+                                goPutLeft.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width / 2, width);
+                                goPutLeft.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Bottom, mousePos.y + 60, 80);
+
+                                buttonPutLeft.onClick.AddListener(() => {
+                                    Debug.Log("put left");
+                                    string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1})", objectName, objectId, obj2.class_name, obj2.id);
+                                    Debug.Log(action);
+                                    scriptLines.Add(action);
+                                    leftExecuted = true;
+                                    goPutLeft.SetActive(false);
+                                    keyPressed = true;
+                                    
+                                    buttonPutLeft.onClick.RemoveAllListeners();
+                                });
+                            }
+                            if (rh != null)
+                            {
+                                currentGraphCreator.objectNodeMap.TryGetValue(rh, out obj3);
+                                Debug.Log("Put " + obj3.class_name + " on " + objectName);
+                                goPutRight.GetComponentInChildren<TextMeshProUGUI>().text = "Put " + obj3.class_name + " on " + objectName;
+                                float width = goPutRight.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
+                                goPutRight.SetActive(true);
+                                Button buttonPutRight = goPutRight.GetComponent<Button>();
+
+                                goPutRight.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width / 2, width);
+                                goPutRight.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Bottom, mousePos.y - 60, 80);
+                                //TODO: are these buttons in the right location?
+
+                                buttonPutRight.onClick.AddListener(() => {
+                                    Debug.Log("put right");
+                                    string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1})", objectName, objectId, obj3.class_name, obj3.id);
+                                    Debug.Log(action);
+                                    scriptLines.Add(action);
+                                    rightExecuted = true;
+                                    goPutRight.SetActive(false);
+                                    keyPressed = true;
+
+                                    buttonPutRight.onClick.RemoveAllListeners();
+                                });
+
+                            }
+
+                        }
 
                     }
                 }
 
-                /*if (openableOrGrabbable)
-                {
-                    foreach (GameObject gameObj in GameObject.FindGameObjectsWithTag("Button"))
-                    {
-                        Destroy(gameObj);
-                    }
-                    //Destroy(button.gameObject);
-                }*/
-
                 if (keyPressed)
                 {
-                    Debug.Log("key pressed");
-                    goOpen.SetActive(false);
-                    goGrab.SetActive(false);
+                    //un-highlight
+                    if (rend != null)
+                    {
+                        rend.material.color = startcolor;
+                        rend = null;
+                    }
+
                     sExecutors[0].ClearScript();
                     Debug.Log("Scriptlines " + scriptLines[0]);
                     Debug.Log("Scriptlines count " + scriptLines.Count);
                     ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
                     StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
-                    
+
                     scriptLines.Clear();
+                    Debug.Log("key pressed");
+                    goOpen.SetActive(false);
+                    goGrab.SetActive(false);
+
+                    if (leftExecuted)
+                    {
+                        goPutLeft.SetActive(false);
+                        leftExecuted = false;
+                    }
+                    if (rightExecuted)
+                    {
+                        goPutRight.SetActive(false);
+                        rightExecuted = false;
+                    }
+                    
+                    
+
                     keyPressed = false;
+                    click = false;
                     Debug.Log("action executed");
-                    /*if (openableOrGrabbable)
-                    {
-                        try
-                        {
-                            foreach (GameObject gameObj in GameObject.FindGameObjectsWithTag("Button"))
-                            {
-                                Destroy(gameObj);
-                            }
-                        }
-                        catch
-                        {
-
-                        }
-                        openableOrGrabbable = false;
-                    }*/
                     
-                    
-                    //go.SetActive(false);
-                    //Debug.Log("destroyed");
-                    //Destroy(go);
-                    /*
-                    if (openedOrGrabbed)
-                    {
-                        Debug.Log("destroyed");
-                        Destroy(go);
-
-                    }*/
                 }
 
                 yield return null;
