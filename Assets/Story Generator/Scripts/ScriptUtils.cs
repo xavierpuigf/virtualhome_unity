@@ -208,7 +208,35 @@ namespace StoryGenerator.Scripts
             else
                 return false;
         }
+        //TODO: remove?
+        /*public bool TryGetEquivalentAction(string actionStr, string object1Name, string object2Name, string object3Name, out string newActionStr)
+        {
+            actionStr = actionStr.ToUpper();
+            object1Name = object1Name.ToLower();
+            object2Name = object2Name.ToLower();
+            object3Name = object3Name.ToLower();
 
+            if (actionEquivMap.TryGetValue(Tuple.Create(actionStr, object1Name, object2Name, object3Name), out newActionStr))
+                return true;
+            else if (actionEquivMap.TryGetValue(Tuple.Create(actionStr, object1Name, object2Name, "*"), out newActionStr))
+                return true;
+            else if (actionEquivMap.TryGetValue(Tuple.Create(actionStr, object1Name, "*", object3Name), out newActionStr))
+                return true;
+            else if (actionEquivMap.TryGetValue(Tuple.Create(actionStr, "*", object2Name, object3Name), out newActionStr))
+                return true;
+            else if (actionEquivMap.TryGetValue(Tuple.Create(actionStr, "*", "*", object3Name), out newActionStr))
+                return true;
+            else if (actionEquivMap.TryGetValue(Tuple.Create(actionStr, "*", object2Name, "*"), out newActionStr))
+                return true;
+            else if (actionEquivMap.TryGetValue(Tuple.Create(actionStr, object1Name, "*", "*"), out newActionStr))
+                return true;
+            else if (actionEquivMap.TryGetValue(Tuple.Create(actionStr, "*", "*", "*"), out newActionStr))
+                return true;
+            else
+                return false;
+        }
+        */
+        //TODO: remove this?
         private static IDictionary<Tuple<string, string, string>, string> LoadActionMap(string resourceName)
         {
             var result = new Dictionary<Tuple<string, string, string>, string>();
@@ -219,6 +247,7 @@ namespace StoryGenerator.Scripts
                 string action;
                 string srcObj;
                 string destObj;
+                //string pos;
                 string eqAction;
 
                 if (ParseActionLine(line, out action, out srcObj, out destObj, out eqAction))
@@ -228,8 +257,8 @@ namespace StoryGenerator.Scripts
             }
             return result;
         }
-
-        private static bool ParseActionLine(string line, out string action, out string srcObj, out string destObj, out string eqAction)
+        
+        private static bool ParseActionLine(string line, out string action, out string srcObj, out string destObj, /*out string positionObj,*/ out string eqAction)
         {
             // Line example: 
             // FLUSH, toilet -> SWITCHON
@@ -237,6 +266,7 @@ namespace StoryGenerator.Scripts
             action = "";
             srcObj = "";
             destObj = "";
+            //positionObj = "";
             eqAction = "";
 
             if (string.IsNullOrEmpty(line) || line[0] == '#')
@@ -266,6 +296,14 @@ namespace StoryGenerator.Scripts
                 destObj = values[2].Trim();
                 return true;
             }
+            /*else if (values.Length == 4)
+            {
+                action = values[0].Trim();
+                srcObj = values[1].Trim();
+                destObj = values[2].Trim();
+                positionObj = values[3].Trim();
+                return true;
+            }*/
             else
             {
                 return false;

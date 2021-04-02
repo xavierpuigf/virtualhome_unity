@@ -334,9 +334,10 @@ namespace StoryGenerator
                     Debug.Log("mouse down");
 
                     RaycastHit rayHit;
-
-                    Ray ray = currentCamera.ScreenPointToRay(Input.mousePosition);
+                    Vector3 mouseClickPosition = Input.mousePosition;
+                    Ray ray = currentCamera.ScreenPointToRay(mouseClickPosition);
                     bool hit = Physics.Raycast(ray, out rayHit);
+                    
                     if (hit)
                     {
                         click = true;
@@ -386,13 +387,13 @@ namespace StoryGenerator
                         if (objProperties.Contains("CAN_OPEN") && !goOpen.activeSelf)
                         {
                             //TODO: fix highlight
-                            if (rend != null)
+                            /*if (rend != null)
                             {
                                 startcolor = rend.material.color;
                                 Debug.Log("rend not null! " + rend.material.color);
                                 rend.material.color = Color.yellow;
                             }
-
+                            */
                             if (objStates.Contains(Utilities.ObjectState.CLOSED))
                             {
                                 Debug.Log("open");
@@ -445,12 +446,12 @@ namespace StoryGenerator
                             Debug.Log("grab");
 
                             //TODO: fix highlight
-                            if (rend != null)
+                            /*if (rend != null)
                             {
                                 startcolor = rend.material.color;
                                 Debug.Log("rend not null! " + rend.material.color);
                                 rend.material.color = Color.yellow;
-                            }
+                            }*/
 
                             goGrab.GetComponentInChildren<TextMeshProUGUI>().text = "Grab " + objectName;
                             float width = goGrab.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
@@ -471,7 +472,8 @@ namespace StoryGenerator
                             });
                         }
 
-                        else if (objProperties.Contains("SURFACES") && (rh != null || lh != null) && (!goPutLeft.activeSelf || !goPutRight.activeSelf))
+                        //put on/in surfaces
+                        else if ((objProperties.Contains("SURFACES") || objProperties.Contains("CONTAINERS")) && (rh != null || lh != null) && (!goPutLeft.activeSelf || !goPutRight.activeSelf))
                         {
                             Debug.Log("put");
 
@@ -488,10 +490,14 @@ namespace StoryGenerator
                                 goPutLeft.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Bottom, mousePos.y + 60, 80);
 
                                 buttonPutLeft.onClick.AddListener(() => {
-                                    Debug.Log("put left");
-                                    string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1})", objectName, objectId, obj2.class_name, obj2.id);
+                                    Debug.Log("put left at " + rayHit.point);
+
+                                    string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
+
+                                    string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj2.class_name, obj2.id, putPos);
                                     Debug.Log(action);
                                     scriptLines.Add(action);
+
                                     leftExecuted = true;
                                     goPutLeft.SetActive(false);
                                     keyPressed = true;
@@ -513,10 +519,14 @@ namespace StoryGenerator
                                 //TODO: are these buttons in the right location?
 
                                 buttonPutRight.onClick.AddListener(() => {
-                                    Debug.Log("put right");
-                                    string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1})", objectName, objectId, obj3.class_name, obj3.id);
+                                    Debug.Log("put right at " + rayHit.point);
+
+                                    string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
+
+                                    string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj3.class_name, obj3.id, putPos);
                                     Debug.Log(action);
                                     scriptLines.Add(action);
+
                                     rightExecuted = true;
                                     goPutRight.SetActive(false);
                                     keyPressed = true;
@@ -528,17 +538,18 @@ namespace StoryGenerator
 
                         }
 
+                        
                     }
                 }
 
                 if (keyPressed)
                 {
-                    //un-highlight
-                    if (rend != null)
+                    //un-highlight TODO 
+                    /*if (rend != null)
                     {
                         rend.material.color = startcolor;
                         rend = null;
-                    }
+                    }*/
 
                     sExecutors[0].ClearScript();
                     Debug.Log("Scriptlines " + scriptLines[0]);

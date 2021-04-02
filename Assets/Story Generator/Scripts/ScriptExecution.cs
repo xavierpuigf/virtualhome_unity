@@ -18,7 +18,7 @@ using StoryGenerator.Utilities;
 using System.Text;
 using StoryGenerator.DoorProperties;
 using System.Threading;
-
+using System.Globalization;
 
 namespace StoryGenerator.Utilities
 {
@@ -343,16 +343,18 @@ namespace StoryGenerator.Utilities
     {
         public ScriptObjectName Name { get; private set; }
         public ScriptObjectName DestName { get; private set; }
+        public Vector3? DestPos { get; private set; } // put destination position
         public int ScriptLine { get; private set; }
         public bool PutInside { get; private set; }
         public IObjectSelector Selector;
 
 
-        public PutAction(int scriptLine, IObjectSelector selector, string name, int instance, string destName, int destInstance, bool putInside)
+        public PutAction(int scriptLine, IObjectSelector selector, string name, int instance, string destName, int destInstance, bool putInside, Vector3? destPos)
         {
             ScriptLine = scriptLine;
             Name = new ScriptObjectName(name, instance);
             DestName = new ScriptObjectName(destName, destInstance);
+            DestPos = destPos;
             PutInside = putInside;
             Selector = selector;
 
@@ -813,12 +815,11 @@ namespace StoryGenerator.Utilities
         private IObjectSelectorProvider objectSelectorProvider;
         private IGameObjectPropertiesCalculator propCalculator;     // Class which can caclulate interaction positions
         public List<ScriptPair> script;                            // Script (filled with subsequent calls of AddAction)
-        public List<ScriptLine> sLines;            // Original Script 
         private CharacterControl characterControl;                  // Class which can execute actions (Walk, Grab, etc.)
         private List<ICameraControl> cameraControls;                        // Camera control class
         private int gotoExecDepth;
         private System.Diagnostics.Stopwatch execStartTime;
-        public ProcessingReport report;
+        private ProcessingReport report;
         private bool randomizeExecution;                            // Randomize selection of interaction position
         private Recorder recorder;
         private int processingTimeLimit = 20 * 1000;                // Max search time for admissible solution (in milliseconds)
@@ -831,11 +832,11 @@ namespace StoryGenerator.Utilities
         public static Hashtable actionsPerLine = new Hashtable();
         public static int currRunlineNo = 0; // The line no being executed now
         public static int currActionsFinished = 0; // The number of actions finished for currRunLineNo. Moving to the next line if currActionsFinished == actionsPerLine[currRunlineNo];
-        
 
         // *****
         private TestDriver caller;
 
+        //private IList<ScriptLine> sLines { get; set; }
 
         public ScriptExecutor(IList<GameObject> nameList, RoomSelector roomSelector,
             IObjectSelectorProvider objectSelectorProvider, Recorder rcdr, int charIndex, InteractionCache interaction_cache, bool smooth_walk = false)
@@ -852,7 +853,6 @@ namespace StoryGenerator.Utilities
 
             propCalculator = new DefaultGameObjectPropertiesCalculator();
             script = new List<ScriptPair>();
-            sLines = new List<ScriptLine>();
             recorder = rcdr;
             report = new ProcessingReport();
         }
@@ -883,13 +883,11 @@ namespace StoryGenerator.Utilities
             chc.report = report;
             cameraControls = cac;
             script.Clear();
-            sLines.Clear();
         }
 
         public void ClearScript()
         {
             script.Clear();
-            sLines.Clear();
         }
 
         private IEnumerable<GameObject> SelectObjects(IObjectSelector selector)
@@ -1738,8 +1736,8 @@ namespace StoryGenerator.Utilities
                     {
                         tposl.Add(go.transform.position);
                     }
-                    if (randomizeExecution)
-                        RandomUtils.PermuteHead(ipl, 7); // permute 7 closest positions
+                    RandomUtils.PermuteHead(ipl, 7); // permute 5 closest positions
+
                 }
                 if (object_id.HasValue)
                     interaction_cache.SetInteractionPoints(interaction, (int)object_id, ipl, tposl);
@@ -2451,7 +2449,7 @@ namespace StoryGenerator.Utilities
                 if (fbbe != null)
                 {
                     // We need to calculate putback position
-                    foreach (Vector3 pos in GameObjectUtils.CalculatePutPositions(current.InteractionPosition, sod.GameObject, sodDest.GameObject, a.PutInside, false))
+                    foreach (Vector3 pos in GameObjectUtils.CalculatePutPositions(current.InteractionPosition, sod.GameObject, sodDest.GameObject, a.PutInside, false, a.DestPos)) //TODO: clickPos
                     {
                         State s = new State(current, a, current.InteractionPosition, ExecutePut);
                         s.AddScriptGameObject(a.Name, sod.GameObject, pos, current.InteractionPosition, false);
@@ -3873,7 +3871,7 @@ namespace StoryGenerator.Utilities
         }
     }
 
-    public class ScriptLine
+    class ScriptLine
     {
         public InteractionType Interaction { get; set; }
         public IList<Tuple<string, int>> Parameters { get; set; }
@@ -3886,71 +3884,19 @@ namespace StoryGenerator.Utilities
         }
     }
 
-    public class ScriptChecker
-    {
-        public static List<Tuple<int, Tuple<String, String>>> SolveConflicts(List<ScriptExecutor> sExecutors)
-        {
-
-            // Solve conflicts when multiple agents are trying to open/grab the same object
-            Dictionary<int, List<int>> dict_conflicts = new Dictionary<int, List<int>>();
-            Dictionary<int, InteractionType> action_conflicts = new Dictionary<int, InteractionType> ();
-            List < Tuple<int, Tuple<String, String>> > conflict_messages = new List<Tuple<int, Tuple<String, String>>>();
-            for (int i = 0; i < sExecutors.Count(); i++)
-            {
-                for (int script_index = 0; script_index < sExecutors[i].sLines.Count(); script_index++)
-                {
-                    if (sExecutors[i].sLines[script_index].Interaction == InteractionType.OPEN ||
-                        sExecutors[i].sLines[script_index].Interaction == InteractionType.CLOSE ||
-                        sExecutors[i].sLines[script_index].Interaction == InteractionType.GRAB){
-                        int index_object = sExecutors[i].sLines[script_index].Parameters[0].Item2;
-                        if (!dict_conflicts.ContainsKey(index_object))
-                        {
-
-                            dict_conflicts[index_object] = new List<int>();
-                            action_conflicts[index_object] = sExecutors[i].sLines[script_index].Interaction;
-                        }
-                        
-                        dict_conflicts[index_object].Add(i);
-                    }
-                }
-            }
-
-            foreach (KeyValuePair<int, List<int>> kvp in dict_conflicts)
-            {
-                if (kvp.Value.Count() > 1)
-                {
-                    InteractionType conflict_action = action_conflicts[kvp.Key];
-                    int index_char_perform = RandomUtils.Choose(kvp.Value);
-                    for (int i = 0; i < kvp.Value.Count(); i++)
-                    {
-                        int index_char = kvp.Value[i];
-                        if (index_char != index_char_perform)
-                        {
-                            sExecutors[index_char].script.Clear();
-                            sExecutors[index_char].sLines.Clear();
-                            Tuple<String, String> ct = new Tuple<String, String> ("PROCESS UNDEF", $"Agent {index_char_perform} tried to do the same action");
-                            if (conflict_action == InteractionType.OPEN)
-                               ct = new Tuple<String, String>("PROCESS OPEN", $"Agent {index_char_perform} tried to open the object at the same time");
-
-                            if (conflict_action == InteractionType.CLOSE)
-                               ct = new Tuple<String, String>("PROCESS CLOSE", $"Agent {index_char_perform} tried to open the object at the same time");
-
-
-                            if (conflict_action == InteractionType.GRAB)
-                                ct = new Tuple<String, String>("PROCESS GRAB", $"Agent {index_char_perform} tried to grab the object at the same time");
-
-
-                            conflict_messages.Add(new Tuple<int, Tuple<string, string>>(index_char, ct));
-                        }
-                    }
-                }
-            }
-            return conflict_messages;
-        }
-    }
-
     public class ScriptReader
     {
+
+        public static void ReadScript(ScriptExecutor sExecutor, string fileName,
+            ActionEquivalenceProvider actionEquivProvider, string scriptPath = @"ActionScripts/")
+        {
+            IList<ScriptLine> sLines = ReadScriptLines(scriptPath + fileName, actionEquivProvider);
+
+            for (int i = 0; i < sLines.Count; i++)
+            {
+                ScriptLineToAction(sExecutor, i, sLines);
+            }
+        }
 
         public static void ParseScript(List<ScriptExecutor> sExecutors, IList<string> scriptLines,
             ActionEquivalenceProvider actionEquivProvider)
@@ -3974,7 +3920,7 @@ namespace StoryGenerator.Utilities
                 if (sl != null)
                     sLines.Add(sl);
             }
-            sExecutor.sLines = new List<ScriptLine>(sLines);
+            //sExecutor.sLines = new List<ScriptLine>(sLines);
             for (int i = 0; i < sLines.Count; i++)
             {
                 ScriptLineToAction(sExecutor, i, sLines);
@@ -3990,6 +3936,7 @@ namespace StoryGenerator.Utilities
             int instance0 = sl.Parameters.Count == 0 ? 0 : sl.Parameters[0].Item2;
             string name1 = sl.Parameters.Count <= 1 ? "" : sl.Parameters[1].Item1;
             int instance1 = sl.Parameters.Count <= 1 ? 0 : sl.Parameters[1].Item2;
+
 
             switch (sl.Interaction)
             {
@@ -4084,7 +4031,30 @@ namespace StoryGenerator.Utilities
                 case InteractionType.PUTIN:
                     if (string.IsNullOrEmpty(name1))
                         throw new ScriptReaderException($"No second argument for [{sl.Interaction}]");
-                    sExecutor.AddAction(new PutAction(sl.LineNumber, sExecutor.GetObjectSelector(name1, instance1), name0, instance0, name1, instance1, sl.Interaction == InteractionType.PUTIN));
+                    
+                    if (sl.Parameters.Count > 2)
+                    {
+                        string strpos = sl.Parameters[sl.Parameters.Count-1].Item1;
+                        Debug.Log("POSITION: " + strpos);
+                        string[] positions = strpos.Split(',');
+                        if (positions.Length == 3)
+                        {
+                            NumberFormatInfo fmt = new NumberFormatInfo();
+                            fmt.NegativeSign = "-";
+                            Vector3 pos = new Vector3(float.Parse(positions[0], fmt), float.Parse(positions[1], fmt), float.Parse(positions[2], fmt));
+                            Debug.Log("coordinates x " + pos.x + " y " + pos.y + " z " + pos.z);
+                            sExecutor.AddAction(new PutAction(sl.LineNumber, sExecutor.GetObjectSelector(name1, instance1), name0, instance0, name1, instance1, sl.Interaction == InteractionType.PUTIN, pos)); //TODO: add destPos
+                        }
+                        else
+                        {
+                            sExecutor.AddAction(new PutAction(sl.LineNumber, sExecutor.GetObjectSelector(name1, instance1), name0, instance0, name1, instance1, sl.Interaction == InteractionType.PUTIN, null));
+                        }
+                    }
+                    else
+                    {
+                        sExecutor.AddAction(new PutAction(sl.LineNumber, sExecutor.GetObjectSelector(name1, instance1), name0, instance0, name1, instance1, sl.Interaction == InteractionType.PUTIN, null));
+                    }
+                    
                     break;
                 case InteractionType.PUTOBJBACK:
                     sExecutor.AddAction(new PutBackAction(sl.LineNumber, name0, instance0));
@@ -4104,6 +4074,25 @@ namespace StoryGenerator.Utilities
 
         }
 
+        static IList<ScriptLine> ReadScriptLines(string fileName, ActionEquivalenceProvider actionEquivProvider)
+        {
+            var result = new List<ScriptLine>();
+
+            using (System.IO.StreamReader file = new System.IO.StreamReader(fileName))
+            {
+                string line;
+                int lineNo = 0;
+
+                while ((line = file.ReadLine()) != null)
+                {
+                    var sl = ParseLine(line, lineNo++, actionEquivProvider);
+
+                    if (sl != null)
+                        result.Add(sl);
+                }
+            }
+            return result;
+        }
 
         private static ScriptLine ParseLine(string line, int lineNo, ActionEquivalenceProvider actionEquivProvider)
         {
@@ -4175,6 +4164,7 @@ namespace StoryGenerator.Utilities
             string pattAction = @"\[(\w+)\]";
             string pattParams = @"<([\w\s]+)>\s*\((\d+)\)\s*(:\d+:)?";
             string pattchar = @"<char(\d+)>";
+            string pattPos = @"(-?\d+\.?\d*(E-\d+)?),(-?\d+\.?\d*(E-\d+)?),(-?\d+\.?\d*(E-\d+)?)";
 
             string[] sentences = line.Split('|');
 
@@ -4223,7 +4213,7 @@ namespace StoryGenerator.Utilities
                     }
                     m = m.NextMatch();
                 }
-
+                
                 if (paramList.Count == 1)
                 {
                     string newActionStr;
@@ -4238,6 +4228,24 @@ namespace StoryGenerator.Utilities
                     if (actionEquivProvider.TryGetEquivalentAction(actionStr, paramList[0].Item1, paramList[1].Item1, out newActionStr))
                         actionStr = newActionStr;
                 }
+                /*else if (paramList.Count == 3) //TODO: either continue with this or remove/use parse position
+                {
+                    string newActionStr;
+
+                    if (actionEquivProvider.TryGetEquivalentAction(actionStr, paramList[0].Item1, paramList[1].Item1, paramList[2].Item1, out newActionStr))
+                        actionStr = newActionStr;
+                }*/
+
+                // Parse position
+                r = new Regex(pattPos);
+                m = r.Match(sentence);
+
+                if (m.Success)
+                {
+                    // 2.5,3.4,1.5
+                    paramList.Add(Tuple.Create(m.Groups[0].Value, 0));
+                }
+
 
                 InteractionType action = (InteractionType)Enum.Parse(typeof(InteractionType), actionStr, true);
                 return new ScriptLine() { Interaction = action, Parameters = paramList, LineNumber = lineNo, modifier = modifier };
