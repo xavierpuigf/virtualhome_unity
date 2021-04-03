@@ -275,7 +275,9 @@ namespace StoryGenerator
             Camera currentCamera = cameras.Find(c => c.name.Equals("Character_Camera_Fwd"));
             currentCamera.gameObject.SetActive(true);
             //recorders[0].CamCtrls[cameras.IndexOf(currentCamera)].Activate(true);
+            currentCamera.transform.position = currentCamera.transform.position + new Vector3(0, 0, 0.3f);
 
+            
             // Buttons: grab, open, putleft, putright, close
 
             // Create canvas and event system
@@ -328,7 +330,18 @@ namespace StoryGenerator
                 //TODO: add going backwards and clean up Input code
 
 
-                
+                //TODO: add camera movement
+                if (Input.GetKeyDown(KeyCode.O))
+                {
+                    Debug.Log("move cam up");
+                    currentCamera.transform.Rotate(-3, 0, 0);
+                }
+                else if (Input.GetKeyDown(KeyCode.L))
+                {
+                    Debug.Log("move cam down");
+                    currentCamera.transform.Rotate(3, 0, 0);
+                }
+
                 if (Input.GetMouseButtonDown(0))
                 {
                     Debug.Log("mouse down");
