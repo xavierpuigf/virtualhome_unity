@@ -275,7 +275,7 @@ namespace StoryGenerator
             Camera currentCamera = cameras.Find(c => c.name.Equals("Character_Camera_Fwd"));
             currentCamera.gameObject.SetActive(true);
             //recorders[0].CamCtrls[cameras.IndexOf(currentCamera)].Activate(true);
-            currentCamera.transform.localPosition = currentCamera.transform.localPosition + new Vector3(0, 0, 0.3f);
+            currentCamera.transform.localPosition = currentCamera.transform.localPosition + new Vector3(0, -0.15f, 0.3f);
 
             
             // Buttons: grab, open, putleft, putright, close
@@ -298,12 +298,18 @@ namespace StoryGenerator
             GameObject goPutLeft = GameObject.Find("PutLeftButton");
             GameObject goPutRight = GameObject.Find("PutRightButton");
 
+            bool button_created = false;
             goOpen.SetActive(false);
             goGrab.SetActive(false);
             goPutLeft.SetActive(false);
             goPutRight.SetActive(false);
 
             List<string> scriptLines = new List<string>();
+
+            GameObject pointer = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            pointer.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
+            pointer.GetComponent<MeshRenderer>().material.color = Color.magenta;
+
             while (true)
             {
                 if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
@@ -345,16 +351,35 @@ namespace StoryGenerator
                 if (Input.GetMouseButtonDown(0))
                 {
                     Debug.Log("mouse down");
+                    if (button_created)
+                    {
 
+                        goOpen.SetActive(false);
+                        goOpen.GetComponent<Button>().onClick.RemoveAllListeners();
+                        goGrab.SetActive(false);
+                        goGrab.GetComponent<Button>().onClick.RemoveAllListeners();
+                        goPutLeft.SetActive(false);
+                        goPutLeft.GetComponent<Button>().onClick.RemoveAllListeners();
+                        goPutRight.SetActive(false);
+                        goPutRight.GetComponent<Button>().onClick.RemoveAllListeners();
+                        button_created = false;
+                        pointer.SetActive(false);
+                        //break;
+                        continue;
+                    }
                     RaycastHit rayHit;
                     Vector3 mouseClickPosition = Input.mousePosition;
                     Ray ray = currentCamera.ScreenPointToRay(mouseClickPosition);
                     bool hit = Physics.Raycast(ray, out rayHit);
-                    
+                    //Debug.DrawRay(ray.origin, ray.direction, Color.green, 20, true);
+
                     if (hit)
                     {
                         click = true;
                         Transform t = rayHit.transform;
+                        pointer.SetActive(true);
+                        pointer.transform.position = rayHit.point;
+
                         InstanceSelectorProvider objectInstanceSelectorProvider = (InstanceSelectorProvider)objectSelectorProvider;
 
                         while (t != null && !objectInstanceSelectorProvider.objectIdMap.ContainsKey(t.gameObject))
@@ -412,13 +437,18 @@ namespace StoryGenerator
                                 Debug.Log("open");
                                 goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Open " + objectName;
                                 float width = goOpen.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
+                                float pheight = mousePos.y + 60;
+                                float height = 80;
                                 goOpen.SetActive(true);
                                 Button buttonOpen = goOpen.GetComponent<Button>();
                                 goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width / 2, width);
-                                
+                                goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Top, pheight, height);
+
+                                button_created = true;
                                 buttonOpen.onClick.AddListener(() =>
                                 {
                                     Debug.Log("opened");
+                                    button_created = false;
                                     objStates.Remove(Utilities.ObjectState.CLOSED);
                                     objStates.Add(Utilities.ObjectState.OPEN);
                                     string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
@@ -434,12 +464,19 @@ namespace StoryGenerator
                                 Debug.Log("close");
                                 goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Close " + objectName;
                                 float width = goOpen.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
+                                float height = 80;
+                                float pheight = mousePos.y + 60;
                                 goOpen.SetActive(true);
                                 Button buttonOpen = goOpen.GetComponent<Button>();
                                 goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width / 2, width);
+                                goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Top, pheight, height);
+
+                                button_created = true;
 
                                 buttonOpen.onClick.AddListener(() =>
                                 {
+                                    button_created = false;
+
                                     Debug.Log("closed");
                                     objStates.Remove(Utilities.ObjectState.OPEN);
                                     objStates.Add(Utilities.ObjectState.CLOSED);
@@ -468,13 +505,20 @@ namespace StoryGenerator
 
                             goGrab.GetComponentInChildren<TextMeshProUGUI>().text = "Grab " + objectName;
                             float width = goGrab.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
+                            float pheight = mousePos.y + 60;
+                            float height = 80;
                             goGrab.SetActive(true);
                             Button buttonGrab = goGrab.GetComponent<Button>();
                             goGrab.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width/2, width);
+                            goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Top, pheight, height);
+
+                            button_created = true;
 
                             buttonGrab.onClick.AddListener(() =>
                             {
                                 Debug.Log("grabbed");
+                                button_created = false;
+
                                 string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
                                 Debug.Log(action);
                                 scriptLines.Add(action);
@@ -501,9 +545,11 @@ namespace StoryGenerator
                                 Button buttonPutLeft = goPutLeft.GetComponent<Button>();
                                 goPutLeft.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width / 2, width);
                                 goPutLeft.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Bottom, mousePos.y + 60, 80);
+                                button_created = true;
 
                                 buttonPutLeft.onClick.AddListener(() => {
                                     Debug.Log("put left at " + rayHit.point);
+                                    button_created = false;
 
                                     string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
 
@@ -530,9 +576,12 @@ namespace StoryGenerator
                                 goPutRight.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width / 2, width);
                                 goPutRight.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Bottom, mousePos.y - 60, 80);
                                 //TODO: are these buttons in the right location?
+                                button_created = true;
 
                                 buttonPutRight.onClick.AddListener(() => {
                                     Debug.Log("put right at " + rayHit.point);
+                                    button_created = false;
+
 
                                     string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
 
@@ -591,7 +640,9 @@ namespace StoryGenerator
                     keyPressed = false;
                     click = false;
                     Debug.Log("action executed");
-                    
+                    pointer.SetActive(false);
+
+
                 }
 
                 yield return null;
@@ -609,7 +660,7 @@ namespace StoryGenerator
             curr_button.name = text + "Button";
             //curr_button.tag = "Button";
             curr_button.GetComponentInChildren<TextMeshProUGUI>().text = text;
-            curr_button.GetComponentInChildren<TextMeshProUGUI>().color = Color.black; //does this actually work?
+            curr_button.GetComponentInChildren<TextMeshProUGUI>().color = Color.red; //does this actually work?
             curr_button.GetComponentInChildren<TextMeshProUGUI>().enableWordWrapping = false;
             var panel = GameObject.Find("Canvas");
             curr_button.transform.position = panel.transform.position;
