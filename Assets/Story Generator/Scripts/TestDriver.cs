@@ -275,7 +275,7 @@ namespace StoryGenerator
             Camera currentCamera = cameras.Find(c => c.name.Equals("Character_Camera_Fwd"));
             currentCamera.gameObject.SetActive(true);
             //recorders[0].CamCtrls[cameras.IndexOf(currentCamera)].Activate(true);
-            currentCamera.transform.position = currentCamera.transform.position + new Vector3(0, 0, 0.3f);
+            currentCamera.transform.localPosition = currentCamera.transform.localPosition + new Vector3(0, 0, 0.3f);
 
             
             // Buttons: grab, open, putleft, putright, close
