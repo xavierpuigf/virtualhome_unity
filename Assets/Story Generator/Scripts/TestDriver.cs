@@ -267,6 +267,7 @@ namespace StoryGenerator
             bool click = false;
 
             ExecutionConfig config = new ExecutionConfig();
+            config.walk_before_interaction = false;
             IObjectSelectorProvider objectSelectorProvider = new InstanceSelectorProvider(currentGraph);
             IList<GameObject> objectList = ScriptUtils.FindAllObjects(transform);
             createRecorders(config);
@@ -275,7 +276,7 @@ namespace StoryGenerator
             Camera currentCamera = cameras.Find(c => c.name.Equals("Character_Camera_Fwd"));
             currentCamera.gameObject.SetActive(true);
             //recorders[0].CamCtrls[cameras.IndexOf(currentCamera)].Activate(true);
-            currentCamera.transform.localPosition = currentCamera.transform.localPosition + new Vector3(0, -0.15f, 0.3f);
+            currentCamera.transform.localPosition = currentCamera.transform.localPosition + new Vector3(0, -0.15f, 0.1f);
 
             
             // Buttons: grab, open, putleft, putright, close
@@ -365,8 +366,9 @@ namespace StoryGenerator
                         button_created = false;
                         pointer.SetActive(false);
                         //break;
-                        continue;
+                        //continue;
                     }
+
                     RaycastHit rayHit;
                     Vector3 mouseClickPosition = Input.mousePosition;
                     Ray ray = currentCamera.ScreenPointToRay(mouseClickPosition);
@@ -378,6 +380,7 @@ namespace StoryGenerator
                         click = true;
                         Transform t = rayHit.transform;
                         pointer.SetActive(true);
+
                         pointer.transform.position = rayHit.point;
 
                         InstanceSelectorProvider objectInstanceSelectorProvider = (InstanceSelectorProvider)objectSelectorProvider;
@@ -612,7 +615,7 @@ namespace StoryGenerator
                         rend.material.color = startcolor;
                         rend = null;
                     }*/
-
+                    pointer.SetActive(false);
                     sExecutors[0].ClearScript();
                     Debug.Log("Scriptlines " + scriptLines[0]);
                     Debug.Log("Scriptlines count " + scriptLines.Count);
@@ -1680,7 +1683,7 @@ namespace StoryGenerator
 
 
                 // Initialize the scriptExecutor for the character
-                ScriptExecutor sExecutor = new ScriptExecutor(objectList, dataProviders.RoomSelector, objectSel, recorders[i], i, interaction_cache, !config.skip_animation);
+                ScriptExecutor sExecutor = new ScriptExecutor(objectList, dataProviders.RoomSelector, objectSel, recorders[i], i, interaction_cache, !config.skip_animation, config.walk_before_interaction);
                 sExecutor.RandomizeExecution = config.randomize_execution;
                 sExecutor.ProcessingTimeLimit = config.processing_time_limit;
                 sExecutor.SkipExecution = config.skip_execution;
@@ -2025,6 +2028,7 @@ namespace StoryGenerator
         public bool recording = false;
         public bool skip_execution = false;
         public bool skip_animation = false;
+        public bool walk_before_interaction = true;
     }
 
     public class DataProviders

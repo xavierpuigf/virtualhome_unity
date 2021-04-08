@@ -218,6 +218,7 @@ namespace StoryGenerator.Utilities
             bool putInside, bool ignoreObstacles, Vector3? clickPos = null)
         {
 
+
             // "Optimal" distance from character to search for space (0.5 meters)
             Bounds destBounds = GetBounds(goDest);
             Vector3 dir = destBounds.center - intPos;
@@ -293,6 +294,9 @@ namespace StoryGenerator.Utilities
 
                         if (HitFlatSurface(srcBounds, srcDelta, goDest, out hity))
                         {
+                            GameObject prim = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                            prim.transform.position = new Vector3(x, 0.0f, z);
+                            prim.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
 
                             float yDelta = hity - (srcBounds.min.y + srcDelta.y);
                             Vector3 delta = srcDelta + new Vector3(0, yDelta, 0);
@@ -308,8 +312,13 @@ namespace StoryGenerator.Utilities
             else // clickPos specified
             {
                 // obtain x and z values from the click position
+                
+
                 float x = clickPos.Value.x;
-                float z = clickPos.Value.y;
+                float z = clickPos.Value.z;
+                //GameObject prim = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                //prim.transform.position = new Vector3(x, 0.0f, z);
+                //prim.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
                 Vector3 srcDelta;
 
                 if (putInside)

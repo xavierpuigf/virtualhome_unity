@@ -826,6 +826,7 @@ namespace StoryGenerator.Utilities
         private int charIndex;
         private bool find_solution;
         public bool smooth_walk;
+        public bool walk_before_interaction;
 
         public InteractionCache interaction_cache;
 
@@ -839,7 +840,8 @@ namespace StoryGenerator.Utilities
         //private IList<ScriptLine> sLines { get; set; }
 
         public ScriptExecutor(IList<GameObject> nameList, RoomSelector roomSelector,
-            IObjectSelectorProvider objectSelectorProvider, Recorder rcdr, int charIndex, InteractionCache interaction_cache, bool smooth_walk = false)
+            IObjectSelectorProvider objectSelectorProvider, Recorder rcdr, int charIndex,
+            InteractionCache interaction_cache, bool smooth_walk = false, bool walk_before_interaction = true)
 
         {
             this.nameList = new List<GameObject>(nameList);
@@ -849,6 +851,7 @@ namespace StoryGenerator.Utilities
             this.find_solution = !(objectSelectorProvider is InstanceSelectorProvider);
             this.interaction_cache = interaction_cache;
             this.smooth_walk = smooth_walk;
+            this.walk_before_interaction = walk_before_interaction;
             this.execStartTime = new System.Diagnostics.Stopwatch();
 
             propCalculator = new DefaultGameObjectPropertiesCalculator();
@@ -1949,7 +1952,7 @@ namespace StoryGenerator.Utilities
                     return StateList.Empty;
                 }
             }
-            if (IsInteractionPosition(current.InteractionPosition, sod, sod.Position, InteractionType.SIT, 0.5f))
+            if (!this.walk_before_interaction || IsInteractionPosition(current.InteractionPosition, sod, sod.Position, InteractionType.SIT, 0.5f))
             {
                 return ProcessSitAction(a, current);
             }
@@ -2104,7 +2107,7 @@ namespace StoryGenerator.Utilities
 
             if (!sod.Grabbed)
             {
-                if (IsInteractionPosition(current.InteractionPosition, sod, sod.Position, a.Close ? InteractionType.CLOSE : InteractionType.OPEN, 0.5f))
+                if (!this.walk_before_interaction || IsInteractionPosition(current.InteractionPosition, sod, sod.Position, a.Close ? InteractionType.CLOSE : InteractionType.OPEN, 0.5f))
                 {
                     return ProcessOpenAction(a, current);
                 }
@@ -2200,7 +2203,7 @@ namespace StoryGenerator.Utilities
             }
             if (!sod.Grabbed)
             {
-                if (IsInteractionPosition(current.InteractionPosition, sod, sod.Position, InteractionType.GRAB, 0))
+                if (!this.walk_before_interaction ||  IsInteractionPosition(current.InteractionPosition, sod, sod.Position, InteractionType.GRAB, 0))
                 {
                     return ProcessGrabAction(a, current);
                 }
@@ -2400,13 +2403,14 @@ namespace StoryGenerator.Utilities
 
             if (sod.Grabbed)
             {
-                if (IsInteractionPosition(current.InteractionPosition, sodDest, sodDest.Position, InteractionType.PUT, float.MaxValue))
+                if (!this.walk_before_interaction || IsInteractionPosition(current.InteractionPosition, sodDest, sodDest.Position, InteractionType.PUT, float.MaxValue))
                 {
                     return ProcessPutAction(a, current);
                 }
                 else
                 {
                     // When timescale is fast, better to just teleport
+                    
                     if (!this.smooth_walk)
                     {
                         GotowardsAction ga = new GotowardsAction(a.ScriptLine, EmptySelector.Instance, a.DestName.Name, a.DestName.Instance, false, InteractionType.PUT);
@@ -2417,6 +2421,7 @@ namespace StoryGenerator.Utilities
                         GotoAction ga = new GotoAction(a.ScriptLine, EmptySelector.Instance, a.DestName.Name, a.DestName.Instance, false, InteractionType.PUT);
                         return CreateStateGroup(current, s => ProcessWalkAction(ga, s, 0, float.MaxValue, true), s => ProcessPutAction(a, s));
                     }
+                    
                 }
             }
 
@@ -2449,6 +2454,10 @@ namespace StoryGenerator.Utilities
                 if (fbbe != null)
                 {
                     // We need to calculate putback position
+                    //GameObject prim = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                    //prim.transform.position = (Vector3) a.DestPos;
+                    //prim.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+
                     foreach (Vector3 pos in GameObjectUtils.CalculatePutPositions(current.InteractionPosition, sod.GameObject, sodDest.GameObject, a.PutInside, false, a.DestPos)) //TODO: clickPos
                     {
                         State s = new State(current, a, current.InteractionPosition, ExecutePut);
@@ -2632,7 +2641,7 @@ namespace StoryGenerator.Utilities
 
             if (!sod.Grabbed)
             {
-                if (IsInteractionPosition(current.InteractionPosition, sod, sod.Position, InteractionType.SWITCHON, 0.5f))
+                if (!this.walk_before_interaction || IsInteractionPosition(current.InteractionPosition, sod, sod.Position, InteractionType.SWITCHON, 0.5f))
                 {
                     return ProcessSwitchOnAction(a, current);
                 }
