@@ -264,7 +264,6 @@ namespace StoryGenerator
             InitRooms();
 
             cameraInitializer.initialized = false;
-            int expandSceneCount = 0;
             if (currentGraph == null)
             {
                 currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
@@ -384,6 +383,7 @@ namespace StoryGenerator
             GameObject eventSystem = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
 
             TextMeshProUGUI tasksUI = canv.gameObject.AddComponent<TextMeshProUGUI>();
+            tasksUI.raycastTarget = false;
             List<string> goals = new List<string>();
             tasksUI.fontSize = 12;
             tasksUI.text = currentEpisode.GenerateTasksAndGoals();
