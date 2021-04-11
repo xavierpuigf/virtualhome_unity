@@ -437,6 +437,39 @@ namespace StoryGenerator.Scripts
             }
         }
 
+        public static Vector3 FindCCPosition(GameObject room, CharacterControl characterControl)
+        {
+            const float ObstructionHeight = 0.1f;   // Allow for some obstuction around target object (e.g., carpet)
+            const int maxIterations = 10;
+
+            NavMeshAgent nma = characterControl.GetComponent<NavMeshAgent>();
+
+            for (int iter = 0; iter < maxIterations; iter++)
+            {
+                // Position of the room transform is not necessarily the center of the room
+                // Bounds field of Properties_room is created to have the correct center.
+                Bounds bnd = room.GetComponent<Properties_room>().bounds;
+                Vector3 center = bnd.center;
+                // What is the radius of the largest circle that can fit in a room?
+                float maxRad = Mathf.Min(bnd.extents.x, bnd.extents.z) - 0.5f;
+                Vector2 scale = new Vector2((iter + 1) * Mathf.Cos((iter % 8) * 2 * Mathf.PI), (iter + 1) * Mathf.Sin((iter % 8) * 2 * Mathf.PI));
+                Vector2 c = maxRad * scale;
+
+                center.x += c.x;
+                center.z += c.y;
+
+                Vector3 cStart = new Vector3(center.x, nma.radius + ObstructionHeight, center.z);
+                Vector3 cEnd = new Vector3(center.x, nma.height - nma.radius + ObstructionHeight, center.z);
+
+                // Check for space
+                if (!Physics.CheckCapsule(cStart, cEnd, nma.radius))
+                {
+                    return center;
+                }
+            }
+            return nma.gameObject.transform.position;
+        }
+
         public static IEnumerable<GameObject> FindAllObjects(Transform tsfm, string containsName)
         {
             return FindAllObjects(tsfm, t => t.name.Contains(containsName));

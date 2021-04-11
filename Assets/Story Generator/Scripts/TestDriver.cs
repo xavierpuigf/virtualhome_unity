@@ -70,6 +70,9 @@ namespace StoryGenerator
         private Color startcolor;
         Renderer rend;
 
+        private bool episodeDone;
+        private int episodeNum = -1;
+
         [Serializable]
         class SceneData
         {
@@ -122,7 +125,24 @@ namespace StoryGenerator
                 commServer.UnlockProcessing(); // Allow to proceed with requests
             }
             //StartCoroutine(ProcessNetworkRequest());
-            StartCoroutine(ProcessInputRequest());
+            if (EpisodeNumber.episodeNum == -1)
+            {
+                EpisodeNumber.episodeNum = 1;
+                episodeNum = EpisodeNumber.episodeNum;
+                Debug.Log($"init episode number {episodeNum}");
+                // Load correct scene (episodeNum is just for testing rn)
+                string episodePath = $"Episodes/pilot_task_id_{episodeNum + 1}";
+                TextAsset episodeFile = Resources.Load<TextAsset>(episodePath);
+                Episode currentEpisode = JsonUtility.FromJson<Episode>(episodeFile.text);
+                SceneManager.LoadScene(currentEpisode.env_id);
+                yield return null;
+            }
+            else
+            {
+                Debug.Log($"next episode number {EpisodeNumber.episodeNum}");
+                episodeNum = EpisodeNumber.episodeNum;
+                StartCoroutine(ProcessInputRequest(episodeNum));
+            }
         }
 
         private void InitServer()
@@ -222,9 +242,14 @@ namespace StoryGenerator
                 yield return enumerator.Current;
         }
 
-        IEnumerator ProcessInputRequest()
+        IEnumerator ProcessInputRequest(int episode)
         {
             yield return null;
+            string episodePath = $"Episodes/pilot_task_id_{episode}";
+            TextAsset episodeFile = Resources.Load<TextAsset>(episodePath);
+            Episode currentEpisode = JsonUtility.FromJson<Episode>(episodeFile.text);
+            currentEpisode.ClearDataFile(episode);
+
             sceneCameras = ScriptUtils.FindAllCameras(transform);
             numSceneCameras = sceneCameras.Count;
             cameras = sceneCameras.ToList();
@@ -238,10 +263,87 @@ namespace StoryGenerator
 
             InitRooms();
 
+            cameraInitializer.initialized = false;
+            int expandSceneCount = 0;
+            if (currentGraph == null)
+            {
+                currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
+                currentGraph = currentGraphCreator.CreateGraph(transform);
+            }
+
+            /*
+            //EXPAND SCENE
+            cameraInitializer.initialized = false;
+            List<IEnumerator> animationEnumerators = new List<IEnumerator>();
+
+            try
+            {
+                if (currentGraph == null)
+                {
+                    currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
+                    currentGraph = currentGraphCreator.CreateGraph(transform);
+                }
+
+                ExpanderConfig graph_config = new ExpanderConfig();
+                Debug.Log("Successfully de-serialized object");
+                EnvironmentGraph graph = currentEpisode.init_graph;
+                Debug.Log("got graph");
+
+
+                if (graph_config.randomize_execution)
+                {
+                    InitRandom(graph_config.random_seed);
+                }
+
+                // Maybe we do not need this
+                if (graph_config.animate_character)
+                {
+                    foreach (CharacterControl c in characters)
+                    {
+                        c.GetComponent<Animator>().speed = 1;
+                    }
+                }
+
+                SceneExpander graphExpander = new SceneExpander(dataProviders)
+                {
+                    Randomize = graph_config.randomize_execution,
+                    IgnoreObstacles = graph_config.ignore_obstacles,
+                    AnimateCharacter = graph_config.animate_character,
+                    TransferTransform = graph_config.transfer_transform
+                };
+
+                // TODO: set this with a flag
+                bool exact_expand = false;
+                graphExpander.ExpandScene(transform, graph, currentGraph, expandSceneCount, exact_expand);
+
+                SceneExpanderResult result = graphExpander.GetResult();
+
+                // TODO: Do we need this?
+                //currentGraphCreator.SetGraph(graph);
+                currentGraph = currentGraphCreator.UpdateGraph(transform);
+                animationEnumerators.AddRange(result.enumerators);
+                expandSceneCount++;
+            }
+            catch (Exception e)
+            {
+                Debug.Log("Graph expansion did not work");
+                Debug.Log(e);
+            }
+
+            foreach (IEnumerator e in animationEnumerators)
+            {
+                yield return e;
+            }
+            foreach (CharacterControl c in characters)
+            {
+                c.GetComponent<Animator>().speed = 0;
+            }
+            */
+
             //add one character by default
             CharacterConfig configchar = new CharacterConfig();//JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
             CharacterControl newchar;
-            newchar = AddCharacter(configchar.character_resource, false, configchar.mode, configchar.character_position, configchar.initial_room);
+            newchar = AddCharacter(configchar.character_resource, false, "fix_room", configchar.character_position, currentEpisode.init_rooms[0]);
 
 
             characters.Add(newchar);
@@ -250,17 +352,9 @@ namespace StoryGenerator
             List<Camera> charCameras = CameraExpander.AddCharacterCameras(newchar.gameObject, transform, "");
             CameraUtils.DeactivateCameras(charCameras);
             cameras.AddRange(charCameras);
-            cameraInitializer.initialized = false;
 
-            if (currentGraph == null)
-            {
-                currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                currentGraph = currentGraphCreator.CreateGraph(transform);
-            }
-            else
-            {
-                currentGraph = currentGraphCreator.UpdateGraph(transform);
-            }
+            currentGraph = currentGraphCreator.UpdateGraph(transform);
+
             bool keyPressed = false;
             bool leftExecuted = false;
             bool rightExecuted = false;
@@ -289,6 +383,11 @@ namespace StoryGenerator
             newCanvas.AddComponent<GraphicRaycaster>();
             GameObject eventSystem = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
 
+            TextMeshProUGUI tasksUI = canv.gameObject.AddComponent<TextMeshProUGUI>();
+            List<string> goals = new List<string>();
+            tasksUI.fontSize = 12;
+            tasksUI.text = currentEpisode.GenerateTasksAndGoals();
+
             AddButton("Open");
             AddButton("Grab");
             AddButton("PutLeft");
@@ -311,12 +410,14 @@ namespace StoryGenerator
             pointer.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
             pointer.GetComponent<MeshRenderer>().material.color = Color.magenta;
 
-            while (true)
+            while (!episodeDone)
             {
                 click = false;
+                float currTime = Time.time;
                 if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
                 {
                     string move = "<char0> [walkforward]";
+                    currentEpisode.AddAction(move, currTime);
                     scriptLines.Add(move);
                     Debug.Log("move forward");
                     keyPressed = true;
@@ -324,6 +425,7 @@ namespace StoryGenerator
                 else if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
                 {
                     string move = "<char0> [turnleft]";
+                    currentEpisode.AddAction(move, currTime);
                     scriptLines.Add(move);
                     Debug.Log("move left");
                     keyPressed = true;
@@ -331,6 +433,7 @@ namespace StoryGenerator
                 else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
                 {
                     string move = "<char0> [turnright]";
+                    currentEpisode.AddAction(move, currTime);
                     scriptLines.Add(move);
                     Debug.Log("move right");
                     keyPressed = true;
@@ -342,11 +445,13 @@ namespace StoryGenerator
                 if (Input.GetKeyDown(KeyCode.O))
                 {
                     Debug.Log("move cam up");
+                    currentEpisode.AddAction("move cam up", currTime);
                     currentCamera.transform.Rotate(-3, 0, 0);
                 }
                 else if (Input.GetKeyDown(KeyCode.L))
                 {
                     Debug.Log("move cam down");
+                    currentEpisode.AddAction("move cam down", currTime);
                     currentCamera.transform.Rotate(3, 0, 0);
                 }
 
@@ -472,6 +577,9 @@ namespace StoryGenerator
                                         objStates.Remove(Utilities.ObjectState.CLOSED);
                                         objStates.Add(Utilities.ObjectState.OPEN);
                                         string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
+                                        currentEpisode.AddAction(action, currTime);
+                                        currentEpisode.GoalMetSingleObj("open", objectName);
+                                        tasksUI.text = currentEpisode.UpdateTasksString();
                                         scriptLines.Add(action);
                                         goOpen.SetActive(false);
                                         keyPressed = true;
@@ -501,6 +609,9 @@ namespace StoryGenerator
                                         objStates.Remove(Utilities.ObjectState.OPEN);
                                         objStates.Add(Utilities.ObjectState.CLOSED);
                                         string action = String.Format("<char0> [close] <{0}> ({1})", objectName, objectId);
+                                        currentEpisode.AddAction(action, currTime);
+                                        currentEpisode.GoalMetSingleObj("close", objectName);
+                                        tasksUI.text = currentEpisode.UpdateTasksString();
                                         scriptLines.Add(action);
                                         goOpen.SetActive(false);
                                         keyPressed = true;
@@ -540,6 +651,9 @@ namespace StoryGenerator
                                     button_created = false;
 
                                     string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
+                                    currentEpisode.AddAction(action, currTime);
+                                    currentEpisode.GoalMetSingleObj("grab", objectName);
+                                    tasksUI.text = currentEpisode.UpdateTasksString();
                                     Debug.Log(action);
                                     scriptLines.Add(action);
                                     goGrab.SetActive(false);
@@ -576,6 +690,9 @@ namespace StoryGenerator
 
                                         string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj2.class_name, obj2.id, putPos);
                                         Debug.Log(action);
+                                        currentEpisode.AddAction(action, currTime);
+                                        currentEpisode.GoalMet("put", obj2.class_name, objectName);
+                                        tasksUI.text = currentEpisode.UpdateTasksString();
                                         scriptLines.Add(action);
 
                                         leftExecuted = true;
@@ -609,6 +726,9 @@ namespace StoryGenerator
 
                                         string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj3.class_name, obj3.id, putPos);
                                         Debug.Log(action);
+                                        currentEpisode.AddAction(action, currTime);
+                                        currentEpisode.GoalMet("put", obj3.class_name, objectName);
+                                        tasksUI.text = currentEpisode.UpdateTasksString();
                                         scriptLines.Add(action);
 
                                         rightExecuted = true;
@@ -664,12 +784,41 @@ namespace StoryGenerator
                     Debug.Log("action executed");
                     pointer.SetActive(false);
 
+                    currentEpisode.StoreGraph(currentGraph, currTime);
+                }
 
+                if (newchar.transform.position != currentEpisode.previousPos || newchar.transform.eulerAngles != currentEpisode.previousRotation)
+                {
+                    currentEpisode.AddCharInfo(newchar.transform.position, newchar.transform.eulerAngles, Time.time);
+                }
+                currentEpisode.previousPos = newchar.transform.position;
+                currentEpisode.previousRotation = newchar.transform.eulerAngles;
+
+                if (currentEpisode.IsCompleted)
+                {
+                    tasksUI.text = "Taks: Completed!";
+                    currentEpisode.RecordData(episode);
+                    episodeDone = true;
+                    episodeNum++;
                 }
 
                 yield return null;
 
             }
+            Debug.Log("done");
+            EpisodeNumber.episodeNum++;
+            string nextEpisodePath = $"Episodes/pilot_task_id_{EpisodeNumber.episodeNum}";
+            TextAsset nextEpisodeFile = Resources.Load<TextAsset>(nextEpisodePath);
+            Episode nextEpisode = JsonUtility.FromJson<Episode>(nextEpisodeFile.text);
+            int nextSceneIndex = nextEpisode.env_id;
+            if (nextSceneIndex >= 0 && nextSceneIndex < SceneManager.sceneCountInBuildSettings)
+            {
+                Debug.Log($"loading episode: {nextSceneIndex}");
+                SceneManager.LoadScene(nextSceneIndex);
+                yield break;
+            }
+            Debug.Log($"Scene Loaded {SceneManager.GetActiveScene().buildIndex}");
+            yield return null;
 
         }
 
@@ -1910,7 +2059,7 @@ namespace StoryGenerator
                         }
                     }
                     var nma = newCharacter.GetComponent<NavMeshAgent>();
-                    nma.Warp(ScriptUtils.FindRandomCCPosition(rooms_selected, cc));
+                    nma.Warp(ScriptUtils.FindCCPosition(rooms_selected[0], cc));
                     newCharacter.transform.rotation *= Quaternion.Euler(0, UnityEngine.Random.Range(-180.0f, 180.0f), 0);
                 }
                 // Must be called after correct char placement so that char's location doesn't change
@@ -2093,6 +2242,166 @@ namespace StoryGenerator
                 }
             }
             return result;
+        }
+    }
+
+    [System.Serializable]
+    public class Episode
+    {
+        public int env_id;
+        public int task_id;
+        public int episode;
+        public string task_name;
+        public int level;
+        public string[] init_rooms;
+        public Task[] task_goal;
+        public EnvironmentGraph init_graph;
+        public List<Goal> goals = new List<Goal>();
+        public bool IsCompleted = false;
+
+        private List<(string, float)> allGraphs = new List<(string, float)>();
+
+        private List<(Vector3, Vector3, float)> posAndRotation = new List<(Vector3, Vector3, float)>();
+
+        private List<(string, float)> scriptActions = new List<(string, float)>();
+
+        public Vector3 previousPos = new Vector3(0, 0, 0);
+        public Vector3 previousRotation = new Vector3(0, 0, 0);
+
+        public void ClearDataFile(int episode)
+        {
+            string outputPath = $"Assets/Resources/Episodes/Episode{episode}Data.txt";
+            using (FileStream fs = File.Create(outputPath)) { }
+        }
+
+        public void RecordData(int episode)
+        {
+            string outputPath = $"Assets/Resources/Episodes/Episode{episode}Data.txt";
+            StreamWriter outputFile = new StreamWriter(outputPath, true);
+            outputFile.WriteLine("Position and Orientation Data:");
+            foreach ((Vector3, Vector3, float) pos in posAndRotation)
+            {
+                outputFile.WriteLine(pos.ToString());
+            }
+            outputFile.WriteLine("Script Action Data:");
+            foreach ((string, float) action in scriptActions)
+            {
+                outputFile.WriteLine(action);
+            }
+            outputFile.WriteLine("Graph Data:");
+            foreach ((string, float) g in allGraphs)
+            {
+                outputFile.WriteLine(g.ToString());
+            }
+            outputFile.Close();
+        }
+
+        public void AddCharInfo(Vector3 coord, Vector3 rot, float t)
+        {
+            posAndRotation.Add((coord, rot, t));
+        }
+
+        public void AddAction(string a, float t)
+        {
+            scriptActions.Add((a, t));
+        }
+
+        public string GenerateTasksAndGoals()
+        {
+            string response = "Tasks: \n";
+            foreach (Task t in task_goal)
+            {
+                string action = t.task;
+                string obj1 = action.Split('{', '}')[1];
+                string obj2 = action.Split('{', '}')[3];
+                string verb = action.Split('_')[0];
+                response += $"{verb} {obj1} on {obj2} x{t.repetitions}\n";
+                Goal newG = new Goal(verb, obj1, obj2, t.repetitions);
+                goals.Add(newG);
+            }
+            return response;
+        }
+
+        public void GoalMet(string v, string o1, string o2)
+        {
+            int reps = 0;
+            foreach (Goal g in goals)
+            {
+                if (g.repetitions >= 1)
+                {
+                    if (g.verb == v && g.obj1 == o1 && g.obj2 == o2)
+                    {
+                        g.repetitions--;
+                    }
+                    reps += g.repetitions;
+                }
+            }
+            if (reps == 0)
+            {
+                IsCompleted = true;
+            }
+        }
+
+        public void GoalMetSingleObj(string v, string o)
+        {
+            int reps = 0;
+            foreach (Goal g in goals)
+            {
+                if (g.repetitions >= 1)
+                {
+                    if (g.verb == v && g.obj1 == o)
+                    {
+                        g.repetitions--;
+                    }
+                    reps += g.repetitions;
+                }
+            }
+            if (reps == 0)
+            {
+                IsCompleted = true;
+            }
+        }
+
+        public string UpdateTasksString()
+        {
+            string response = "Tasks: \n";
+            foreach (Goal g in goals)
+            {
+                if (g.repetitions > 0)
+                {
+                    response += $"{g.verb} {g.obj1} on {g.obj2} x{g.repetitions}\n";
+                }
+            }
+            return response;
+        }
+
+        public void StoreGraph(EnvironmentGraph g, float t)
+        {
+            string graphString = JsonUtility.ToJson(g);
+            allGraphs.Add((graphString, t));
+        }
+
+    }
+    [System.Serializable]
+    public class Task
+    {
+        public string task;
+        public int repetitions;
+    }
+
+    public class Goal
+    {
+        public string verb { get; set; }
+        public string obj1 { get; set; }
+        public string obj2 { get; set; }
+        public int repetitions { get; set; }
+
+        public Goal(string v, string o1, string o2, int reps)
+        {
+            verb = v;
+            obj1 = o1;
+            obj2 = o2;
+            repetitions = reps;
         }
     }
 
