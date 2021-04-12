@@ -477,7 +477,7 @@ namespace StoryGenerator.Utilities
                     result[obj.id] = new List<EnvironmentObject>();
             }
             foreach (EnvironmentRelation e in graph.edges) {
-                if (e.relation_type == ObjectRelation.INSIDE && result.ContainsKey(e.to_id)) {
+                if (e.relation == ObjectRelation.INSIDE && result.ContainsKey(e.to_id)) {
                     result[e.to_id].Add(id2ObjectMap[e.from_id]);
                 }
             }
@@ -668,9 +668,9 @@ namespace StoryGenerator.Utilities
             foreach (EnvironmentRelation rel in graph.edges) {
                 List<EnvironmentObject> objectsTo;
 
-                if (!edgeMap.TryGetValue(Tuple.Create(rel.from_id, rel.relation_type), out objectsTo)) {
+                if (!edgeMap.TryGetValue(Tuple.Create(rel.from_id, rel.relation), out objectsTo)) {
                     objectsTo = new List<EnvironmentObject>();
-                    edgeMap[Tuple.Create(rel.from_id, rel.relation_type)] = objectsTo;
+                    edgeMap[Tuple.Create(rel.from_id, rel.relation)] = objectsTo;
                 }
                 objectsTo.Add(id2ObjectMap[rel.to_id]);
             }

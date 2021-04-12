@@ -274,7 +274,7 @@ namespace StoryGenerator
             //EXPAND SCENE
             cameraInitializer.initialized = false;
             List<IEnumerator> animationEnumerators = new List<IEnumerator>();
-
+            int expandSceneCount = 0;
             try
             {
                 if (currentGraph == null)
@@ -338,6 +338,7 @@ namespace StoryGenerator
                 c.GetComponent<Animator>().speed = 0;
             }
             */
+            
 
             //add one character by default
             CharacterConfig configchar = new CharacterConfig();//JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
@@ -2272,6 +2273,11 @@ namespace StoryGenerator
         {
             string outputPath = $"Assets/Resources/Episodes/Episode{episode}Data.txt";
             using (FileStream fs = File.Create(outputPath)) { }
+            foreach (EnvironmentRelation r in init_graph.edges)
+            {
+                r.relation = (ObjectRelation)Enum.Parse(typeof(ObjectRelation), r.relation_type);
+            }
+            Debug.Log("yo");
         }
 
         public void RecordData(int episode)

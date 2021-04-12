@@ -49,7 +49,7 @@ namespace StoryGenerator.Utilities
     [Serializable]
     public class ObjectBounds
     {
-        private Bounds unityBounds;
+        public Bounds unityBounds;
 
         protected ObjectBounds()
         {
@@ -65,8 +65,8 @@ namespace StoryGenerator.Utilities
             bounds = b;
         }
 
-        public float[] center { get; set; }
-        public float[] size { get; set; }
+        public float[] center;
+        public float[] size;
 
         [JsonIgnore]
         public Bounds bounds
@@ -213,7 +213,9 @@ namespace StoryGenerator.Utilities
         public int to_id;  // Second node (object id)
 
         [JsonConverter(typeof(StringEnumConverter))]
-        public ObjectRelation relation_type;  // Relation type
+        public string relation_type;  // Relation type
+
+        public ObjectRelation relation;
 
     }
 
@@ -239,7 +241,7 @@ namespace StoryGenerator.Utilities
                 edges.Add(new EnvironmentRelation() {
                     from_id = node1.id,
                     to_id = node2.id,
-                    relation_type = relation
+                    relation = relation
                 });
             }
         }
@@ -566,9 +568,9 @@ namespace StoryGenerator.Utilities
             {
                 foreach (EnvironmentRelation rel in graph.edges)
                 {
-                    if (rel.relation_type.Equals(ObjectRelation.CLOSE) && rel.from_id == c.id)
+                    if (rel.relation.Equals(ObjectRelation.CLOSE) && rel.from_id == c.id)
                     {
-                        if (!edgeSet.Contains(Tuple.Create(rel.to_id, rel.from_id, rel.relation_type)))
+                        if (!edgeSet.Contains(Tuple.Create(rel.to_id, rel.from_id, rel.relation)))
                         {
                             return false;
                         }
@@ -950,7 +952,7 @@ namespace StoryGenerator.Utilities
             if (or.HasValue)
             {
                 edgeSet.RemoveWhere(e => (o.id == e.Item1 || o.id == e.Item2) && e.Item3 == or);
-                graph.edges.RemoveAll(e => (o.id == e.from_id || o.id == e.to_id) && e.relation_type == or);
+                graph.edges.RemoveAll(e => (o.id == e.from_id || o.id == e.to_id) && e.relation == or);
             }
             else
             {
