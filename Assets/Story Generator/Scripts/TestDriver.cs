@@ -270,7 +270,7 @@ namespace StoryGenerator
                 currentGraph = currentGraphCreator.CreateGraph(transform);
             }
 
-            /*
+            
             //EXPAND SCENE
             cameraInitializer.initialized = false;
             List<IEnumerator> animationEnumerators = new List<IEnumerator>();
@@ -337,7 +337,6 @@ namespace StoryGenerator
             {
                 c.GetComponent<Animator>().speed = 0;
             }
-            */
             
 
             //add one character by default
@@ -528,7 +527,7 @@ namespace StoryGenerator
                             */
 
                             ICollection<string> objProperties = obj.properties;
-                            ISet<Utilities.ObjectState> objStates = obj.states;
+                            ISet<Utilities.ObjectState> objStates = obj.states_set;
 
                             // coordinate of click
                             Vector2 mousePos = new Vector2();
@@ -1503,13 +1502,13 @@ namespace StoryGenerator
                             {
                                 if (entry.Value.OpenStatus == OpenStatus.OPEN)
                                 {
-                                    currentGraphCreator.objectNodeMap[entry.Value.GameObject].states.Remove(Utilities.ObjectState.CLOSED);
-                                    currentGraphCreator.objectNodeMap[entry.Value.GameObject].states.Add(Utilities.ObjectState.OPEN);
+                                    currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Remove(Utilities.ObjectState.CLOSED);
+                                    currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Add(Utilities.ObjectState.OPEN);
                                 }
                                 else if (entry.Value.OpenStatus == OpenStatus.CLOSED)
                                 {
-                                    currentGraphCreator.objectNodeMap[entry.Value.GameObject].states.Remove(Utilities.ObjectState.OPEN);
-                                    currentGraphCreator.objectNodeMap[entry.Value.GameObject].states.Add(Utilities.ObjectState.CLOSED);
+                                    currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Remove(Utilities.ObjectState.OPEN);
+                                    currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Add(Utilities.ObjectState.CLOSED);
                                 }
                             }
                         }
@@ -2276,6 +2275,13 @@ namespace StoryGenerator
             foreach (EnvironmentRelation r in init_graph.edges)
             {
                 r.relation = (ObjectRelation)Enum.Parse(typeof(ObjectRelation), r.relation_type);
+            }
+            foreach (EnvironmentObject o in init_graph.nodes)
+            {
+                foreach (string s in o.states)
+                {
+                    o.states_set.Add((Utilities.ObjectState)Enum.Parse(typeof(Utilities.ObjectRelation), s));
+                }
             }
             Debug.Log("yo");
         }

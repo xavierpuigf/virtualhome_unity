@@ -168,7 +168,9 @@ namespace StoryGenerator.Utilities
         public List<string> properties = new List<string>();  // List of properties ("SITTABLE", ...), from PropertiesData.json
 
         [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
-        public ISet<ObjectState> states { get; set; } = new HashSet<ObjectState>();  // List of states (CLOSED, OPEN, ON, OFF, ...) 
+        public HashSet<string> states { get; set; } = new HashSet<string>();  // List of states (CLOSED, OPEN, ON, OFF, ...) 
+
+        public ISet<ObjectState> states_set { get; set; } = new HashSet<ObjectState>();
 
         public bool Equals(EnvironmentObject other)
         {
@@ -198,7 +200,7 @@ namespace StoryGenerator.Utilities
                 prefab_name = prefab_name,
                 bounding_box = bounding_box,
                 properties = new List<string>(properties),
-                states = new HashSet<ObjectState>(states)
+                states_set = new HashSet<ObjectState>(states_set)
             };
         }
     }
@@ -505,14 +507,14 @@ namespace StoryGenerator.Utilities
                     {
                         if (((OpenAction)action_script.Action).Close)
                         {
-                            objectNodeMap[gameObject].states.Remove(Utilities.ObjectState.OPEN);
-                            objectNodeMap[gameObject].states.Add(Utilities.ObjectState.CLOSED);
+                            objectNodeMap[gameObject].states_set.Remove(Utilities.ObjectState.OPEN);
+                            objectNodeMap[gameObject].states_set.Add(Utilities.ObjectState.CLOSED);
 
                         }
                         else
                         {
-                            objectNodeMap[gameObject].states.Remove(Utilities.ObjectState.CLOSED);
-                            objectNodeMap[gameObject].states.Add(Utilities.ObjectState.OPEN);
+                            objectNodeMap[gameObject].states_set.Remove(Utilities.ObjectState.CLOSED);
+                            objectNodeMap[gameObject].states_set.Add(Utilities.ObjectState.OPEN);
                         }
 
                     }
@@ -520,14 +522,14 @@ namespace StoryGenerator.Utilities
                     {
                         if (((SwitchOnAction)action_script.Action).Off)
                         {
-                            objectNodeMap[gameObject].states.Remove(Utilities.ObjectState.ON);
-                            objectNodeMap[gameObject].states.Add(Utilities.ObjectState.OFF);
+                            objectNodeMap[gameObject].states_set.Remove(Utilities.ObjectState.ON);
+                            objectNodeMap[gameObject].states_set.Add(Utilities.ObjectState.OFF);
 
                         }
                         else
                         {
-                            objectNodeMap[gameObject].states.Remove(Utilities.ObjectState.OFF);
-                            objectNodeMap[gameObject].states.Add(Utilities.ObjectState.ON);
+                            objectNodeMap[gameObject].states_set.Remove(Utilities.ObjectState.OFF);
+                            objectNodeMap[gameObject].states_set.Add(Utilities.ObjectState.ON);
                         }
                     }
 
@@ -655,7 +657,7 @@ namespace StoryGenerator.Utilities
                 class_name = className,
                 prefab_name = prefabName,
                 bounding_box = bounds,
-                states = GetDefaultObjectStates(gameObject, className, properties),
+                states_set = GetDefaultObjectStates(gameObject, className, properties),
                 properties = properties
             };
 
@@ -1213,33 +1215,33 @@ namespace StoryGenerator.Utilities
 
         public static ISet<ObjectState> GetDefaultObjectStates(GameObject go, string className, ICollection<string> properties)
         {
-            ISet<ObjectState> states = new HashSet<ObjectState>();
+            ISet<ObjectState> states_set = new HashSet<ObjectState>();
 
             Properties_door pd = go.GetComponent<Properties_door>();
             if (pd != null) {
-                states.Add(ObjectState.OPEN);  // Assume that all doors are open by default
-                return states;
+                states_set.Add(ObjectState.OPEN);  // Assume that all doors are open by default
+                return states_set;
             }
 
             HandInteraction hi = go.GetComponent<HandInteraction>();
             if (hi != null && hi.switches != null) {
                 foreach (HandInteraction.ActivationSwitch s in hi.switches) {
-                    if (s.action == HandInteraction.ActivationAction.Open) states.Add(ObjectState.CLOSED);  // Assume that all objects are closed by default
+                    if (s.action == HandInteraction.ActivationAction.Open) states_set.Add(ObjectState.CLOSED);  // Assume that all objects are closed by default
                     else if (s.action == HandInteraction.ActivationAction.SwitchOn) {
-                        if (DEFAULT_ON_OBJECTS.Contains(className)) states.Add(ObjectState.ON);
-                        else states.Add(ObjectState.OFF);
+                        if (DEFAULT_ON_OBJECTS.Contains(className)) states_set.Add(ObjectState.ON);
+                        else states_set.Add(ObjectState.OFF);
                     }
                 }
-                return states;
+                return states_set;
             }
 
             if (properties.Contains("CAN_OPEN")) {
-                states.Add(ObjectState.CLOSED);
+                states_set.Add(ObjectState.CLOSED);
             }
             if (properties.Contains("HAS_SWITCH")) {
-                states.Add(ObjectState.OFF);
+                states_set.Add(ObjectState.OFF);
             }
-            return states;
+            return states_set;
         }
 
         public static Func<float[], float[], double> L2NormSquaredFloat = (u, v) => {
