@@ -270,7 +270,7 @@ namespace StoryGenerator
                 currentGraph = currentGraphCreator.CreateGraph(transform);
             }
 
-            
+            /*
             //EXPAND SCENE
             cameraInitializer.initialized = false;
             List<IEnumerator> animationEnumerators = new List<IEnumerator>();
@@ -337,6 +337,7 @@ namespace StoryGenerator
             {
                 c.GetComponent<Animator>().speed = 0;
             }
+            */
             
 
             //add one character by default
@@ -2245,6 +2246,12 @@ namespace StoryGenerator
         }
     }
 
+    public static class StringExtensions
+    {
+        public static string AddColor(this string text, Color col) => $"<color={ColorHexFromUnityColor(col)}>{text}</color>";
+        public static string ColorHexFromUnityColor(this Color unityColor) => $"#{ColorUtility.ToHtmlStringRGBA(unityColor)}";
+    }
+
     [System.Serializable]
     public class Episode
     {
@@ -2379,7 +2386,12 @@ namespace StoryGenerator
             string response = "Tasks: \n";
             foreach (Goal g in goals)
             {
-                if (g.repetitions > 0)
+                if (g.repetitions == 0)
+                {
+                    string s = $"{g.verb} {g.obj1} on {g.obj2} x{g.repetitions}\n";
+                    response += $"{s.AddColor(Color.green)}";
+                }
+                else
                 {
                     response += $"{g.verb} {g.obj1} on {g.obj2} x{g.repetitions}\n";
                 }
