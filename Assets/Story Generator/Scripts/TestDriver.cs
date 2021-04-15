@@ -398,6 +398,12 @@ namespace StoryGenerator
             GameObject goGrab = GameObject.Find("GrabButton");
             GameObject goPutLeft = GameObject.Find("PutLeftButton");
             GameObject goPutRight = GameObject.Find("PutRightButton");
+            /*
+            goOpen.gameObject.tag = "HPG_0";
+            goGrab.gameObject.tag = "HPG_0";
+            goPutLeft.gameObject.tag = "HPG_0";
+            goPutRight.gameObject.tag = "HPG_0";
+            */
 
             bool button_created = false;
             goOpen.SetActive(false);
@@ -415,10 +421,12 @@ namespace StoryGenerator
             {
                 click = false;
                 float currTime = Time.time;
+                ISet<GameObject> movedObjects = new HashSet<GameObject>();
                 if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
                 {
                     string move = "<char0> [walkforward]";
                     currentEpisode.AddAction(move, currTime);
+                    movedObjects.Add(newchar.gameObject);
                     scriptLines.Add(move);
                     Debug.Log("move forward");
                     keyPressed = true;
@@ -427,6 +435,7 @@ namespace StoryGenerator
                 {
                     string move = "<char0> [turnleft]";
                     currentEpisode.AddAction(move, currTime);
+                    movedObjects.Add(newchar.gameObject);
                     scriptLines.Add(move);
                     Debug.Log("move left");
                     keyPressed = true;
@@ -435,6 +444,7 @@ namespace StoryGenerator
                 {
                     string move = "<char0> [turnright]";
                     currentEpisode.AddAction(move, currTime);
+                    movedObjects.Add(newchar.gameObject);
                     scriptLines.Add(move);
                     Debug.Log("move right");
                     keyPressed = true;
@@ -459,7 +469,9 @@ namespace StoryGenerator
                 if (Input.GetMouseButtonDown(0))
                 {
                     Debug.Log("mouse down");
-                    if (EventSystem.current.IsPointerOverGameObject())
+                    if (EventSystem.current.IsPointerOverGameObject()/* &&
+                        EventSystem.current.currentSelectedGameObject != null &&
+                        !EventSystem.current.currentSelectedGameObject.CompareTag("HPG_0")*/)
                     {
                         click = true;
                         Debug.Log("button clicked");
@@ -569,7 +581,6 @@ namespace StoryGenerator
                                     Button buttonOpen = goOpen.GetComponent<Button>();
                                     goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width / 2, width);
                                     goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Top, pheight, height);
-
                                     button_created = true;
                                     buttonOpen.onClick.AddListener(() =>
                                     {
@@ -579,6 +590,8 @@ namespace StoryGenerator
                                         objStates.Add(Utilities.ObjectState.OPEN);
                                         string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
                                         currentEpisode.AddAction(action, currTime);
+                                        movedObjects.Add(transform.Find(objectName).gameObject);
+                                        
                                         currentEpisode.GoalMetSingleObj("open", objectName);
                                         tasksUI.text = currentEpisode.UpdateTasksString();
                                         scriptLines.Add(action);
@@ -610,6 +623,8 @@ namespace StoryGenerator
                                         objStates.Remove(Utilities.ObjectState.OPEN);
                                         objStates.Add(Utilities.ObjectState.CLOSED);
                                         string action = String.Format("<char0> [close] <{0}> ({1})", objectName, objectId);
+                                        movedObjects.Add(transform.Find(objectName).gameObject);
+                                        
                                         currentEpisode.AddAction(action, currTime);
                                         currentEpisode.GoalMetSingleObj("close", objectName);
                                         tasksUI.text = currentEpisode.UpdateTasksString();
@@ -652,6 +667,8 @@ namespace StoryGenerator
                                     button_created = false;
 
                                     string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
+                                    movedObjects.Add(transform.Find(objectName).gameObject);
+                                    
                                     currentEpisode.AddAction(action, currTime);
                                     currentEpisode.GoalMetSingleObj("grab", objectName);
                                     tasksUI.text = currentEpisode.UpdateTasksString();
@@ -691,6 +708,8 @@ namespace StoryGenerator
 
                                         string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj2.class_name, obj2.id, putPos);
                                         Debug.Log(action);
+                                        movedObjects.Add(transform.Find(objectName).gameObject);
+                                        
                                         currentEpisode.AddAction(action, currTime);
                                         currentEpisode.GoalMet("put", obj2.class_name, objectName);
                                         tasksUI.text = currentEpisode.UpdateTasksString();
@@ -727,6 +746,8 @@ namespace StoryGenerator
 
                                         string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj3.class_name, obj3.id, putPos);
                                         Debug.Log(action);
+                                        movedObjects.Add(transform.Find(objectName).gameObject);
+                                        
                                         currentEpisode.AddAction(action, currTime);
                                         currentEpisode.GoalMet("put", obj3.class_name, objectName);
                                         tasksUI.text = currentEpisode.UpdateTasksString();
@@ -761,6 +782,8 @@ namespace StoryGenerator
                     Debug.Log("Scriptlines count " + scriptLines.Count);
                     ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
                     StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
+                    currentGraph = currentGraphCreator.UpdateGraph(transform, movedObjects);
+                    tasksUI.text = currentEpisode.UpdateTasksString();
 
                     scriptLines.Clear();
                     Debug.Log("key pressed");
@@ -785,6 +808,7 @@ namespace StoryGenerator
                     Debug.Log("action executed");
                     pointer.SetActive(false);
 
+                    currentEpisode.checkTasks(currentGraph);
                     currentEpisode.StoreGraph(currentGraph, currTime);
                 }
 
@@ -2271,6 +2295,8 @@ namespace StoryGenerator
         private List<(Vector3, Vector3, float)> posAndRotation = new List<(Vector3, Vector3, float)>();
 
         private List<(string, float)> scriptActions = new List<(string, float)>();
+        private Dictionary<string, List<string>> goalRelations = new Dictionary<string, List<string>>();
+        private HashSet<string> allPlacedObjects = new HashSet<string>();
 
         public Vector3 previousPos = new Vector3(0, 0, 0);
         public Vector3 previousRotation = new Vector3(0, 0, 0);
@@ -2337,6 +2363,15 @@ namespace StoryGenerator
                 response += $"{verb} {obj1} on {obj2} x{t.repetitions}\n";
                 Goal newG = new Goal(verb, obj1, obj2, t.repetitions);
                 goals.Add(newG);
+                allPlacedObjects.Add(obj1);
+                if (!goalRelations.ContainsKey(obj2))
+                {
+                    goalRelations.Add(obj2, new List<string>());
+                }
+                for (int i = 0; i < t.repetitions; i++)
+                {
+                    goalRelations[obj2].Add(obj1);
+                }
             }
             return response;
         }
@@ -2378,6 +2413,49 @@ namespace StoryGenerator
             if (reps == 0)
             {
                 IsCompleted = true;
+            }
+        }
+
+        public bool IsOn(EnvironmentObject o1, EnvironmentObject o2)
+        {
+            if (o2.bounding_box.bounds.center.y > o1.bounding_box.bounds.min.y)
+                return false;
+
+            Rect o1XZRect = BoundsUtils.XZRect(o1.bounding_box.bounds);
+            Rect o2XZRect = BoundsUtils.XZRect(o2.bounding_box.bounds);
+
+            // Sufficient area intersection
+            return RectUtils.IntersectionArea(o1XZRect, o2XZRect) > o1XZRect.Area() * 0.5f;
+        }
+
+        public List<string> OnTop(List<string> objs, string dest, EnvironmentGraph g)
+        {
+            List<string> allObjsNeeded = new List<string>(objs);
+            EnvironmentObject platform = null;
+            foreach (EnvironmentObject o in g.nodes) { if (o.class_name.Equals(dest)) { platform = o; break; } }
+            foreach (EnvironmentObject env_obj in g.nodes)
+            {
+                if (objs.Contains(env_obj.class_name))
+                {
+                    if (IsOn(env_obj, platform))
+                    {
+                        allObjsNeeded.Remove(env_obj.class_name);
+                    }
+                }
+            }
+            return allObjsNeeded;
+        }
+
+        public void checkTasks(EnvironmentGraph g)
+        {
+            Dictionary<string, List<string>> goalsCopy = new Dictionary<string, List<string>>(goalRelations);
+            foreach (string dest in goalsCopy.Keys.ToList())
+            {
+                goalsCopy[dest] = OnTop(goalsCopy[dest], dest, g);
+            }
+            foreach (Goal goal in goals)
+            {
+                goal.repetitions = goalsCopy[goal.obj2].Where(x => x.Equals(goal.obj1)).Count();
             }
         }
 
