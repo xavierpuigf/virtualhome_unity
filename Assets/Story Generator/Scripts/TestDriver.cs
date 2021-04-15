@@ -398,12 +398,12 @@ namespace StoryGenerator
             GameObject goGrab = GameObject.Find("GrabButton");
             GameObject goPutLeft = GameObject.Find("PutLeftButton");
             GameObject goPutRight = GameObject.Find("PutRightButton");
-            /*
+            
             goOpen.gameObject.tag = "HPG_0";
             goGrab.gameObject.tag = "HPG_0";
             goPutLeft.gameObject.tag = "HPG_0";
             goPutRight.gameObject.tag = "HPG_0";
-            */
+            
 
             bool button_created = false;
             goOpen.SetActive(false);
@@ -470,9 +470,9 @@ namespace StoryGenerator
                 if (Input.GetMouseButtonDown(0))
                 {
                     Debug.Log("mouse down");
-                    if (EventSystem.current.IsPointerOverGameObject()/* &&
+                    if (EventSystem.current.IsPointerOverGameObject() &&
                         EventSystem.current.currentSelectedGameObject != null &&
-                        !EventSystem.current.currentSelectedGameObject.CompareTag("HPG_0")*/)
+                        !EventSystem.current.currentSelectedGameObject.CompareTag("HPG_0"))
                     {
                         click = true;
                         Debug.Log("button clicked");
