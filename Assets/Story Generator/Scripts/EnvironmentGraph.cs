@@ -168,9 +168,9 @@ namespace StoryGenerator.Utilities
         public List<string> properties = new List<string>();  // List of properties ("SITTABLE", ...), from PropertiesData.json
 
         [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
-        public HashSet<string> states { get; set; } = new HashSet<string>();  // List of states (CLOSED, OPEN, ON, OFF, ...) 
+        public List<string> states = new List<string>();  // List of states (CLOSED, OPEN, ON, OFF, ...) 
 
-        public ISet<ObjectState> states_set { get; set; } = new HashSet<ObjectState>();
+        public ISet<ObjectState> states_set = new HashSet<ObjectState>();
 
         public bool Equals(EnvironmentObject other)
         {

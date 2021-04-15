@@ -416,6 +416,7 @@ namespace StoryGenerator
             GameObject pointer = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             pointer.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
             pointer.GetComponent<MeshRenderer>().material.color = Color.magenta;
+            currentEpisode.StoreGraph(currentGraph, 0);
 
             while (!episodeDone)
             {
@@ -2313,7 +2314,7 @@ namespace StoryGenerator
             {
                 foreach (string s in o.states)
                 {
-                    o.states_set.Add((Utilities.ObjectState)Enum.Parse(typeof(Utilities.ObjectRelation), s));
+                    o.states_set.Add((Utilities.ObjectState)Enum.Parse(typeof(Utilities.ObjectState), s));
                 }
             }
             Debug.Log("yo");
