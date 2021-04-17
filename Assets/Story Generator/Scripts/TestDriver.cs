@@ -245,7 +245,7 @@ namespace StoryGenerator
         IEnumerator ProcessInputRequest(int episode)
         {
             yield return null;
-            string episodePath = $"Episodes/pilot_task_id_{episode}";
+            string episodePath = $"Episodes/pilot_task_id_{episode}_reset";
             TextAsset episodeFile = Resources.Load<TextAsset>(episodePath);
             Episode currentEpisode = JsonUtility.FromJson<Episode>(episodeFile.text);
             currentEpisode.ClearDataFile(episode);
@@ -259,7 +259,6 @@ namespace StoryGenerator
             OneTimeInitializer homeInitializer = new OneTimeInitializer();
             EnvironmentGraphCreator currentGraphCreator = null;
             EnvironmentGraph currentGraph = null;
-            //int expandSceneCount = 0;
 
             InitRooms();
 
@@ -270,7 +269,6 @@ namespace StoryGenerator
                 currentGraph = currentGraphCreator.CreateGraph(transform);
             }
 
-            /*
             //EXPAND SCENE
             cameraInitializer.initialized = false;
             List<IEnumerator> animationEnumerators = new List<IEnumerator>();
@@ -337,7 +335,7 @@ namespace StoryGenerator
             {
                 c.GetComponent<Animator>().speed = 0;
             }
-            */
+            
             
 
             //add one character by default
@@ -833,7 +831,7 @@ namespace StoryGenerator
             }
             Debug.Log("done");
             EpisodeNumber.episodeNum++;
-            string nextEpisodePath = $"Episodes/pilot_task_id_{EpisodeNumber.episodeNum}";
+            string nextEpisodePath = $"Episodes/pilot_task_id_{EpisodeNumber.episodeNum}_reset";
             TextAsset nextEpisodeFile = Resources.Load<TextAsset>(nextEpisodePath);
             Episode nextEpisode = JsonUtility.FromJson<Episode>(nextEpisodeFile.text);
             int nextSceneIndex = nextEpisode.env_id;
