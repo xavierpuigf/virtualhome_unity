@@ -131,7 +131,7 @@ namespace StoryGenerator
                 episodeNum = EpisodeNumber.episodeNum;
                 Debug.Log($"init episode number {episodeNum}");
                 // Load correct scene (episodeNum is just for testing rn)
-                string episodePath = $"Episodes/pilot_task_id_{episodeNum + 1}";
+                string episodePath = $"Episodes/pilot_task_id_{episodeNum}_bounds";
                 TextAsset episodeFile = Resources.Load<TextAsset>(episodePath);
                 Episode currentEpisode = JsonUtility.FromJson<Episode>(episodeFile.text);
                 SceneManager.LoadScene(currentEpisode.env_id);
@@ -245,7 +245,7 @@ namespace StoryGenerator
         IEnumerator ProcessInputRequest(int episode)
         {
             yield return null;
-            string episodePath = $"Episodes/pilot_task_id_{episode}_reset";
+            string episodePath = $"Episodes/pilot_task_id_{episode}_bounds";
             TextAsset episodeFile = Resources.Load<TextAsset>(episodePath);
             Episode currentEpisode = JsonUtility.FromJson<Episode>(episodeFile.text);
             currentEpisode.ClearDataFile(episode);
@@ -334,8 +334,7 @@ namespace StoryGenerator
             foreach (CharacterControl c in characters)
             {
                 c.GetComponent<Animator>().speed = 0;
-            }
-            
+            }  
             
 
             //add one character by default
@@ -831,7 +830,7 @@ namespace StoryGenerator
             }
             Debug.Log("done");
             EpisodeNumber.episodeNum++;
-            string nextEpisodePath = $"Episodes/pilot_task_id_{EpisodeNumber.episodeNum}_reset";
+            string nextEpisodePath = $"Episodes/pilot_task_id_{EpisodeNumber.episodeNum}_bounds";
             TextAsset nextEpisodeFile = Resources.Load<TextAsset>(nextEpisodePath);
             Episode nextEpisode = JsonUtility.FromJson<Episode>(nextEpisodeFile.text);
             int nextSceneIndex = nextEpisode.env_id;
@@ -2310,6 +2309,14 @@ namespace StoryGenerator
             }
             foreach (EnvironmentObject o in init_graph.nodes)
             {
+                if (o.obj_transform.position == null)
+                {
+                    o.obj_transform = null;
+                }
+                if (o.bounding_box.center == null)
+                {
+                    o.bounding_box = null;
+                }
                 foreach (string s in o.states)
                 {
                     o.states_set.Add((Utilities.ObjectState)Enum.Parse(typeof(Utilities.ObjectState), s));
