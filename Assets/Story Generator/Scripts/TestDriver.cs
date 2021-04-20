@@ -269,6 +269,7 @@ namespace StoryGenerator
                 currentGraph = currentGraphCreator.CreateGraph(transform);
             }
 
+            /*
             //EXPAND SCENE
             cameraInitializer.initialized = false;
             List<IEnumerator> animationEnumerators = new List<IEnumerator>();
@@ -336,6 +337,7 @@ namespace StoryGenerator
                 c.GetComponent<Animator>().speed = 0;
             }  
             
+            */
 
             //add one character by default
             CharacterConfig configchar = new CharacterConfig();//JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
@@ -419,12 +421,10 @@ namespace StoryGenerator
             {
                 click = false;
                 float currTime = Time.time;
-                ISet<GameObject> movedObjects = new HashSet<GameObject>();
                 if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
                 {
                     string move = "<char0> [walkforward]";
                     currentEpisode.AddAction(move, currTime);
-                    movedObjects.Add(newchar.gameObject);
                     scriptLines.Add(move);
                     Debug.Log("move forward");
                     keyPressed = true;
@@ -433,7 +433,6 @@ namespace StoryGenerator
                 {
                     string move = "<char0> [turnleft]";
                     currentEpisode.AddAction(move, currTime);
-                    movedObjects.Add(newchar.gameObject);
                     scriptLines.Add(move);
                     Debug.Log("move left");
                     keyPressed = true;
@@ -442,7 +441,6 @@ namespace StoryGenerator
                 {
                     string move = "<char0> [turnright]";
                     currentEpisode.AddAction(move, currTime);
-                    movedObjects.Add(newchar.gameObject);
                     scriptLines.Add(move);
                     Debug.Log("move right");
                     keyPressed = true;
@@ -588,7 +586,6 @@ namespace StoryGenerator
                                         objStates.Add(Utilities.ObjectState.OPEN);
                                         string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
                                         currentEpisode.AddAction(action, currTime);
-                                        movedObjects.Add(transform.Find(objectName).gameObject);
                                         
                                         currentEpisode.GoalMetSingleObj("open", objectName);
                                         tasksUI.text = currentEpisode.UpdateTasksString();
@@ -621,7 +618,6 @@ namespace StoryGenerator
                                         objStates.Remove(Utilities.ObjectState.OPEN);
                                         objStates.Add(Utilities.ObjectState.CLOSED);
                                         string action = String.Format("<char0> [close] <{0}> ({1})", objectName, objectId);
-                                        movedObjects.Add(transform.Find(objectName).gameObject);
                                         
                                         currentEpisode.AddAction(action, currTime);
                                         currentEpisode.GoalMetSingleObj("close", objectName);
@@ -665,7 +661,6 @@ namespace StoryGenerator
                                     button_created = false;
 
                                     string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
-                                    movedObjects.Add(transform.Find(objectName).gameObject);
                                     
                                     currentEpisode.AddAction(action, currTime);
                                     currentEpisode.GoalMetSingleObj("grab", objectName);
@@ -706,7 +701,6 @@ namespace StoryGenerator
 
                                         string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj2.class_name, obj2.id, putPos);
                                         Debug.Log(action);
-                                        movedObjects.Add(transform.Find(objectName).gameObject);
                                         
                                         currentEpisode.AddAction(action, currTime);
                                         currentEpisode.GoalMet("put", obj2.class_name, objectName);
@@ -744,7 +738,6 @@ namespace StoryGenerator
 
                                         string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj3.class_name, obj3.id, putPos);
                                         Debug.Log(action);
-                                        movedObjects.Add(transform.Find(objectName).gameObject);
                                         
                                         currentEpisode.AddAction(action, currTime);
                                         currentEpisode.GoalMet("put", obj3.class_name, objectName);
@@ -780,7 +773,6 @@ namespace StoryGenerator
                     Debug.Log("Scriptlines count " + scriptLines.Count);
                     ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
                     StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
-                    currentGraph = currentGraphCreator.UpdateGraph(transform, movedObjects);
                     tasksUI.text = currentEpisode.UpdateTasksString();
 
                     scriptLines.Clear();
