@@ -756,6 +756,7 @@ namespace StoryGenerator
                     }*/
                     pointer.SetActive(false);
                     sExecutors[0].ClearScript();
+                    sExecutors[0].smooth_walk = false;
                     Debug.Log("Scriptlines " + scriptLines[0]);
                     Debug.Log("Scriptlines count " + scriptLines.Count);
                     ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
