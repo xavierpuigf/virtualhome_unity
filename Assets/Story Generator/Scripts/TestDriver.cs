@@ -579,6 +579,7 @@ namespace StoryGenerator
                                         objStates.Remove(Utilities.ObjectState.CLOSED);
                                         objStates.Add(Utilities.ObjectState.OPEN);
                                         string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
+
                                         currentEpisode.AddAction(action, currTime);
                                         tasksUI.text = currentEpisode.UpdateTasksString();
                                         scriptLines.Add(action);
@@ -760,6 +761,13 @@ namespace StoryGenerator
                     ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
                     StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
 
+                    finishedChars = 0;
+                    while (finishedChars != numCharacters)
+                    {
+                        yield return new WaitForSeconds(0.01f);
+                    }
+                    currentGraph = currentGraphCreator.UpdateGraph(transform);
+
                     scriptLines.Clear();
                     Debug.Log("key pressed");
                     goOpen.SetActive(false);
@@ -784,7 +792,7 @@ namespace StoryGenerator
                     pointer.SetActive(false);
 
                     currentEpisode.checkTasks(currentGraph);
-                    //tasksUI.text = currentEpisode.UpdateTasksString();
+                    tasksUI.text = currentEpisode.UpdateTasksString();
                     currentEpisode.StoreGraph(currentGraph, currTime);
                 }
 
@@ -2042,12 +2050,14 @@ namespace StoryGenerator
                         //newCharacter.transform.position = sceneCharacters[0].transform.position;
                         var nma = newCharacter.GetComponent<NavMeshAgent>();
                         nma.Warp(sceneCharacters[0].transform.position);
+                        newCharacter.transform.rotation = Quaternion.Euler(0, 0, 0);
                     }
                 }
                 else if (mode == "fix_position")
                 {
                     var nma = newCharacter.GetComponent<NavMeshAgent>();
                     nma.Warp(position);
+                    newCharacter.transform.rotation = Quaternion.Euler(0, 0, 0);
                 }
                 else if (mode == "fix_room")
                 {
@@ -2061,7 +2071,7 @@ namespace StoryGenerator
                     }
                     var nma = newCharacter.GetComponent<NavMeshAgent>();
                     nma.Warp(ScriptUtils.FindCCPosition(rooms_selected[0], cc));
-                    newCharacter.transform.rotation *= Quaternion.Euler(0, UnityEngine.Random.Range(-180.0f, 180.0f), 0);
+                    newCharacter.transform.rotation = Quaternion.Euler(0, 0, 0);
                 }
                 // Must be called after correct char placement so that char's location doesn't change
                 // after instantiation.
@@ -2406,6 +2416,7 @@ namespace StoryGenerator
         public string UpdateTasksString()
         {
             string response = "Tasks: \n";
+            bool moreTasks = false;
             foreach (Goal g in goals)
             {
                 if (g.repetitions == 0)
@@ -2415,8 +2426,13 @@ namespace StoryGenerator
                 }
                 else
                 {
+                    moreTasks = true;
                     response += $"{g.verb} {g.obj1} on {g.obj2} x{g.repetitions}\n";
                 }
+            }
+            if (!moreTasks)
+            {
+                IsCompleted = true;
             }
             return response;
         }

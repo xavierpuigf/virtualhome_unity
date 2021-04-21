@@ -3182,6 +3182,8 @@ namespace StoryGenerator.Utilities
                 report.AddItem("EXECUTION_GENERAL", "Script is impossible to execute");
             }
             caller.finishedChars++;
+            //Update the currentGraph
+
         }
 
         private int EstimateFrameNumber(StateList current)
