@@ -467,12 +467,12 @@ namespace StoryGenerator
                     Debug.Log("mouse down");
                     if (EventSystem.current.IsPointerOverGameObject() &&
                         EventSystem.current.currentSelectedGameObject != null &&
-                        !EventSystem.current.currentSelectedGameObject.CompareTag("HPG_0"))
+                        EventSystem.current.currentSelectedGameObject.CompareTag("HPG_0"))
                     {
                         click = true;
                         Debug.Log("button clicked");
                     }
-                    if (button_created)
+                    else if (button_created)
                     {
 
                         goOpen.SetActive(false);
@@ -570,13 +570,9 @@ namespace StoryGenerator
                                 {
                                     Debug.Log("open");
                                     goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Open " + objectName;
-                                    float width = goOpen.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
-                                    float pheight = mousePos.y + 60;
-                                    float height = 80;
                                     goOpen.SetActive(true);
+                                    GameObjectUtils.PositionButton(mousePos, goOpen, "center");
                                     Button buttonOpen = goOpen.GetComponent<Button>();
-                                    goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width / 2, width);
-                                    goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Top, pheight, height);
                                     button_created = true;
                                     buttonOpen.onClick.AddListener(() =>
                                     {
@@ -600,13 +596,11 @@ namespace StoryGenerator
                                 {
                                     Debug.Log("close");
                                     goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Close " + objectName;
-                                    float width = goOpen.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
-                                    float height = 80;
-                                    float pheight = mousePos.y + 60;
+                                    
                                     goOpen.SetActive(true);
                                     Button buttonOpen = goOpen.GetComponent<Button>();
-                                    goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width / 2, width);
-                                    goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Top, pheight, height);
+                                    GameObjectUtils.PositionButton(mousePos, goOpen, "center");
+
 
                                     button_created = true;
 
@@ -645,16 +639,13 @@ namespace StoryGenerator
                                 }*/
 
                                 goGrab.GetComponentInChildren<TextMeshProUGUI>().text = "Grab " + objectName;
-                                float width = goGrab.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
-                                float pheight = mousePos.y + 60;
-                                float height = 80;
+                                
                                 goGrab.SetActive(true);
-                                Button buttonGrab = goGrab.GetComponent<Button>();
-                                goGrab.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width / 2, width);
-                                goOpen.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Top, pheight, height);
+                                GameObjectUtils.PositionButton(mousePos, goGrab, "center");
+
 
                                 button_created = true;
-
+                                Button buttonGrab = goGrab.GetComponent<Button>();
                                 buttonGrab.onClick.AddListener(() =>
                                 {
                                     Debug.Log("grabbed");
@@ -683,13 +674,15 @@ namespace StoryGenerator
                                 {
                                     currentGraphCreator.objectNodeMap.TryGetValue(lh, out obj2);
                                     Debug.Log("Put " + obj2.class_name + " on " + objectName);
-                                    goPutLeft.GetComponentInChildren<TextMeshProUGUI>().text = "Put " + obj2.class_name + " on " + objectName;
-                                    float width = goPutLeft.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
+                                    goPutLeft.GetComponentInChildren<TextMeshProUGUI>().text = "Put " + obj2.class_name + "\n on " + objectName;
                                     goPutLeft.SetActive(true);
 
                                     Button buttonPutLeft = goPutLeft.GetComponent<Button>();
-                                    goPutLeft.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width / 2, width);
-                                    goPutLeft.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Bottom, mousePos.y + 60, 80);
+                                    if (rh == null)
+                                        GameObjectUtils.PositionButton(mousePos, goPutLeft, "center");
+                                    else
+                                        GameObjectUtils.PositionButton(mousePos, goPutLeft, "left");
+
                                     button_created = true;
 
                                     buttonPutLeft.onClick.AddListener(() =>
@@ -718,13 +711,14 @@ namespace StoryGenerator
                                 {
                                     currentGraphCreator.objectNodeMap.TryGetValue(rh, out obj3);
                                     Debug.Log("Put " + obj3.class_name + " on " + objectName);
-                                    goPutRight.GetComponentInChildren<TextMeshProUGUI>().text = "Put " + obj3.class_name + " on " + objectName;
-                                    float width = goPutRight.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
+                                    goPutRight.GetComponentInChildren<TextMeshProUGUI>().text = "Put " + obj3.class_name + "\n on " + objectName;
                                     goPutRight.SetActive(true);
                                     Button buttonPutRight = goPutRight.GetComponent<Button>();
 
-                                    goPutRight.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, mousePos.x - width / 2, width);
-                                    goPutRight.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Bottom, mousePos.y - 60, 80);
+                                    if (lh == null)
+                                        GameObjectUtils.PositionButton(mousePos, goPutRight, "center");
+                                    else
+                                        GameObjectUtils.PositionButton(mousePos, goPutRight, "right");
                                     //TODO: are these buttons in the right location?
                                     button_created = true;
 

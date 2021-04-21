@@ -2,12 +2,30 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
+using UnityEngine.UI;
 using UnityEngine.AI;
 
 namespace StoryGenerator.Utilities
 {
     public static class GameObjectUtils
     {
+        public static void PositionButton(Vector2 mousePos, GameObject button, string position)
+        {
+
+            float width = button.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
+            float height = 80;
+
+            float pheight = mousePos.y - 120;
+            float pwidth = mousePos.x - width / 2;
+            if (position == "left")
+                pwidth = mousePos.x - width / 2 - 150;
+            if (position == "right")
+                pwidth = mousePos.x - width / 2 + 150;
+
+            button.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, pwidth, width);
+            button.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Top, pheight, height);
+        }
         public static Transform GetRoomTransform(Transform t)
         {
             while (t != null) {
