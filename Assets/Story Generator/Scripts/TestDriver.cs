@@ -269,7 +269,6 @@ namespace StoryGenerator
                 currentGraph = currentGraphCreator.CreateGraph(transform);
             }
 
-            /*
             //EXPAND SCENE
             cameraInitializer.initialized = false;
             List<IEnumerator> animationEnumerators = new List<IEnumerator>();
@@ -337,7 +336,6 @@ namespace StoryGenerator
                 c.GetComponent<Animator>().speed = 0;
             }  
             
-            */
 
             //add one character by default
             CharacterConfig configchar = new CharacterConfig();//JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
@@ -582,8 +580,6 @@ namespace StoryGenerator
                                         objStates.Add(Utilities.ObjectState.OPEN);
                                         string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
                                         currentEpisode.AddAction(action, currTime);
-                                        
-                                        currentEpisode.GoalMetSingleObj("open", objectName);
                                         tasksUI.text = currentEpisode.UpdateTasksString();
                                         scriptLines.Add(action);
                                         goOpen.SetActive(false);
@@ -614,7 +610,6 @@ namespace StoryGenerator
                                         string action = String.Format("<char0> [close] <{0}> ({1})", objectName, objectId);
                                         
                                         currentEpisode.AddAction(action, currTime);
-                                        currentEpisode.GoalMetSingleObj("close", objectName);
                                         tasksUI.text = currentEpisode.UpdateTasksString();
                                         scriptLines.Add(action);
                                         goOpen.SetActive(false);
@@ -654,7 +649,6 @@ namespace StoryGenerator
                                     string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
                                     
                                     currentEpisode.AddAction(action, currTime);
-                                    currentEpisode.GoalMetSingleObj("grab", objectName);
                                     tasksUI.text = currentEpisode.UpdateTasksString();
                                     Debug.Log(action);
                                     scriptLines.Add(action);
@@ -696,7 +690,6 @@ namespace StoryGenerator
                                         Debug.Log(action);
                                         
                                         currentEpisode.AddAction(action, currTime);
-                                        currentEpisode.GoalMet("put", obj2.class_name, objectName);
                                         tasksUI.text = currentEpisode.UpdateTasksString();
                                         scriptLines.Add(action);
 
@@ -734,7 +727,6 @@ namespace StoryGenerator
                                         Debug.Log(action);
                                         
                                         currentEpisode.AddAction(action, currTime);
-                                        currentEpisode.GoalMet("put", obj3.class_name, objectName);
                                         tasksUI.text = currentEpisode.UpdateTasksString();
                                         scriptLines.Add(action);
 
@@ -767,7 +759,6 @@ namespace StoryGenerator
                     Debug.Log("Scriptlines count " + scriptLines.Count);
                     ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
                     StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
-                    tasksUI.text = currentEpisode.UpdateTasksString();
 
                     scriptLines.Clear();
                     Debug.Log("key pressed");
@@ -793,6 +784,7 @@ namespace StoryGenerator
                     pointer.SetActive(false);
 
                     currentEpisode.checkTasks(currentGraph);
+                    //tasksUI.text = currentEpisode.UpdateTasksString();
                     currentEpisode.StoreGraph(currentGraph, currTime);
                 }
 
@@ -2366,46 +2358,6 @@ namespace StoryGenerator
                 }
             }
             return response;
-        }
-
-        public void GoalMet(string v, string o1, string o2)
-        {
-            int reps = 0;
-            foreach (Goal g in goals)
-            {
-                if (g.repetitions >= 1)
-                {
-                    if (g.verb == v && g.obj1 == o1 && g.obj2 == o2)
-                    {
-                        g.repetitions--;
-                    }
-                    reps += g.repetitions;
-                }
-            }
-            if (reps == 0)
-            {
-                IsCompleted = true;
-            }
-        }
-
-        public void GoalMetSingleObj(string v, string o)
-        {
-            int reps = 0;
-            foreach (Goal g in goals)
-            {
-                if (g.repetitions >= 1)
-                {
-                    if (g.verb == v && g.obj1 == o)
-                    {
-                        g.repetitions--;
-                    }
-                    reps += g.repetitions;
-                }
-            }
-            if (reps == 0)
-            {
-                IsCompleted = true;
-            }
         }
 
         public bool IsOn(EnvironmentObject o1, EnvironmentObject o2)
