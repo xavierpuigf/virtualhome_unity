@@ -763,10 +763,12 @@ namespace StoryGenerator
                     StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
 
                     finishedChars = 0;
-                    while (finishedChars != numCharacters)
-                    {
-                        yield return new WaitForSeconds(0.01f);
-                    }
+                    yield return new WaitUntil(() => finishedChars != numCharacters);
+                    //while (finishedChars != numCharacters)
+                    //{
+                    //    yield return new WaitForSeconds(0.01f);
+                    //}
+                    Debug.Log("Finished");
                     currentGraph = currentGraphCreator.UpdateGraph(transform);
 
                     scriptLines.Clear();
