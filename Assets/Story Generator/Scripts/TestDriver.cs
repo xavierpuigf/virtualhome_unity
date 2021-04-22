@@ -770,6 +770,9 @@ namespace StoryGenerator
                     //}
                     Debug.Log("Finished");
                     currentGraph = currentGraphCreator.UpdateGraph(transform);
+                    currentEpisode.checkTasks(currentGraph);
+                    tasksUI.text = currentEpisode.UpdateTasksString();
+                    currentEpisode.StoreGraph(currentGraph, currTime);
 
                     scriptLines.Clear();
                     Debug.Log("key pressed");
@@ -793,10 +796,6 @@ namespace StoryGenerator
                     click = false;
                     Debug.Log("action executed");
                     pointer.SetActive(false);
-
-                    currentEpisode.checkTasks(currentGraph);
-                    tasksUI.text = currentEpisode.UpdateTasksString();
-                    currentEpisode.StoreGraph(currentGraph, currTime);
                 }
 
                 if (newchar.transform.position != currentEpisode.previousPos || newchar.transform.eulerAngles != currentEpisode.previousRotation)
@@ -808,7 +807,7 @@ namespace StoryGenerator
 
                 if (currentEpisode.IsCompleted)
                 {
-                    tasksUI.text = "Taks: Completed!";
+                    tasksUI.text = "Tasks: Completed!";
                     currentEpisode.RecordData(episode);
                     episodeDone = true;
                     episodeNum++;
@@ -2388,15 +2387,18 @@ namespace StoryGenerator
         public List<string> OnTop(List<string> objs, string dest, EnvironmentGraph g)
         {
             List<string> allObjsNeeded = new List<string>(objs);
-            EnvironmentObject platform = null;
-            foreach (EnvironmentObject o in g.nodes) { if (o.class_name.Equals(dest)) { platform = o; break; } }
+            List<EnvironmentObject> platforms = new List<EnvironmentObject>();
+            foreach (EnvironmentObject o in g.nodes) { if (o.class_name.Equals(dest)) { platforms.Add(o); } }
             foreach (EnvironmentObject env_obj in g.nodes)
             {
                 if (objs.Contains(env_obj.class_name))
                 {
-                    if (IsOn(env_obj, platform))
+                    foreach (EnvironmentObject platform in platforms)
                     {
-                        allObjsNeeded.Remove(env_obj.class_name);
+                        if (IsOn(env_obj, platform))
+                        {
+                            allObjsNeeded.Remove(env_obj.class_name);
+                        }
                     }
                 }
             }
