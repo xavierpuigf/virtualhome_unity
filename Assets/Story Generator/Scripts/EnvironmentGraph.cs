@@ -49,7 +49,7 @@ namespace StoryGenerator.Utilities
     [Serializable]
     public class ObjectBounds
     {
-        public Bounds unityBounds;
+        private Bounds unityBounds;
 
         protected ObjectBounds()
         {
@@ -460,6 +460,7 @@ namespace StoryGenerator.Utilities
                         bounds = ObjectBounds.FromGameObject(gameObject);
                     }
                     currentObject.bounding_box = bounds;
+                    currentObject.obj_transform = new ObjectTransform(transform);
                 }
 
                 // update the inside room edges if the object it self is not a room

@@ -317,6 +317,8 @@ namespace StoryGenerator
 
                 // TODO: Do we need this?
                 //currentGraphCreator.SetGraph(graph);
+
+
                 currentGraph = currentGraphCreator.UpdateGraph(transform);
                 animationEnumerators.AddRange(result.enumerators);
                 expandSceneCount++;
@@ -417,6 +419,7 @@ namespace StoryGenerator
 
             while (!episodeDone)
             {
+                bool saveEpisode = false;
                 click = false;
                 float currTime = Time.time;
                 if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
@@ -442,6 +445,10 @@ namespace StoryGenerator
                     scriptLines.Add(move);
                     Debug.Log("move right");
                     keyPressed = true;
+                }
+                else if ((Input.GetKeyDown(KeyCode.V)))
+                {
+                    saveEpisode = true;
                 }
                 //TODO: add going backwards and clean up Input code
 
@@ -746,6 +753,11 @@ namespace StoryGenerator
                         }
                     }
                 }
+                if (saveEpisode)
+                {
+                    Debug.Log("Saving data...");
+                    currentEpisode.RecordData(episode);
+                }
                 if (keyPressed)
                 {
                     //un-highlight TODO 
@@ -769,7 +781,22 @@ namespace StoryGenerator
                     //    yield return new WaitForSeconds(0.01f);
                     //}
                     Debug.Log("Finished");
-                    currentGraph = currentGraphCreator.UpdateGraph(transform);
+
+                    // Update the graph
+                    List<ActionObjectData> last_action = new List<ActionObjectData>();
+                    ScriptPair script = sExecutors[0].script[0];
+                    State currentState = this.CurrentStateList[0];
+                    EnvironmentObject obj1;
+                    currentGraphCreator.objectNodeMap.TryGetValue(characters[0].gameObject, out obj1);
+                    Character character_graph;
+                    currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
+
+                    ActionObjectData object_script = new ActionObjectData(character_graph, script, currentState.scriptObjects);
+                    last_action.Add(object_script);
+
+
+                    currentGraph = currentGraphCreator.UpdateGraph(transform, null, last_action);
+
                     currentEpisode.checkTasks(currentGraph);
                     tasksUI.text = currentEpisode.UpdateTasksString();
                     currentEpisode.StoreGraph(currentGraph, currTime);
