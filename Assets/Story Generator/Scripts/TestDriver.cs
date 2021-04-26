@@ -131,7 +131,7 @@ namespace StoryGenerator
                 episodeNum = EpisodeNumber.episodeNum;
                 Debug.Log($"init episode number {episodeNum}");
                 // Load correct scene (episodeNum is just for testing rn)
-                string episodePath = $"Episodes/pilot_task_id_{episodeNum}_bounds.json";
+                string episodePath = $"Assets/Resources/Episodes/pilot_task_id_{episodeNum}_bounds.json";
 
                 string episodeFileContent = File.ReadAllText(episodePath);
                 //TextAsset episodeFile = Resources.Load<TextAsset>(episodePath);
@@ -247,7 +247,7 @@ namespace StoryGenerator
         IEnumerator ProcessInputRequest(int episode)
         {
             yield return null;
-            string episodePath = $"Episodes/pilot_task_id_{episode}_bounds.json";
+            string episodePath = $"Assets/Resources/Episodes/pilot_task_id_{episode}_bounds.json";
             string episodeFile = File.ReadAllText(episodePath);
             Episode currentEpisode = JsonUtility.FromJson<Episode>(episodeFile);
             currentEpisode.ClearDataFile(episode);
@@ -384,11 +384,29 @@ namespace StoryGenerator
             newCanvas.AddComponent<GraphicRaycaster>();
             GameObject eventSystem = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
 
-            TextMeshProUGUI tasksUI = canv.gameObject.AddComponent<TextMeshProUGUI>();
+            GameObject panel = new GameObject("Panel");
+            panel.AddComponent<CanvasRenderer>();
+            panel.transform.position = new Vector3(-408, 152, 0);
+            Image i = panel.AddComponent<Image>();
+            i.rectTransform.sizeDelta = new Vector2(350, 100);
+            i.color = Color.white;
+            var tempColor = i.color;
+            tempColor.a = .6f;
+            i.color = tempColor;
+
+            panel.transform.SetParent(newCanvas.transform, false);
+
+            GameObject tasksText = new GameObject("tasksText");
+            tasksText.AddComponent<TextMeshProUGUI>();
+            TextMeshProUGUI tasksUI = tasksText.GetComponent<TextMeshProUGUI>();
             tasksUI.raycastTarget = false;
             List<string> goals = new List<string>();
             tasksUI.fontSize = 12;
-            tasksUI.text = currentEpisode.GenerateTasksAndGoals();
+            tasksUI.rectTransform.position = new Vector3(-280, 150);
+            tasksUI.rectTransform.sizeDelta = new Vector2(350, 100);
+            currentEpisode.GenerateTasksAndGoals();
+            tasksUI.text = currentEpisode.UpdateTasksString();
+            tasksText.transform.SetParent(newCanvas.transform, false);
 
             AddButton("Open");
             AddButton("Grab");
@@ -847,7 +865,7 @@ namespace StoryGenerator
             }
             Debug.Log("done");
             EpisodeNumber.episodeNum++;
-            string nextEpisodePath = $"Episodes/pilot_task_id_{EpisodeNumber.episodeNum}_bounds.json";
+            string nextEpisodePath = $"Assets/Resources/Episodes/pilot_task_id_{EpisodeNumber.episodeNum}_bounds.json";
             string nextEpisodeFile =  File.ReadAllText(nextEpisodePath);
             Episode nextEpisode = JsonUtility.FromJson<Episode>(nextEpisodeFile);
             int nextSceneIndex = nextEpisode.env_id;
@@ -880,6 +898,7 @@ namespace StoryGenerator
             curr_button.layer = 5;
 
         }
+
         IEnumerator ProcessNetworkRequest()
         {
             // There is not always a character
@@ -2312,7 +2331,7 @@ namespace StoryGenerator
         private List<(Vector3, Vector3, float)> posAndRotation = new List<(Vector3, Vector3, float)>();
 
         private List<(string, float)> scriptActions = new List<(string, float)>();
-        private Dictionary<string, List<string>> goalRelations = new Dictionary<string, List<string>>();
+        private Dictionary<(string,string), List<string>> goalRelations = new Dictionary<(string,string), List<string>>();
         private HashSet<string> allPlacedObjects = new HashSet<string>();
 
         public Vector3 previousPos = new Vector3(0, 0, 0);
@@ -2320,7 +2339,7 @@ namespace StoryGenerator
 
         public void ClearDataFile(int episode)
         {
-            string outputPath = $"Episodes/Episode{episode}Data.txt";
+            string outputPath = $"Assets/Resources/Episodes/Episode{episode}Data.txt";
             using (FileStream fs = File.Create(outputPath)) { }
             foreach (EnvironmentRelation r in init_graph.edges)
             {
@@ -2389,13 +2408,13 @@ namespace StoryGenerator
                 Goal newG = new Goal(verb, obj1, obj2, t.repetitions);
                 goals.Add(newG);
                 allPlacedObjects.Add(obj1);
-                if (!goalRelations.ContainsKey(obj2))
+                if (!goalRelations.ContainsKey((obj2, verb)))
                 {
-                    goalRelations.Add(obj2, new List<string>());
+                    goalRelations.Add((obj2, verb), new List<string>());
                 }
                 for (int i = 0; i < t.repetitions; i++)
                 {
-                    goalRelations[obj2].Add(obj1);
+                    goalRelations[(obj2, verb)].Add(obj1);
                 }
             }
             return response;
@@ -2404,15 +2423,11 @@ namespace StoryGenerator
         public bool IsOn(EnvironmentObject o1, EnvironmentObject o2, EnvironmentGraphCreator graphCreator)
         {
             return graphCreator.HasEdge(o1.id, o2.id, ObjectRelation.ON);
-            //return g.
-            //if (o2.bounding_box.bounds.center.y > o1.bounding_box.bounds.min.y)
-            //    return false;
+        }
 
-            //Rect o1XZRect = BoundsUtils.XZRect(o1.bounding_box.bounds);
-            //Rect o2XZRect = BoundsUtils.XZRect(o2.bounding_box.bounds);
-
-            //// Sufficient area intersection
-            //return RectUtils.IntersectionArea(o1XZRect, o2XZRect) > o1XZRect.Area() * 0.5f;
+        public bool IsInside(EnvironmentObject o1, EnvironmentObject o2, EnvironmentGraphCreator graphCreator)
+        {
+            return graphCreator.HasEdge(o1.id, o2.id, ObjectRelation.INSIDE);
         }
 
         public List<string> OnTop(List<string> objs, string dest, EnvironmentGraph g, EnvironmentGraphCreator gc)
@@ -2438,20 +2453,23 @@ namespace StoryGenerator
 
         public void checkTasks(EnvironmentGraph g, EnvironmentGraphCreator gc)
         {
-            Dictionary<string, List<string>> goalsCopy = new Dictionary<string, List<string>>(goalRelations);
-            foreach (string dest in goalsCopy.Keys.ToList())
+            Dictionary<(string, string), List<string>> goalsCopy = new Dictionary<(string, string), List<string>>(goalRelations);
+            foreach ((string, string) dest in goalsCopy.Keys.ToList())
             {
-                goalsCopy[dest] = OnTop(goalsCopy[dest], dest, g, gc);
+                if (dest.Item2.Equals("put"))
+                {
+                    goalsCopy[dest] = OnTop(goalsCopy[dest], dest.Item1, g, gc);
+                }
             }
             foreach (Goal goal in goals)
             {
-                goal.repetitions = goalsCopy[goal.obj2].Where(x => x.Equals(goal.obj1)).Count();
+                goal.repetitions = goalsCopy[(goal.obj2, goal.verb)].Where(x => x.Equals(goal.obj1)).Count();
             }
         }
 
         public string UpdateTasksString()
         {
-            string response = "Tasks: \n";
+            string response = "Tasks: \n".AddColor(Color.black);
             bool moreTasks = false;
             foreach (Goal g in goals)
             {
@@ -2463,7 +2481,8 @@ namespace StoryGenerator
                 else
                 {
                     moreTasks = true;
-                    response += $"{g.verb} {g.obj1} on {g.obj2} x{g.repetitions}\n";
+                    string s = $"{g.verb} {g.obj1} on {g.obj2} x{g.repetitions}\n";
+                    response += $"{s.AddColor(Color.black)}"; 
                 }
             }
             if (!moreTasks)
