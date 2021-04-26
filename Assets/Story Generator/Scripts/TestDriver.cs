@@ -2404,17 +2404,19 @@ namespace StoryGenerator
                 string obj1 = action.Split('{', '}')[1];
                 string obj2 = action.Split('{', '}')[3];
                 string verb = action.Split('_')[0];
-                response += $"{verb} {obj1} on {obj2} x{t.repetitions}\n";
-                Goal newG = new Goal(verb, obj1, obj2, t.repetitions);
+                string rel = action.Split('_')[2];
+                //string[] a = action.Split('_');
+                response += $"{verb} {obj1} {rel} {obj2} x{t.repetitions}\n";
+                Goal newG = new Goal(verb, rel, obj1, obj2, t.repetitions);
                 goals.Add(newG);
                 allPlacedObjects.Add(obj1);
-                if (!goalRelations.ContainsKey((obj2, verb)))
+                if (!goalRelations.ContainsKey((obj2, rel)))
                 {
-                    goalRelations.Add((obj2, verb), new List<string>());
+                    goalRelations.Add((obj2, rel), new List<string>());
                 }
                 for (int i = 0; i < t.repetitions; i++)
                 {
-                    goalRelations[(obj2, verb)].Add(obj1);
+                    goalRelations[(obj2, rel)].Add(obj1);
                 }
             }
             return response;
@@ -2430,18 +2432,22 @@ namespace StoryGenerator
             return graphCreator.HasEdge(o1.id, o2.id, ObjectRelation.INSIDE);
         }
 
-        public List<string> OnTop(List<string> objs, string dest, EnvironmentGraph g, EnvironmentGraphCreator gc)
+        public List<string> RelationsCompleted(List<string> objs, (string, string) dest, EnvironmentGraph g, EnvironmentGraphCreator gc)
         {
             List<string> allObjsNeeded = new List<string>(objs);
             List<EnvironmentObject> platforms = new List<EnvironmentObject>();
-            foreach (EnvironmentObject o in g.nodes) { if (o.class_name.Equals(dest)) { platforms.Add(o); } }
+            foreach (EnvironmentObject o in g.nodes) { if (o.class_name.Equals(dest.Item1)) { platforms.Add(o); } }
             foreach (EnvironmentObject env_obj in g.nodes)
             {
                 if (objs.Contains(env_obj.class_name))
                 {
                     foreach (EnvironmentObject platform in platforms)
                     {
-                        if (IsOn(env_obj, platform, gc))
+                        if (dest.Item2.Equals("on") && IsOn(env_obj, platform, gc))
+                        {
+                            allObjsNeeded.Remove(env_obj.class_name);
+                        }
+                        if (dest.Item2.Equals("in") && IsInside(env_obj, platform, gc))
                         {
                             allObjsNeeded.Remove(env_obj.class_name);
                         }
@@ -2456,14 +2462,11 @@ namespace StoryGenerator
             Dictionary<(string, string), List<string>> goalsCopy = new Dictionary<(string, string), List<string>>(goalRelations);
             foreach ((string, string) dest in goalsCopy.Keys.ToList())
             {
-                if (dest.Item2.Equals("put"))
-                {
-                    goalsCopy[dest] = OnTop(goalsCopy[dest], dest.Item1, g, gc);
-                }
+                goalsCopy[dest] = RelationsCompleted(goalsCopy[dest], dest, g, gc);
             }
             foreach (Goal goal in goals)
             {
-                goal.repetitions = goalsCopy[(goal.obj2, goal.verb)].Where(x => x.Equals(goal.obj1)).Count();
+                goal.repetitions = goalsCopy[(goal.obj2, goal.relation)].Where(x => x.Equals(goal.obj1)).Count();
             }
         }
 
@@ -2475,13 +2478,13 @@ namespace StoryGenerator
             {
                 if (g.repetitions == 0)
                 {
-                    string s = $"{g.verb} {g.obj1} on {g.obj2} x{g.repetitions}\n";
+                    string s = $"{g.verb} {g.obj1} {g.relation} {g.obj2} x{g.repetitions}\n";
                     response += $"{s.AddColor(Color.green)}";
                 }
                 else
                 {
                     moreTasks = true;
-                    string s = $"{g.verb} {g.obj1} on {g.obj2} x{g.repetitions}\n";
+                    string s = $"{g.verb} {g.obj1} {g.relation} {g.obj2} x{g.repetitions}\n";
                     response += $"{s.AddColor(Color.black)}"; 
                 }
             }
@@ -2509,13 +2512,15 @@ namespace StoryGenerator
     public class Goal
     {
         public string verb { get; set; }
+        public string relation { get; set; }
         public string obj1 { get; set; }
         public string obj2 { get; set; }
         public int repetitions { get; set; }
 
-        public Goal(string v, string o1, string o2, int reps)
+        public Goal(string v, string rel, string o1, string o2, int reps)
         {
             verb = v;
+            relation = rel;
             obj1 = o1;
             obj2 = o2;
             repetitions = reps;
