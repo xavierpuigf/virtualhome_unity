@@ -317,6 +317,13 @@ namespace StoryGenerator.Utilities
             return graph;
         }
 
+        public bool HasEdge(int from_id, int to_id, ObjectRelation relation)
+        {
+            Tuple<int, int, ObjectRelation> tuple = new Tuple<int, int, ObjectRelation>(from_id, to_id, relation);
+
+            return edgeSet.Contains(tuple);
+        }
+
         public EnvironmentGraph GetGraph()
         {
             graph.nodes.Sort((eo1, eo2) => eo1.id.CompareTo(eo2.id));

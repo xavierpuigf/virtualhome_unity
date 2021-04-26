@@ -799,7 +799,7 @@ namespace StoryGenerator
 
                     currentGraph = currentGraphCreator.UpdateGraph(transform, null, last_action);
 
-                    currentEpisode.checkTasks(currentGraph);
+                    currentEpisode.checkTasks(currentGraph, currentGraphCreator);
                     tasksUI.text = currentEpisode.UpdateTasksString();
                     currentEpisode.StoreGraph(currentGraph, currTime);
 
@@ -2401,19 +2401,21 @@ namespace StoryGenerator
             return response;
         }
 
-        public bool IsOn(EnvironmentObject o1, EnvironmentObject o2)
+        public bool IsOn(EnvironmentObject o1, EnvironmentObject o2, EnvironmentGraphCreator graphCreator)
         {
-            if (o2.bounding_box.bounds.center.y > o1.bounding_box.bounds.min.y)
-                return false;
+            return graphCreator.HasEdge(o1.id, o2.id, ObjectRelation.ON);
+            //return g.
+            //if (o2.bounding_box.bounds.center.y > o1.bounding_box.bounds.min.y)
+            //    return false;
 
-            Rect o1XZRect = BoundsUtils.XZRect(o1.bounding_box.bounds);
-            Rect o2XZRect = BoundsUtils.XZRect(o2.bounding_box.bounds);
+            //Rect o1XZRect = BoundsUtils.XZRect(o1.bounding_box.bounds);
+            //Rect o2XZRect = BoundsUtils.XZRect(o2.bounding_box.bounds);
 
-            // Sufficient area intersection
-            return RectUtils.IntersectionArea(o1XZRect, o2XZRect) > o1XZRect.Area() * 0.5f;
+            //// Sufficient area intersection
+            //return RectUtils.IntersectionArea(o1XZRect, o2XZRect) > o1XZRect.Area() * 0.5f;
         }
 
-        public List<string> OnTop(List<string> objs, string dest, EnvironmentGraph g)
+        public List<string> OnTop(List<string> objs, string dest, EnvironmentGraph g, EnvironmentGraphCreator gc)
         {
             List<string> allObjsNeeded = new List<string>(objs);
             List<EnvironmentObject> platforms = new List<EnvironmentObject>();
@@ -2424,7 +2426,7 @@ namespace StoryGenerator
                 {
                     foreach (EnvironmentObject platform in platforms)
                     {
-                        if (IsOn(env_obj, platform))
+                        if (IsOn(env_obj, platform, gc))
                         {
                             allObjsNeeded.Remove(env_obj.class_name);
                         }
@@ -2434,12 +2436,12 @@ namespace StoryGenerator
             return allObjsNeeded;
         }
 
-        public void checkTasks(EnvironmentGraph g)
+        public void checkTasks(EnvironmentGraph g, EnvironmentGraphCreator gc)
         {
             Dictionary<string, List<string>> goalsCopy = new Dictionary<string, List<string>>(goalRelations);
             foreach (string dest in goalsCopy.Keys.ToList())
             {
-                goalsCopy[dest] = OnTop(goalsCopy[dest], dest, g);
+                goalsCopy[dest] = OnTop(goalsCopy[dest], dest, g, gc);
             }
             foreach (Goal goal in goals)
             {
