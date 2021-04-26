@@ -131,9 +131,11 @@ namespace StoryGenerator
                 episodeNum = EpisodeNumber.episodeNum;
                 Debug.Log($"init episode number {episodeNum}");
                 // Load correct scene (episodeNum is just for testing rn)
-                string episodePath = $"Episodes/pilot_task_id_{episodeNum}_bounds";
-                TextAsset episodeFile = Resources.Load<TextAsset>(episodePath);
-                Episode currentEpisode = JsonUtility.FromJson<Episode>(episodeFile.text);
+                string episodePath = $"Episodes/pilot_task_id_{episodeNum}_bounds.json";
+
+                string episodeFileContent = File.ReadAllText(episodePath);
+                //TextAsset episodeFile = Resources.Load<TextAsset>(episodePath);
+                Episode currentEpisode = JsonUtility.FromJson<Episode>(episodeFileContent);
                 SceneManager.LoadScene(currentEpisode.env_id);
                 yield return null;
             }
@@ -245,9 +247,9 @@ namespace StoryGenerator
         IEnumerator ProcessInputRequest(int episode)
         {
             yield return null;
-            string episodePath = $"Episodes/pilot_task_id_{episode}_bounds";
-            TextAsset episodeFile = Resources.Load<TextAsset>(episodePath);
-            Episode currentEpisode = JsonUtility.FromJson<Episode>(episodeFile.text);
+            string episodePath = $"Episodes/pilot_task_id_{episode}_bounds.json";
+            string episodeFile = File.ReadAllText(episodePath);
+            Episode currentEpisode = JsonUtility.FromJson<Episode>(episodeFile);
             currentEpisode.ClearDataFile(episode);
 
             sceneCameras = ScriptUtils.FindAllCameras(transform);
@@ -845,9 +847,9 @@ namespace StoryGenerator
             }
             Debug.Log("done");
             EpisodeNumber.episodeNum++;
-            string nextEpisodePath = $"Episodes/pilot_task_id_{EpisodeNumber.episodeNum}_bounds";
-            TextAsset nextEpisodeFile = Resources.Load<TextAsset>(nextEpisodePath);
-            Episode nextEpisode = JsonUtility.FromJson<Episode>(nextEpisodeFile.text);
+            string nextEpisodePath = $"Episodes/pilot_task_id_{EpisodeNumber.episodeNum}_bounds.json";
+            string nextEpisodeFile =  File.ReadAllText(nextEpisodePath);
+            Episode nextEpisode = JsonUtility.FromJson<Episode>(nextEpisodeFile);
             int nextSceneIndex = nextEpisode.env_id;
             if (nextSceneIndex >= 0 && nextSceneIndex < SceneManager.sceneCountInBuildSettings)
             {
@@ -2318,7 +2320,7 @@ namespace StoryGenerator
 
         public void ClearDataFile(int episode)
         {
-            string outputPath = $"Assets/Resources/Episodes/Episode{episode}Data.txt";
+            string outputPath = $"Episodes/Episode{episode}Data.txt";
             using (FileStream fs = File.Create(outputPath)) { }
             foreach (EnvironmentRelation r in init_graph.edges)
             {
