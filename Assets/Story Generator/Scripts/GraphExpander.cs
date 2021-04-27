@@ -280,7 +280,13 @@ namespace StoryGenerator.Utilities
                 {
                     if (obj.prefab_name != null)
                     {
-                        loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(obj.prefab_name)) as GameObject;
+                        string prefab_path;
+                        bool exists_path = dataProviders.AssetPathMap.TryGetValue(obj.prefab_name, out prefab_path);
+                        if (exists_path)
+                        {
+
+                            loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(prefab_path)) as GameObject;
+                        }
                     }
                     if (loadedObj == null)
                     {

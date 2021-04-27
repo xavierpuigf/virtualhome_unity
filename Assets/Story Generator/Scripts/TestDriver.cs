@@ -1541,6 +1541,7 @@ namespace StoryGenerator
         public ObjectSelectionProvider ObjectSelectorProvider { get; private set; }
         public RoomSelector RoomSelector { get; private set; }
         public ObjectPropertiesProvider ObjectPropertiesProvider { get; private set; }
+        public Dictionary<string, string> AssetPathMap;
 
         public DataProviders()
         {
@@ -1552,9 +1553,29 @@ namespace StoryGenerator
             NameEquivalenceProvider = new NameEquivalenceProvider("Data/class_name_equivalence");
             ActionEquivalenceProvider = new ActionEquivalenceProvider("Data/action_mapping");
             AssetsProvider = new AssetsProvider("Data/object_prefabs");
+            AssetPathMap = BuildPathMap("Data/object_prefabs");
             ObjectSelectorProvider = new ObjectSelectionProvider(NameEquivalenceProvider);
             RoomSelector = new RoomSelector(NameEquivalenceProvider);
             ObjectPropertiesProvider = new ObjectPropertiesProvider(NameEquivalenceProvider);
+        }
+
+        private Dictionary<string, string> BuildPathMap(string resourceName)
+        {
+            Dictionary<string, string> result = new Dictionary<string, string> ();
+            List<string> all_prefabs = new List<string>();
+            TextAsset txtAsset = Resources.Load<TextAsset>(resourceName);
+            var tmpAssetsMap = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(txtAsset.text);
+
+            foreach (var e in tmpAssetsMap)
+            {
+                foreach (var str_prefab in e.Value)
+                {
+                    string prefab_name = Path.GetFileNameWithoutExtension(str_prefab);
+                    result[prefab_name] = str_prefab;
+                }
+
+            }
+            return result;
         }
     }
 
