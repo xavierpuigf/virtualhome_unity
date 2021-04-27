@@ -22,7 +22,8 @@ namespace StoryGenerator.Utilities
                 pwidth = mousePos.x - width / 2 - 150;
             if (position == "right")
                 pwidth = mousePos.x - width / 2 + 150;
-
+            if (position == "bottom")
+                pheight = mousePos.y + 50;
             button.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, pwidth, width);
             button.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Top, pheight, height);
         }
@@ -330,8 +331,8 @@ namespace StoryGenerator.Utilities
             else // clickPos specified
             {
                 // obtain x and z values from the click position
-                
-
+                result.Add(clickPos.Value);
+                /*
                 float x = clickPos.Value.x;
                 float z = clickPos.Value.z;
                 //GameObject prim = GameObject.CreatePrimitive(PrimitiveType.Capsule);
@@ -356,7 +357,7 @@ namespace StoryGenerator.Utilities
                     {
                         result.Add(srcPos + delta);
                     }
-                }
+                }*/
             }
 
 
