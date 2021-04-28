@@ -131,7 +131,7 @@ namespace StoryGenerator
                 episodeNum = EpisodeNumber.episodeNum;
                 Debug.Log($"init episode number {episodeNum}");
                 // Load correct scene (episodeNum is just for testing rn)
-                string episodePath = $"Assets/Resources/Episodes/pilot_task_id_{episodeNum}_bounds.json";
+                string episodePath = $"Episodes/pilot_task_id_{episodeNum}_bounds.json";
 
                 string episodeFileContent = File.ReadAllText(episodePath);
                 //TextAsset episodeFile = Resources.Load<TextAsset>(episodePath);
@@ -247,7 +247,7 @@ namespace StoryGenerator
         IEnumerator ProcessInputRequest(int episode)
         {
             yield return null;
-            string episodePath = $"Assets/Resources/Episodes/pilot_task_id_{episode}_bounds.json";
+            string episodePath = $"Episodes/pilot_task_id_{episode}_bounds.json";
             string episodeFile = File.ReadAllText(episodePath);
             Episode currentEpisode = JsonUtility.FromJson<Episode>(episodeFile);
             currentEpisode.ClearDataFile(episode);
@@ -865,7 +865,7 @@ namespace StoryGenerator
             }
             Debug.Log("done");
             EpisodeNumber.episodeNum++;
-            string nextEpisodePath = $"Assets/Resources/Episodes/pilot_task_id_{EpisodeNumber.episodeNum}_bounds.json";
+            string nextEpisodePath = $"Episodes/pilot_task_id_{EpisodeNumber.episodeNum}_bounds.json";
             string nextEpisodeFile =  File.ReadAllText(nextEpisodePath);
             Episode nextEpisode = JsonUtility.FromJson<Episode>(nextEpisodeFile);
             int nextSceneIndex = nextEpisode.env_id;
@@ -2339,7 +2339,7 @@ namespace StoryGenerator
 
         public void ClearDataFile(int episode)
         {
-            string outputPath = $"Assets/Resources/Episodes/Episode{episode}Data.txt";
+            string outputPath = $"Episodes/Episode{episode}Data.txt";
             using (FileStream fs = File.Create(outputPath)) { }
             foreach (EnvironmentRelation r in init_graph.edges)
             {
@@ -2365,7 +2365,7 @@ namespace StoryGenerator
 
         public void RecordData(int episode)
         {
-            string outputPath = $"Assets/Resources/Episodes/Episode{episode}Data.txt";
+            string outputPath = $"Episodes/Episode{episode}Data.txt";
             StreamWriter outputFile = new StreamWriter(outputPath, true);
             outputFile.WriteLine("Position and Orientation Data:");
             foreach ((Vector3, Vector3, float) pos in posAndRotation)
