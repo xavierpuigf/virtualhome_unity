@@ -131,7 +131,7 @@ namespace StoryGenerator
                 episodeNum = EpisodeNumber.episodeNum;
                 Debug.Log($"init episode number {episodeNum}");
                 // Load correct scene (episodeNum is just for testing rn)
-                string episodePath = $"Episodes/pilot_task_id_{episodeNum}_bounds.json";
+                string episodePath = $"Assets/Resources/Episodes/pilot_task_id_{episodeNum}_bounds.json";
 
                 string episodeFileContent = File.ReadAllText(episodePath);
                 //TextAsset episodeFile = Resources.Load<TextAsset>(episodePath);
@@ -247,7 +247,7 @@ namespace StoryGenerator
         IEnumerator ProcessInputRequest(int episode)
         {
             yield return null;
-            string episodePath = $"Episodes/pilot_task_id_{episode}_bounds.json";
+            string episodePath = $"Assets/Resources/Episodes/pilot_task_id_{episode}_bounds.json";
             string episodeFile = File.ReadAllText(episodePath);
             Episode currentEpisode = JsonUtility.FromJson<Episode>(episodeFile);
             currentEpisode.ClearDataFile(episode);
@@ -591,7 +591,7 @@ namespace StoryGenerator
                             currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
 
                             float distance = Vector3.Distance(newchar.transform.position, obj.transform.position);
-                            distance = 0.0f;
+                            //distance = 0.0f;
                             Debug.Log("MY POSITION " + newchar.transform.position);
                             Debug.Log("OBJECT POSITION " + obj.transform.position);
                             Debug.Log("DISTANCE " +  distance);
@@ -635,7 +635,7 @@ namespace StoryGenerator
                             }
 
                             //put on/in surfaces
-                            else if ((objProperties.Contains("SURFACES") || objProperties.Contains("CONTAINERS")) && (rh != null || lh != null) && (!goPutLeft.activeSelf || !goPutRight.activeSelf) && distance < 2)
+                            else if ((objProperties.Contains("SURFACES") || (objProperties.Contains("CONTAINERS") && objStates.Contains(Utilities.ObjectState.OPEN))) && (rh != null || lh != null) && (!goPutLeft.activeSelf || !goPutRight.activeSelf) && distance < 2)
                             {
                                 Debug.Log("put");
 
@@ -931,7 +931,7 @@ namespace StoryGenerator
             }
             Debug.Log("done");
             EpisodeNumber.episodeNum++;
-            string nextEpisodePath = $"Episodes/pilot_task_id_{EpisodeNumber.episodeNum}_bounds.json";
+            string nextEpisodePath = $"Assets/Resources/Episodes/pilot_task_id_{EpisodeNumber.episodeNum}_bounds.json";
             string nextEpisodeFile =  File.ReadAllText(nextEpisodePath);
             Episode nextEpisode = JsonUtility.FromJson<Episode>(nextEpisodeFile);
             int nextSceneIndex = nextEpisode.env_id;
@@ -2405,7 +2405,7 @@ namespace StoryGenerator
 
         public void ClearDataFile(int episode)
         {
-            string outputPath = $"Episodes/Episode{episode}Data.txt";
+            string outputPath = $"Assets/Resources/Episodes/Episode{episode}Data.txt";
             using (FileStream fs = File.Create(outputPath)) { }
             foreach (EnvironmentRelation r in init_graph.edges)
             {
@@ -2431,7 +2431,7 @@ namespace StoryGenerator
 
         public void RecordData(int episode)
         {
-            string outputPath = $"Episodes/Episode{episode}Data.txt";
+            string outputPath = $"Assets/Resources/Episodes/Episode{episode}Data.txt";
             StreamWriter outputFile = new StreamWriter(outputPath, true);
             outputFile.WriteLine("Position and Orientation Data:");
             foreach ((Vector3, Vector3, float) pos in posAndRotation)
