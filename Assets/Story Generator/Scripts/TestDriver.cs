@@ -357,8 +357,6 @@ namespace StoryGenerator
             currentGraph = currentGraphCreator.UpdateGraph(transform);
 
             bool keyPressed = false;
-            bool leftExecuted = false;
-            bool rightExecuted = false;
             bool click = false;
 
             ExecutionConfig config = new ExecutionConfig();
@@ -581,7 +579,163 @@ namespace StoryGenerator
                             Character character_graph;
                             currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
 
-                            if (objProperties.Contains("CAN_OPEN") && !goOpen.activeSelf)
+                            float distance = Vector3.Distance(newchar.transform.position, obj.transform.position);
+
+                            Debug.Log("MY POSITION " + newchar.transform.position);
+                            Debug.Log("OBJECT POSITION " + obj.transform.position);
+                            Debug.Log("DISTANCE " +  distance);
+
+                            if (objProperties.Contains("GRABBABLE") && !goGrab.activeSelf && distance < 2)
+                            {
+                                Debug.Log("grab");
+
+                                //TODO: fix highlight
+                                /*if (rend != null)
+                                {
+                                    startcolor = rend.material.color;
+                                    Debug.Log("rend not null! " + rend.material.color);
+                                    rend.material.color = Color.yellow;
+                                }*/
+
+                                goGrab.GetComponentInChildren<TextMeshProUGUI>().text = "Grab " + objectName;
+                                
+                                goGrab.SetActive(true);
+                                GameObjectUtils.PositionButton(mousePos, goGrab, "center");
+
+
+                                button_created = true;
+                                Button buttonGrab = goGrab.GetComponent<Button>();
+                                buttonGrab.onClick.AddListener(() =>
+                                {
+                                    Debug.Log("grabbed");
+                                    button_created = false;
+
+                                    string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
+                                    
+                                    currentEpisode.AddAction(action, currTime);
+                                    tasksUI.text = currentEpisode.UpdateTasksString();
+                                    Debug.Log(action);
+                                    scriptLines.Add(action);
+                                    goGrab.SetActive(false);
+                                    keyPressed = true;
+
+                                    buttonGrab.onClick.RemoveAllListeners();
+                                });
+                            }
+
+                            //put on/in surfaces
+                            else if ((objProperties.Contains("SURFACES") || objProperties.Contains("CONTAINERS")) && (rh != null || lh != null) && (!goPutLeft.activeSelf || !goPutRight.activeSelf) && distance < 2)
+                            {
+                                Debug.Log("put");
+
+                                if (lh != null)
+                                {
+                                    currentGraphCreator.objectNodeMap.TryGetValue(lh, out obj2);
+                                    Debug.Log("Put " + obj2.class_name + " on " + objectName);
+                                    goPutLeft.GetComponentInChildren<TextMeshProUGUI>().text = "Put " + obj2.class_name + "\n on " + objectName;
+                                    goPutLeft.SetActive(true);
+
+                                    Button buttonPutLeft = goPutLeft.GetComponent<Button>();
+                                    if (rh == null)
+                                        GameObjectUtils.PositionButton(mousePos, goPutLeft, "center");
+                                    else
+                                        GameObjectUtils.PositionButton(mousePos, goPutLeft, "left");
+
+                                    button_created = true;
+
+                                    buttonPutLeft.onClick.AddListener(() =>
+                                    {
+                                        Debug.Log("put left at " + rayHit.point);
+                                        button_created = false;
+
+                                        string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
+
+                                        string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj2.class_name, obj2.id, putPos);
+                                        Debug.Log(action);
+                                        
+                                        currentEpisode.AddAction(action, currTime);
+                                        tasksUI.text = currentEpisode.UpdateTasksString();
+                                        scriptLines.Add(action);
+
+                                        goPutLeft.SetActive(false);
+                                        keyPressed = true;
+
+                                        buttonPutLeft.onClick.RemoveAllListeners();
+                                    });
+                                }
+                                if (rh != null)
+                                {
+                                    currentGraphCreator.objectNodeMap.TryGetValue(rh, out obj3);
+                                    Debug.Log("Put " + obj3.class_name + " on " + objectName);
+                                    goPutRight.GetComponentInChildren<TextMeshProUGUI>().text = "Put " + obj3.class_name + "\n on " + objectName;
+                                    goPutRight.SetActive(true);
+                                    Button buttonPutRight = goPutRight.GetComponent<Button>();
+
+                                    if (lh == null)
+                                        GameObjectUtils.PositionButton(mousePos, goPutRight, "center");
+                                    else
+                                        GameObjectUtils.PositionButton(mousePos, goPutRight, "right");
+                                    //TODO: are these buttons in the right location?
+                                    button_created = true;
+
+                                    buttonPutRight.onClick.AddListener(() =>
+                                    {
+                                        Debug.Log("put right at " + rayHit.point);
+                                        button_created = false;
+
+
+                                        string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
+
+                                        string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj3.class_name, obj3.id, putPos);
+                                        Debug.Log(action);
+                                        
+                                        currentEpisode.AddAction(action, currTime);
+                                        tasksUI.text = currentEpisode.UpdateTasksString();
+                                        scriptLines.Add(action);
+
+                                        goPutRight.SetActive(false);
+                                        keyPressed = true;
+
+                                        buttonPutRight.onClick.RemoveAllListeners();
+                                    });
+
+                                }
+
+                                //close if open
+                                if (objProperties.Contains("CAN_OPEN") && !goOpen.activeSelf)
+                                {
+                                    if (objStates.Contains(Utilities.ObjectState.OPEN)) 
+                                    {
+                                        goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Close " + objectName;
+                                    
+                                        goOpen.SetActive(true);
+                                        Button buttonOpen = goOpen.GetComponent<Button>();
+                                        GameObjectUtils.PositionButton(mousePos, goOpen, "bottom");
+
+                                        button_created = true;
+
+                                        buttonOpen.onClick.AddListener(() =>
+                                        {
+                                            button_created = false;
+
+                                            Debug.Log("closed with options of put");
+                                            objStates.Remove(Utilities.ObjectState.OPEN);
+                                            objStates.Add(Utilities.ObjectState.CLOSED);
+                                            string action = String.Format("<char0> [close] <{0}> ({1})", objectName, objectId);
+                                            
+                                            currentEpisode.AddAction(action, currTime);
+                                            tasksUI.text = currentEpisode.UpdateTasksString();
+                                            scriptLines.Add(action);
+                                            goOpen.SetActive(false);
+                                            keyPressed = true;
+
+                                            buttonOpen.onClick.RemoveAllListeners();
+                                        });
+                                    }
+                                }
+                            }
+                            //open/close
+                            else if (objProperties.Contains("CAN_OPEN") && !goOpen.activeSelf && distance < 2)
                             {
                                 //TODO: fix highlight
                                 /*if (rend != null)
@@ -646,130 +800,7 @@ namespace StoryGenerator
                                         buttonOpen.onClick.RemoveAllListeners();
                                     });
                                 }
-
-
                             }
-                            else if (objProperties.Contains("GRABBABLE") && !goGrab.activeSelf)
-                            {
-                                Debug.Log("grab");
-
-                                //TODO: fix highlight
-                                /*if (rend != null)
-                                {
-                                    startcolor = rend.material.color;
-                                    Debug.Log("rend not null! " + rend.material.color);
-                                    rend.material.color = Color.yellow;
-                                }*/
-
-                                goGrab.GetComponentInChildren<TextMeshProUGUI>().text = "Grab " + objectName;
-                                
-                                goGrab.SetActive(true);
-                                GameObjectUtils.PositionButton(mousePos, goGrab, "center");
-
-
-                                button_created = true;
-                                Button buttonGrab = goGrab.GetComponent<Button>();
-                                buttonGrab.onClick.AddListener(() =>
-                                {
-                                    Debug.Log("grabbed");
-                                    button_created = false;
-
-                                    string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
-                                    
-                                    currentEpisode.AddAction(action, currTime);
-                                    tasksUI.text = currentEpisode.UpdateTasksString();
-                                    Debug.Log(action);
-                                    scriptLines.Add(action);
-                                    goGrab.SetActive(false);
-                                    keyPressed = true;
-
-                                    buttonGrab.onClick.RemoveAllListeners();
-                                });
-                            }
-
-                            //put on/in surfaces
-                            else if ((objProperties.Contains("SURFACES") || objProperties.Contains("CONTAINERS")) && (rh != null || lh != null) && (!goPutLeft.activeSelf || !goPutRight.activeSelf))
-                            {
-                                Debug.Log("put");
-
-                                if (lh != null)
-                                {
-                                    currentGraphCreator.objectNodeMap.TryGetValue(lh, out obj2);
-                                    Debug.Log("Put " + obj2.class_name + " on " + objectName);
-                                    goPutLeft.GetComponentInChildren<TextMeshProUGUI>().text = "Put " + obj2.class_name + "\n on " + objectName;
-                                    goPutLeft.SetActive(true);
-
-                                    Button buttonPutLeft = goPutLeft.GetComponent<Button>();
-                                    if (rh == null)
-                                        GameObjectUtils.PositionButton(mousePos, goPutLeft, "center");
-                                    else
-                                        GameObjectUtils.PositionButton(mousePos, goPutLeft, "left");
-
-                                    button_created = true;
-
-                                    buttonPutLeft.onClick.AddListener(() =>
-                                    {
-                                        Debug.Log("put left at " + rayHit.point);
-                                        button_created = false;
-
-                                        string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
-
-                                        string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj2.class_name, obj2.id, putPos);
-                                        Debug.Log(action);
-                                        
-                                        currentEpisode.AddAction(action, currTime);
-                                        tasksUI.text = currentEpisode.UpdateTasksString();
-                                        scriptLines.Add(action);
-
-                                        leftExecuted = true;
-                                        goPutLeft.SetActive(false);
-                                        keyPressed = true;
-
-                                        buttonPutLeft.onClick.RemoveAllListeners();
-                                    });
-                                }
-                                if (rh != null)
-                                {
-                                    currentGraphCreator.objectNodeMap.TryGetValue(rh, out obj3);
-                                    Debug.Log("Put " + obj3.class_name + " on " + objectName);
-                                    goPutRight.GetComponentInChildren<TextMeshProUGUI>().text = "Put " + obj3.class_name + "\n on " + objectName;
-                                    goPutRight.SetActive(true);
-                                    Button buttonPutRight = goPutRight.GetComponent<Button>();
-
-                                    if (lh == null)
-                                        GameObjectUtils.PositionButton(mousePos, goPutRight, "center");
-                                    else
-                                        GameObjectUtils.PositionButton(mousePos, goPutRight, "right");
-                                    //TODO: are these buttons in the right location?
-                                    button_created = true;
-
-                                    buttonPutRight.onClick.AddListener(() =>
-                                    {
-                                        Debug.Log("put right at " + rayHit.point);
-                                        button_created = false;
-
-
-                                        string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
-
-                                        string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj3.class_name, obj3.id, putPos);
-                                        Debug.Log(action);
-                                        
-                                        currentEpisode.AddAction(action, currTime);
-                                        tasksUI.text = currentEpisode.UpdateTasksString();
-                                        scriptLines.Add(action);
-
-                                        rightExecuted = true;
-                                        goPutRight.SetActive(false);
-                                        keyPressed = true;
-
-                                        buttonPutRight.onClick.RemoveAllListeners();
-                                    });
-
-                                }
-
-                            }
-
-
                         }
                     }
                 }
@@ -825,19 +856,8 @@ namespace StoryGenerator
                     Debug.Log("key pressed");
                     goOpen.SetActive(false);
                     goGrab.SetActive(false);
-
-                    if (leftExecuted)
-                    {
-                        goPutLeft.SetActive(false);
-                        leftExecuted = false;
-                    }
-                    if (rightExecuted)
-                    {
-                        goPutRight.SetActive(false);
-                        rightExecuted = false;
-                    }
-                    
-                    
+                    goPutLeft.SetActive(false);
+                    goPutRight.SetActive(false);   
 
                     keyPressed = false;
                     click = false;
