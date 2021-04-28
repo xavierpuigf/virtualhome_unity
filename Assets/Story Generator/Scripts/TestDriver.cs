@@ -406,7 +406,8 @@ namespace StoryGenerator
             TextMeshProUGUI tasksUI = tasksText.GetComponent<TextMeshProUGUI>();
             tasksUI.raycastTarget = false;
             List<string> goals = new List<string>();
-            tasksUI.fontSize = 25;
+            tasksUI.fontSize = 12 * sizew / 250;
+            //tasksUI.font
             tasksUI.rectTransform.position = new Vector3(posx, +canvasrect.height * 0.5f - sizeh/2.0f - margin);
             tasksUI.rectTransform.sizeDelta = new Vector2(sizew, sizeh);
             currentEpisode.GenerateTasksAndGoals();
@@ -854,6 +855,7 @@ namespace StoryGenerator
                     yield return new WaitUntil(() => finishedChars != numCharacters);
                     if (!sExecutors[0].Success)
                     {
+                        currentEpisode.FailAction();
                         Debug.Log("Failure");
                     }
                     else
@@ -2454,6 +2456,17 @@ namespace StoryGenerator
             posAndRotation.Add((coord, rot, t));
         }
 
+        public void FailAction()
+        {
+            // Make the last action fail
+            if (scriptActions.Count > 0)
+            {
+                var (action, t) = scriptActions[scriptActions.Count - 1];
+                action = "failure " + action;
+                scriptActions[scriptActions.Count - 1] = (action, t);
+            }
+            
+        }
         public void AddAction(string a, float t)
         {
             scriptActions.Add((a, t));
