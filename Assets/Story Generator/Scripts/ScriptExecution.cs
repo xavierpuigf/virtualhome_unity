@@ -2844,7 +2844,7 @@ namespace StoryGenerator.Utilities
             HandInteraction hi = go.GetComponent<HandInteraction>();
             Properties_door pd = go.GetComponent<Properties_door>();
 
-            if (s.InteractionPosition != s.Previous.InteractionPosition)
+            if (s.InteractionPosition != s.Previous.InteractionPosition && this.walk_before_interaction)
                 yield return ExecuteWalkOrRun(s, false, ga.Name);
 
             recorder.MarkActionStart(ga.Close ? InteractionType.CLOSE : InteractionType.OPEN, ga.ScriptLine);

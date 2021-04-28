@@ -382,26 +382,33 @@ namespace StoryGenerator
             newCanvas.AddComponent<GraphicRaycaster>();
             GameObject eventSystem = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
 
+            Rect canvasrect = canv.GetComponent<RectTransform>().rect;
+            
             GameObject panel = new GameObject("Panel");
             panel.AddComponent<CanvasRenderer>();
-            panel.transform.position = new Vector3(-408, 152, 0);
+
+            float sizew = canvasrect.width * 0.25f;
+            float sizeh = sizew * 0.5f;
+            float margin = sizew * 0.05f;
+            float posx = -canvasrect.width / 2.0f + sizew * 0.5f + margin;
+            panel.transform.position = new Vector3(posx, +canvasrect.height * 0.5f - sizeh/2.0f - margin);
             Image i = panel.AddComponent<Image>();
-            i.rectTransform.sizeDelta = new Vector2(350, 100);
+            i.rectTransform.sizeDelta = new Vector2(sizew, sizeh);
             i.color = Color.white;
             var tempColor = i.color;
             tempColor.a = .6f;
             i.color = tempColor;
 
             panel.transform.SetParent(newCanvas.transform, false);
-
+           
             GameObject tasksText = new GameObject("tasksText");
             tasksText.AddComponent<TextMeshProUGUI>();
             TextMeshProUGUI tasksUI = tasksText.GetComponent<TextMeshProUGUI>();
             tasksUI.raycastTarget = false;
             List<string> goals = new List<string>();
-            tasksUI.fontSize = 12;
-            tasksUI.rectTransform.position = new Vector3(-280, 150);
-            tasksUI.rectTransform.sizeDelta = new Vector2(350, 100);
+            tasksUI.fontSize = 25;
+            tasksUI.rectTransform.position = new Vector3(posx, +canvasrect.height * 0.5f - sizeh/2.0f - margin);
+            tasksUI.rectTransform.sizeDelta = new Vector2(sizew, sizeh);
             currentEpisode.GenerateTasksAndGoals();
             tasksUI.text = currentEpisode.UpdateTasksString();
             tasksText.transform.SetParent(newCanvas.transform, false);
@@ -546,6 +553,10 @@ namespace StoryGenerator
                                 Debug.Log(t.gameObject.name);
                             }
 
+                            if (obj == null)
+                            {
+                                continue;
+                            }
                             string objectName = obj.class_name;
                             int objectId = obj.id;
                             Debug.Log("object name " + objectName);
@@ -572,15 +583,14 @@ namespace StoryGenerator
                             State currentState = this.CurrentStateList[0];
                             GameObject rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
                             GameObject lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
-                            EnvironmentObject obj1;
-                            EnvironmentObject obj2;
-                            EnvironmentObject obj3;
+                            EnvironmentObject obj1, obj2, obj3;
+
                             currentGraphCreator.objectNodeMap.TryGetValue(characters[0].gameObject, out obj1);
                             Character character_graph;
                             currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
 
                             float distance = Vector3.Distance(newchar.transform.position, obj.transform.position);
-
+                            distance = 0.0f;
                             Debug.Log("MY POSITION " + newchar.transform.position);
                             Debug.Log("OBJECT POSITION " + obj.transform.position);
                             Debug.Log("DISTANCE " +  distance);
@@ -701,41 +711,41 @@ namespace StoryGenerator
 
                                 }
 
-                                //close if open
-                                if (objProperties.Contains("CAN_OPEN") && !goOpen.activeSelf)
-                                {
-                                    if (objStates.Contains(Utilities.ObjectState.OPEN)) 
-                                    {
-                                        goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Close " + objectName;
+                                ////close if open
+                                //if (objProperties.Contains("CAN_OPEN") && !goOpen.activeSelf)
+                                //{
+                                //    if (objStates.Contains(Utilities.ObjectState.OPEN)) 
+                                //    {
+                                //        goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Close " + objectName;
                                     
-                                        goOpen.SetActive(true);
-                                        Button buttonOpen = goOpen.GetComponent<Button>();
-                                        GameObjectUtils.PositionButton(mousePos, goOpen, "bottom");
+                                //        goOpen.SetActive(true);
+                                //        Button buttonOpen = goOpen.GetComponent<Button>();
+                                //        GameObjectUtils.PositionButton(mousePos, goOpen, "bottom");
 
-                                        button_created = true;
+                                //        button_created = true;
 
-                                        buttonOpen.onClick.AddListener(() =>
-                                        {
-                                            button_created = false;
+                                //        buttonOpen.onClick.AddListener(() =>
+                                //        {
+                                //            button_created = false;
 
-                                            Debug.Log("closed with options of put");
-                                            objStates.Remove(Utilities.ObjectState.OPEN);
-                                            objStates.Add(Utilities.ObjectState.CLOSED);
-                                            string action = String.Format("<char0> [close] <{0}> ({1})", objectName, objectId);
+                                //            Debug.Log("closed with options of put");
+                                //            //objStates.Remove(Utilities.ObjectState.OPEN);
+                                //            //objStates.Add(Utilities.ObjectState.CLOSED);
+                                //            string action = String.Format("<char0> [close] <{0}> ({1})", objectName, objectId);
                                             
-                                            currentEpisode.AddAction(action, currTime);
-                                            tasksUI.text = currentEpisode.UpdateTasksString();
-                                            scriptLines.Add(action);
-                                            goOpen.SetActive(false);
-                                            keyPressed = true;
+                                //            currentEpisode.AddAction(action, currTime);
+                                //            tasksUI.text = currentEpisode.UpdateTasksString();
+                                //            scriptLines.Add(action);
+                                //            goOpen.SetActive(false);
+                                //            keyPressed = true;
 
-                                            buttonOpen.onClick.RemoveAllListeners();
-                                        });
-                                    }
-                                }
+                                //            buttonOpen.onClick.RemoveAllListeners();
+                                //        });
+                                //    }
+                                //}
                             }
                             //open/close
-                            else if (objProperties.Contains("CAN_OPEN") && !goOpen.activeSelf && distance < 2)
+                            if (objProperties.Contains("CAN_OPEN") && !goOpen.activeSelf && distance < 2)
                             {
                                 //TODO: fix highlight
                                 /*if (rend != null)
@@ -750,15 +760,22 @@ namespace StoryGenerator
                                     Debug.Log("open");
                                     goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Open " + objectName;
                                     goOpen.SetActive(true);
-                                    GameObjectUtils.PositionButton(mousePos, goOpen, "center");
+                                    if (button_created)
+                                    {
+                                        GameObjectUtils.PositionButton(mousePos, goOpen, "bottom");
+                                    }
+                                    else
+                                    {
+                                        GameObjectUtils.PositionButton(mousePos, goOpen, "center");
+                                    }
                                     Button buttonOpen = goOpen.GetComponent<Button>();
                                     button_created = true;
                                     buttonOpen.onClick.AddListener(() =>
                                     {
                                         Debug.Log("opened");
                                         button_created = false;
-                                        objStates.Remove(Utilities.ObjectState.CLOSED);
-                                        objStates.Add(Utilities.ObjectState.OPEN);
+                                        //objStates.Remove(Utilities.ObjectState.CLOSED);
+                                        //objStates.Add(Utilities.ObjectState.OPEN);
                                         string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
 
                                         currentEpisode.AddAction(action, currTime);
@@ -777,7 +794,15 @@ namespace StoryGenerator
                                     
                                     goOpen.SetActive(true);
                                     Button buttonOpen = goOpen.GetComponent<Button>();
-                                    GameObjectUtils.PositionButton(mousePos, goOpen, "center");
+                                    if (button_created)
+                                    {
+                                        GameObjectUtils.PositionButton(mousePos, goOpen, "bottom");
+                                    }
+                                    else
+                                    {
+                                        GameObjectUtils.PositionButton(mousePos, goOpen, "center");
+                                    }
+                                        
 
 
                                     button_created = true;
@@ -787,8 +812,8 @@ namespace StoryGenerator
                                         button_created = false;
 
                                         Debug.Log("closed");
-                                        objStates.Remove(Utilities.ObjectState.OPEN);
-                                        objStates.Add(Utilities.ObjectState.CLOSED);
+                                        //objStates.Remove(Utilities.ObjectState.OPEN);
+                                        //objStates.Add(Utilities.ObjectState.CLOSED);
                                         string action = String.Format("<char0> [close] <{0}> ({1})", objectName, objectId);
                                         
                                         currentEpisode.AddAction(action, currTime);
@@ -827,30 +852,49 @@ namespace StoryGenerator
 
                     finishedChars = 0;
                     yield return new WaitUntil(() => finishedChars != numCharacters);
-                    //while (finishedChars != numCharacters)
-                    //{
-                    //    yield return new WaitForSeconds(0.01f);
-                    //}
+                    if (!sExecutors[0].Success)
+                    {
+                        Debug.Log("Failure");
+                    }
+                    else
+                    {
+                        // Update the graph
+                        List<ActionObjectData> last_action = new List<ActionObjectData>();
+                        ScriptPair script = sExecutors[0].script[0];
+                        State currentState = this.CurrentStateList[0];
+                        EnvironmentObject obj1;
+                        currentGraphCreator.objectNodeMap.TryGetValue(characters[0].gameObject, out obj1);
+                        Character character_graph;
+                        currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
+
+                        ActionObjectData object_script = new ActionObjectData(character_graph, script, currentState.scriptObjects);
+                        last_action.Add(object_script);
+
+
+                        foreach (KeyValuePair<Tuple<string, int>, ScriptObjectData> entry in currentState.scriptObjects)
+                        {
+                            if (entry.Value.OpenStatus == OpenStatus.OPEN)
+                            {
+                                currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Remove(Utilities.ObjectState.CLOSED);
+                                currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Add(Utilities.ObjectState.OPEN);
+                            }
+                            else if (entry.Value.OpenStatus == OpenStatus.CLOSED)
+                            {
+                                currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Remove(Utilities.ObjectState.OPEN);
+                                currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Add(Utilities.ObjectState.CLOSED);
+                            }
+                        }
+
+                        currentGraph = currentGraphCreator.UpdateGraph(transform, null, last_action);
+                        currentEpisode.checkTasks(currentGraph, currentGraphCreator);
+                        tasksUI.text = currentEpisode.UpdateTasksString();
+                        currentEpisode.StoreGraph(currentGraph, currTime);
+                    }
                     Debug.Log("Finished");
 
-                    // Update the graph
-                    List<ActionObjectData> last_action = new List<ActionObjectData>();
-                    ScriptPair script = sExecutors[0].script[0];
-                    State currentState = this.CurrentStateList[0];
-                    EnvironmentObject obj1;
-                    currentGraphCreator.objectNodeMap.TryGetValue(characters[0].gameObject, out obj1);
-                    Character character_graph;
-                    currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
+                    
 
-                    ActionObjectData object_script = new ActionObjectData(character_graph, script, currentState.scriptObjects);
-                    last_action.Add(object_script);
-
-
-                    currentGraph = currentGraphCreator.UpdateGraph(transform, null, last_action);
-
-                    currentEpisode.checkTasks(currentGraph, currentGraphCreator);
-                    tasksUI.text = currentEpisode.UpdateTasksString();
-                    currentEpisode.StoreGraph(currentGraph, currTime);
+                    
 
                     scriptLines.Clear();
                     Debug.Log("key pressed");
