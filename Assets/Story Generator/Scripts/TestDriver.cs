@@ -494,6 +494,21 @@ namespace StoryGenerator
                     currentCamera.transform.Rotate(3, 0, 0);
                 }
 
+                // show/hide tasks bar
+                if (Input.GetKeyDown(KeyCode.T))
+                {
+                    if (tasksText.activeSelf && panel.activeSelf)
+                    {
+                        tasksText.SetActive(false);
+                        panel.SetActive(false);
+                    }
+                    else
+                    {
+                        tasksText.SetActive(true);
+                        panel.SetActive(true);
+                    }
+                }
+
                 if (Input.GetMouseButtonDown(0))
                 {
                     Debug.Log("mouse down");
@@ -597,7 +612,7 @@ namespace StoryGenerator
                             Debug.Log("OBJECT POSITION " + obj.transform.position);
                             Debug.Log("DISTANCE " +  distance);
 
-                            if (objProperties.Contains("GRABBABLE") && !goGrab.activeSelf && distance < 2)
+                            if (objProperties.Contains("GRABBABLE") && (lh == null || rh == null) && !goGrab.activeSelf && distance < 2)
                             {
                                 Debug.Log("grab");
 
