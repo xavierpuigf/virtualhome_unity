@@ -73,6 +73,8 @@ namespace StoryGenerator
         private bool episodeDone;
         private int episodeNum = -1;
 
+        ICollection<string> openableContainers = new HashSet<string>{"bathroomcabinet", "kitchencabinet", "cabinet", "fridge", "stove", "dishwasher", "microwave"}; 
+
         [Serializable]
         class SceneData
         {
@@ -371,7 +373,6 @@ namespace StoryGenerator
             //recorders[0].CamCtrls[cameras.IndexOf(currentCamera)].Activate(true);
             currentCamera.transform.localPosition = currentCamera.transform.localPosition + new Vector3(0, -0.15f, 0.1f);
 
-            
             // Buttons: grab, open, putleft, putright, close
 
             // Create canvas and event system
@@ -635,7 +636,7 @@ namespace StoryGenerator
                             }
 
                             //put on/in surfaces
-                            else if ((objProperties.Contains("SURFACES") || (objProperties.Contains("CONTAINERS") && objStates.Contains(Utilities.ObjectState.OPEN))) && (rh != null || lh != null) && (!goPutLeft.activeSelf || !goPutRight.activeSelf) && distance < 2)
+                            else if ((objProperties.Contains("SURFACES") || (openableContainers.Contains(objectName) && objStates.Contains(Utilities.ObjectState.OPEN)) || (objProperties.Contains("CONTAINERS") && !openableContainers.Contains(objectName))) && (rh != null || lh != null) && (!goPutLeft.activeSelf || !goPutRight.activeSelf) && distance < 2)
                             {
                                 Debug.Log("put");
 
@@ -746,7 +747,7 @@ namespace StoryGenerator
                                 //}
                             }
                             //open/close
-                            if (objProperties.Contains("CAN_OPEN") && !goOpen.activeSelf && distance < 2)
+                            if (openableContainers.Contains(objectName) && !goOpen.activeSelf && distance < 2)
                             {
                                 //TODO: fix highlight
                                 /*if (rend != null)
