@@ -473,6 +473,14 @@ namespace StoryGenerator
                     Debug.Log("move right");
                     keyPressed = true;
                 }
+                else if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
+                {
+                    string move = "<char0> [walkbackward]";
+                    currentEpisode.AddAction(move, currTime);
+                    scriptLines.Add(move);
+                    Debug.Log("move backward");
+                    keyPressed = true;
+                }
                 else if ((Input.GetKeyDown(KeyCode.V)))
                 {
                     saveEpisode = true;

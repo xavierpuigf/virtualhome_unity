@@ -209,6 +209,20 @@ namespace StoryGenerator.Utilities
         }
     }
 
+    public class GobackwardAction : IAction
+    {
+        public ScriptObjectName Name { get { return new ScriptObjectName("", 0); } }
+        public int ScriptLine { get; private set; }
+        public InteractionType Intention { get; private set; }
+        public bool Run { get; private set; }
+        public GobackwardAction(int scriptLine, bool run = false, InteractionType intention = InteractionType.UNSPECIFIED)
+        {
+            ScriptLine = scriptLine;
+            Intention = intention;
+            Run = run;
+        }
+    }
+
     public class GotowardsAction : IAction
     {
         public IObjectSelector Selector { get; private set; }
@@ -962,6 +976,11 @@ namespace StoryGenerator.Utilities
             script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessWalk((GoforwardAction)ac, s)) });
         }
 
+        public void AddAction(GobackwardAction a)
+        {
+            script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessWalkBackward((GobackwardAction)ac, s)) });
+        }
+
         public void AddAction(WatchAction a)
         {
             script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessWatch((WatchAction)ac, s)) });
@@ -1045,6 +1064,7 @@ namespace StoryGenerator.Utilities
             }
         }
 
+
         private IEnumerable<IStateGroup> ProcessWalkTeleport(GotowardsAction a, State current)
         {
             //foreach (State s in ProcessWalkTowardsAction(a, current, 0.5f, float.MaxValue, false))
@@ -1064,6 +1084,13 @@ namespace StoryGenerator.Utilities
         private IEnumerable<IStateGroup> ProcessWalk(GoforwardAction a, State current)
         {
             foreach (State s in ProcessWalkForwardAction(a, current))
+                yield return s;
+
+        }
+
+        private IEnumerable<IStateGroup> ProcessWalkBackward(GobackwardAction a, State current)
+        {
+            foreach (State s in ProcessWalkBackwardAction(a, current))
                 yield return s;
 
         }
@@ -1351,6 +1378,23 @@ namespace StoryGenerator.Utilities
         {
             Vector3 current_pos = characterControl.gameObject.transform.position;
             Vector3 current_dir = characterControl.gameObject.transform.forward;
+            Vector3 walk_pos = current_pos + current_dir;
+            RaycastHit hit;
+            State s;
+            if (Physics.Raycast(new Vector3(current_pos.x, (float)0.2, current_pos.z), current_dir, out hit) &&
+                Math.Abs(hit.point.x - current_pos.x) < Math.Abs(current_dir.x))
+            {
+                walk_pos = Vector3.Lerp(current_pos, new Vector3(hit.point.x, 0, hit.point.z), (float)0.9);
+            }
+
+            s = new State(current, a, walk_pos, ExecuteGoforward);
+            yield return s;
+        }
+
+        private IEnumerable<IStateGroup> ProcessWalkBackwardAction(GobackwardAction a, State current)
+        {
+            Vector3 current_pos = characterControl.gameObject.transform.position;
+            Vector3 current_dir = -1 * characterControl.gameObject.transform.forward;
             Vector3 walk_pos = current_pos + current_dir;
             RaycastHit hit;
             State s;
@@ -3953,6 +3997,9 @@ namespace StoryGenerator.Utilities
             {
                 case InteractionType.WALKFORWARD:
                     sExecutor.AddAction(new GoforwardAction(sl.LineNumber));
+                    break;
+                case InteractionType.WALKBACKWARD:
+                    sExecutor.AddAction(new GobackwardAction(sl.LineNumber));
                     break;
                 case InteractionType.TURNLEFT:
                     sExecutor.AddAction(new TurnAction(sl.LineNumber, -30.0f));
