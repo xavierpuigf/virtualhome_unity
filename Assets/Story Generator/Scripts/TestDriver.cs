@@ -912,7 +912,30 @@ namespace StoryGenerator
                         }
 
                         currentGraph = currentGraphCreator.UpdateGraph(transform, null, last_action);
-                        currentEpisode.checkTasks(currentGraph, currentGraphCreator);
+                        string fadeText = currentEpisode.checkTasks(currentGraph, currentGraphCreator);
+                        if (!fadeText.Equals("None"))
+                        {
+                            /*
+                            GameObject taskCompletionText = new GameObject("TaskCompletionText");
+                            Text completionText = taskCompletionText.AddComponent<Text>();
+                            completionText.text = fadeText;
+                            completionText.raycastTarget = false;
+                            taskCompletionText.transform.SetParent(newCanvas.transform, false);
+                            StartCoroutine(FadeTextToZeroAlpha(1000, completionText));
+                            */
+                            GameObject compText = new GameObject("CompletedText");
+                            compText.AddComponent<TextMeshProUGUI>();
+                            TextMeshProUGUI fadingText = compText.GetComponent<TextMeshProUGUI>();
+                            fadingText.raycastTarget = false;
+                            fadingText.fontSize = 18;
+                            float fadingW = fadingText.maxWidth / 2;
+                            float fadingH = fadingText.maxHeight / 2;
+                            fadingText.rectTransform.localPosition = new Vector3(-fadingW, -fadingH, 0);
+                            fadingText.text = fadeText;
+                            fadingText.alignment = TextAlignmentOptions.Center;
+                            compText.transform.SetParent(newCanvas.transform, false);
+                            StartCoroutine(FadeTextToZeroAlpha(100, fadingText));
+                        }
                         tasksUI.text = currentEpisode.UpdateTasksString();
                         currentEpisode.StoreGraph(currentGraph, currTime);
                     }
@@ -987,6 +1010,17 @@ namespace StoryGenerator
             curr_button.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, 0, 100);
             curr_button.layer = 5;
 
+        }
+
+        public IEnumerator FadeTextToZeroAlpha(float t, TextMeshProUGUI i)
+        {
+            i.color = new Color(i.color.r, i.color.g, i.color.b, 1);
+            while (i.color.a > 0.0f)
+            {
+                i.color = new Color(i.color.r, i.color.g, i.color.b, i.color.a - (Time.deltaTime / t));
+                yield return null;
+            }
+            Destroy(i.gameObject);
         }
 
         IEnumerator ProcessNetworkRequest()
@@ -2558,8 +2592,9 @@ namespace StoryGenerator
             return allObjsNeeded;
         }
 
-        public void checkTasks(EnvironmentGraph g, EnvironmentGraphCreator gc)
+        public string checkTasks(EnvironmentGraph g, EnvironmentGraphCreator gc)
         {
+            string completedTask = "None";
             Dictionary<(string, string), List<string>> goalsCopy = new Dictionary<(string, string), List<string>>(goalRelations);
             foreach ((string, string) dest in goalsCopy.Keys.ToList())
             {
@@ -2567,8 +2602,15 @@ namespace StoryGenerator
             }
             foreach (Goal goal in goals)
             {
-                goal.repetitions = goalsCopy[(goal.obj2, goal.relation)].Where(x => x.Equals(goal.obj1)).Count();
+                int newReps = goalsCopy[(goal.obj2, goal.relation)].Where(x => x.Equals(goal.obj1)).Count();
+                if (newReps != goal.repetitions)
+                {
+                    completedTask = $"Task Completed!:\n {goal.verb} {goal.obj1} {goal.relation} {goal.obj2} x{goal.repetitions - newReps}";
+                    completedTask = $"{completedTask.AddColor(Color.green)}";
+                }
+                goal.repetitions = newReps;
             }
+            return completedTask;
         }
 
         public string UpdateTasksString()
