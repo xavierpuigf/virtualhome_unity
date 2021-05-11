@@ -223,6 +223,8 @@ namespace StoryGenerator.Utilities
                     {
                         sceneObj.transform.position = obj.obj_transform.GetPosition();
                         sceneObj.transform.rotation = obj.obj_transform.GetRotation();
+                        sceneObj.transform.localScale = obj.obj_transform.GetScale();
+
                         if (sceneObj.category == "Rooms")
                         {
                             sceneObj.bounding_box = new ObjectBounds(sceneObj.transform.gameObject.GetComponent<RoomProperties.Properties_room>().bounds); 
@@ -347,6 +349,7 @@ namespace StoryGenerator.Utilities
                                 Quaternion rotation = obj.obj_transform.GetRotation();
                                 newGo.transform.position = position;
                                 newGo.transform.rotation = rotation;
+                                newGo.transform.localScale = obj.obj_transform.GetScale();
                                 object_inst = true;
 
                                 ColorEncoding.EncodeGameObject(newGo);

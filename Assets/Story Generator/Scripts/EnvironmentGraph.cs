@@ -80,6 +80,7 @@ namespace StoryGenerator.Utilities
 
         public static ObjectBounds FromGameObject(GameObject gameObject)
         {
+
             Bounds bounds = GameObjectUtils.GetBounds(gameObject);
             return bounds.size == Vector3.zero ? null : new ObjectBounds(bounds);
         }
@@ -112,6 +113,7 @@ namespace StoryGenerator.Utilities
     {
         public float[] position;
         public float[] rotation;
+        public float[] scale;
 
         public ObjectTransform(Transform t)
         {
@@ -120,6 +122,7 @@ namespace StoryGenerator.Utilities
 
                 this.rotation = new float[4] { t.rotation.x, t.rotation.y, t.rotation.z, t.rotation.w };
                 this.position = new float[3] { t.position.x, t.position.y, t.position.z };
+                this.scale = new float[3] { t.localScale.x, t.localScale.y, t.localScale.z };
             }
         }
         public Quaternion GetRotation()
@@ -130,6 +133,10 @@ namespace StoryGenerator.Utilities
         public Vector3 GetPosition()
         {
             return new Vector3(position[0], position[1], position[2]);
+        }
+        public Vector3 GetScale()
+        {
+            return new Vector3(scale[0], scale[1], scale[2]);
         }
     }
 
@@ -419,8 +426,10 @@ namespace StoryGenerator.Utilities
                     if (o != null && roomObject != null)
                     {
                         AddRoomRelation(o, roomObject);  // Add IN relation to room
-                        if (roomObject.bounding_box == null) roomObject.bounding_box = new ObjectBounds(o.bounding_box);  // Set initial room bounds
-                        else roomObject.bounding_box.UnionWith(o.bounding_box);  // Grow room bounds
+
+                        // TODO: Include a checker here, this should never happen
+                        //if (roomObject.bounding_box == null) roomObject.bounding_box = new ObjectBounds(o.bounding_box);  // Set initial room bounds
+                        //else roomObject.bounding_box.UnionWith(o.bounding_box);  // Grow room bounds
                     }
                     if (o?.class_name == DoorClassName)
                     {
@@ -592,11 +601,13 @@ namespace StoryGenerator.Utilities
             }
             else
             {
+                
                 EnvironmentObject roomCandidate = candidates[0];
                 float maxDistanceToBound = 0;
 
                 foreach (EnvironmentObject room in candidates)
                 {
+                    
                     float distX = room.bounding_box.bounds.extents.x - Math.Abs(room.bounding_box.bounds.center.x - objectCenter.x);
                     float distZ = room.bounding_box.bounds.extents.z - Math.Abs(room.bounding_box.bounds.center.z - objectCenter.z);
 
@@ -694,6 +705,19 @@ namespace StoryGenerator.Utilities
             string prefabName = gameObject.name;
             string roomName = dataProviders.RoomSelector.ExtractRoomName(prefabName);
             ObjectBounds bounds = new ObjectBounds(gameObject.GetComponent<RoomProperties.Properties_room>().bounds);
+
+            //GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            //sphere.transform.position = bounds.bounds.center - bounds.bounds.extents;
+            //sphere.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
+
+
+            //GameObject sphere2 = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            //sphere2.transform.position = bounds.bounds.center + bounds.bounds.extents;
+            //sphere2.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
+
+            //GameObject sphere3 = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            //sphere3.transform.position = bounds.bounds.center;
+            //sphere3.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
 
             EnvironmentObject roomNode = new EnvironmentObject() {
                 category = RoomsCategory,

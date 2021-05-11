@@ -1088,6 +1088,7 @@ namespace StoryGenerator.Utilities
         {
             bool canSelect = false;
             string errormessage = "Unknown";
+
             List<ObjectData> gods = SelectObjects(a.Name, a.Selector, current).ToList();
             foreach (ObjectData god in gods)
             {
@@ -3505,28 +3506,31 @@ namespace StoryGenerator.Utilities
                     Vector3 cEnd = new Vector3(center.x, nma.height - nma.radius + ObstructionHeight, center.z);
 
                     // Check for space
-                    if (!Physics.CheckCapsule(cStart, cEnd, nma.radius*0.75f))
+                    //if (go.name.ToLower().Contains("wine_glass"))
+                    //{
+                    //    GameObject capsulegoal = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                    //    capsulegoal.transform.position = (Vector3)center;
+                    //    capsulegoal.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+                    //    capsulegoal.GetComponent<MeshRenderer>().material.color = Color.blue;
+                    //    capsulegoal.GetComponent<CapsuleCollider>().enabled = false;
+                    //}
+                    if (!Physics.CheckCapsule(cStart, cEnd, nma.radius * 0.75f))
                     {
-                        //GameObject capsulegoal = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                        //capsulegoal.transform.position = (Vector3)center;
-                        //capsulegoal.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
-                        //capsulegoal.GetComponent<MeshRenderer>().material.color = Color.green;
-                        //capsulegoal.GetComponent<CapsuleCollider>().enabled = false;
-
+                        //if (go.name.ToLower().Contains("wine_glass"))
+                        //{
+                        //    GameObject capsulegoal = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                        //    capsulegoal.transform.position = (Vector3)center;
+                        //    capsulegoal.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+                        //    capsulegoal.GetComponent<MeshRenderer>().material.color = Color.green;
+                        //    capsulegoal.GetComponent<CapsuleCollider>().enabled = false;
+                        //}
                         if (go == null || ignore_visibility || IsVisibleFromSegment(go, center, 0.2f, 2.5f, 0.2f, true))
                         {
                             result.Add(center);
                             break; // for each angle, take the closest radius
                         }
                     }
-                    else
-                    {
-                        //GameObject capsulegoal = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                        //capsulegoal.transform.position = (Vector3)center;
-                        //capsulegoal.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
-                        //capsulegoal.GetComponent<MeshRenderer>().material.color = Color.red;
-                        //capsulegoal.GetComponent<CapsuleCollider>().enabled = false;
-                    }
+                    
                 }
                 if (rMin < 0.0f) // if radius is approx. zero, take only one angle
                     rMin += rStep;
@@ -3577,7 +3581,7 @@ namespace StoryGenerator.Utilities
         // Checks if GameObject go is visible from position v
         // Checks randomly selected nRays from collider of go
         // If there is no colider attached to go or to go's children, IsVisible is returned
-        public static float VisiblityFactor(GameObject go, Vector3 v, int nRays = 10)
+        public static float VisiblityFactor(GameObject go, Vector3 v, int nRays = 10, bool show_rays = false)
         {
             Bounds bounds = GameObjectUtils.GetBounds(go);
 
@@ -3598,8 +3602,21 @@ namespace StoryGenerator.Utilities
                     float rz = UnityEngine.Random.Range(-bounds.extents.z, bounds.extents.z);
 
                     Vector3 direction = bounds.center + new Vector3(rx, ry, rz) - v;
-                    bool rcResult = Physics.Raycast(v, direction, out hit, direction.magnitude);
 
+                    //if (show_rays && direction.magnitude < 2.0f)
+                    //{
+                    //    Debug.DrawRay(v, direction, Color.red, 10.0f);
+                    //}
+
+                    bool rcResult = Physics.Raycast(v, direction, out hit, direction.magnitude);
+                    //if (show_rays && !hit.transform.parent.parent.gameObject.name.ToLower().Contains("cabinet"))
+                    //{
+                    //    GameObject capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                    //    capsule.transform.position = hit.point;
+                    //    capsule.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
+                    //    capsule.GetComponent<CapsuleCollider>().enabled = false;
+                    //    Debug.Log(hit.transform.parent.parent.gameObject.name);
+                    //}
                     if (!rcResult || GameObjectUtils.IsInPath(go, hit.transform))
                         hitCount++;
                 }
@@ -3676,9 +3693,14 @@ namespace StoryGenerator.Utilities
             maxy += delta / 2.0f;
             for (float y = miny; y <= maxy; y += delta)
             {
+                bool show_rays = false;
+                if (go.name.ToLower().Contains("wine_glass"))
+                {
+                    show_rays = true;
+                }
                 if (sampleGo)
                 {
-                    if (VisiblityFactor(go, new Vector3(v.x, y, v.z)) > 0.0f)
+                    if (VisiblityFactor(go, new Vector3(v.x, y, v.z), 10, show_rays) > 0.0f)
                         return true;
                 }
                 else
