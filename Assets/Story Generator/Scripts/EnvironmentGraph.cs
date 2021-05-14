@@ -134,8 +134,10 @@ namespace StoryGenerator.Utilities
         {
             return new Vector3(position[0], position[1], position[2]);
         }
-        public Vector3 GetScale()
+        public Vector3? GetScale()
         {
+            if (scale == null)
+                return null;
             return new Vector3(scale[0], scale[1], scale[2]);
         }
     }

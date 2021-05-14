@@ -223,7 +223,9 @@ namespace StoryGenerator.Utilities
                     {
                         sceneObj.transform.position = obj.obj_transform.GetPosition();
                         sceneObj.transform.rotation = obj.obj_transform.GetRotation();
-                        sceneObj.transform.localScale = obj.obj_transform.GetScale();
+
+                        if (obj.obj_transform.GetScale() != null)
+                            sceneObj.transform.localScale = (Vector3) obj.obj_transform.GetScale();
 
                         if (sceneObj.category == "Rooms")
                         {
@@ -349,7 +351,12 @@ namespace StoryGenerator.Utilities
                                 Quaternion rotation = obj.obj_transform.GetRotation();
                                 newGo.transform.position = position;
                                 newGo.transform.rotation = rotation;
-                                newGo.transform.localScale = obj.obj_transform.GetScale();
+
+                                if (obj.obj_transform.GetScale() != null)
+                                {
+                                    newGo.transform.localScale = (Vector3) obj.obj_transform.GetScale();
+                                }
+                                    
                                 object_inst = true;
 
                                 ColorEncoding.EncodeGameObject(newGo);
