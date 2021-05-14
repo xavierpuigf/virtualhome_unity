@@ -620,7 +620,7 @@ namespace StoryGenerator
                             Debug.Log("OBJECT POSITION " + obj.transform.position);
                             Debug.Log("DISTANCE " +  distance);
 
-                            if (objProperties.Contains("GRABBABLE") && (lh == null || rh == null) && !goGrab.activeSelf && distance < 2)
+                            if (objProperties.Contains("GRABBABLE") && (lh == null || rh == null) && !goGrab.activeSelf && distance < 2.8)
                             {
                                 Debug.Log("grab");
 
@@ -770,7 +770,7 @@ namespace StoryGenerator
                                 //}
                             }
                             //open/close
-                            if (openableContainers.Contains(objectName) && !goOpen.activeSelf && distance < 2)
+                            if (openableContainers.Contains(objectName) && !goOpen.activeSelf && distance < 2.8)
                             {
                                 //TODO: fix highlight
                                 /*if (rend != null)
@@ -1017,7 +1017,7 @@ namespace StoryGenerator
             i.color = new Color(i.color.r, i.color.g, i.color.b, 1);
             while (i.color.a > 0.0f)
             {
-                i.color = new Color(i.color.r, i.color.g, i.color.b, i.color.a - (Time.deltaTime / t));
+                i.color = new Color(i.color.r, i.color.g, i.color.b, i.color.a - (8 * Time.deltaTime / t));
                 yield return null;
             }
             Destroy(i.gameObject);
