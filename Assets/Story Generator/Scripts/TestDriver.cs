@@ -485,6 +485,10 @@ namespace StoryGenerator
                 {
                     saveEpisode = true;
                 }
+                else if ((Input.GetKeyDown(KeyCode.G)))
+                {
+                    episodeDone = true;
+                }
                 //TODO: add going backwards and clean up Input code
 
 
@@ -915,26 +919,7 @@ namespace StoryGenerator
                         string fadeText = currentEpisode.checkTasks(currentGraph, currentGraphCreator);
                         if (!fadeText.Equals("None"))
                         {
-                            /*
-                            GameObject taskCompletionText = new GameObject("TaskCompletionText");
-                            Text completionText = taskCompletionText.AddComponent<Text>();
-                            completionText.text = fadeText;
-                            completionText.raycastTarget = false;
-                            taskCompletionText.transform.SetParent(newCanvas.transform, false);
-                            StartCoroutine(FadeTextToZeroAlpha(1000, completionText));
-                            */
-                            GameObject compText = new GameObject("CompletedText");
-                            compText.AddComponent<TextMeshProUGUI>();
-                            TextMeshProUGUI fadingText = compText.GetComponent<TextMeshProUGUI>();
-                            fadingText.raycastTarget = false;
-                            fadingText.fontSize = 18;
-                            float fadingW = fadingText.maxWidth / 2;
-                            float fadingH = fadingText.maxHeight / 2;
-                            fadingText.rectTransform.localPosition = new Vector3(-fadingW, -fadingH, 0);
-                            fadingText.text = fadeText;
-                            fadingText.alignment = TextAlignmentOptions.Center;
-                            compText.transform.SetParent(newCanvas.transform, false);
-                            StartCoroutine(FadeTextToZeroAlpha(100, fadingText));
+                            FadeCompletionText(fadeText, newCanvas);
                         }
                         tasksUI.text = currentEpisode.UpdateTasksString();
                         currentEpisode.StoreGraph(currentGraph, currTime);
@@ -965,9 +950,12 @@ namespace StoryGenerator
                 currentEpisode.previousPos = newchar.transform.position;
                 currentEpisode.previousRotation = newchar.transform.eulerAngles;
 
-                if (currentEpisode.IsCompleted)
+                if (currentEpisode.IsCompleted || episodeDone)
                 {
-                    tasksUI.text = "Tasks: Completed!";
+                    string completed = "Tasks: Completed!\nLoading New Episode";
+                    string tasksCompletedText = completed.AddColor(Color.green);
+                    tasksUI.text = tasksCompletedText;
+                    FadeCompletionText(tasksCompletedText, newCanvas);
                     currentEpisode.RecordData(episode);
                     episodeDone = true;
                     episodeNum++;
@@ -1010,6 +998,22 @@ namespace StoryGenerator
             curr_button.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, 0, 100);
             curr_button.layer = 5;
 
+        }
+
+        public void FadeCompletionText(string fadeText, GameObject canv)
+        {
+            GameObject compText = new GameObject("CompletedText");
+            compText.AddComponent<TextMeshProUGUI>();
+            TextMeshProUGUI fadingText = compText.GetComponent<TextMeshProUGUI>();
+            fadingText.raycastTarget = false;
+            fadingText.fontSize = 18;
+            float fadingW = fadingText.maxWidth / 2;
+            float fadingH = fadingText.maxHeight / 2;
+            fadingText.rectTransform.localPosition = new Vector3(-fadingW, -fadingH, 0);
+            fadingText.text = fadeText;
+            fadingText.alignment = TextAlignmentOptions.Center;
+            compText.transform.SetParent(canv.transform, false);
+            StartCoroutine(FadeTextToZeroAlpha(10, fadingText));
         }
 
         public IEnumerator FadeTextToZeroAlpha(float t, TextMeshProUGUI i)
