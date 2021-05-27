@@ -341,6 +341,7 @@ namespace StoryGenerator.Utilities
                                     newGo.transform.position = newGo.transform.position - loc + objc;
                                     object_inst = true;
                                     obj.transform = newGo.transform;
+                                    ObjectAnnotator.AnnotateObj(newGo.transform);
                                     ColorEncoding.EncodeGameObject(newGo);
                                 }
 
@@ -358,7 +359,7 @@ namespace StoryGenerator.Utilities
                                 }
                                     
                                 object_inst = true;
-
+                                ObjectAnnotator.AnnotateObj(newGo.transform);
                                 ColorEncoding.EncodeGameObject(newGo);
                             }
 
