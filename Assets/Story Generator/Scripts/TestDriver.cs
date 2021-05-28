@@ -73,6 +73,8 @@ namespace StoryGenerator
         private bool episodeDone;
         private int episodeNum = -1;
 
+        private GameObject highlightedObj = null;
+
         ICollection<string> openableContainers = new HashSet<string>{"bathroomcabinet", "kitchencabinet", "cabinet", "fridge", "stove", "dishwasher", "microwave"}; 
 
         [Serializable]
@@ -506,6 +508,20 @@ namespace StoryGenerator
                     currentCamera.transform.Rotate(3, 0, 0);
                 }
 
+                // rotate highlighted object
+                if (keyPressed)
+                {
+                    highlightedObj = null;
+                }
+                if (Input.GetKeyDown(KeyCode.E) && highlightedObj)
+                {
+                    highlightedObj.transform.Rotate(new Vector3(0, 1, 0), 15);
+                }
+                else if(Input.GetKeyDown(KeyCode.Q) && highlightedObj)
+                {
+                    highlightedObj.transform.Rotate(new Vector3(0, 1, 0), -15);
+                }
+
                 // show/hide tasks bar
                 if (Input.GetKeyDown(KeyCode.T))
                 {
@@ -524,6 +540,7 @@ namespace StoryGenerator
                 if (Input.GetMouseButtonDown(0))
                 {
                     Debug.Log("mouse down");
+                    highlightedObj = null;
                     if (EventSystem.current.IsPointerOverGameObject() &&
                         EventSystem.current.currentSelectedGameObject != null &&
                         EventSystem.current.currentSelectedGameObject.CompareTag("HPG_0"))
@@ -626,6 +643,7 @@ namespace StoryGenerator
 
                             if (objProperties.Contains("GRABBABLE") && (lh == null || rh == null) && !goGrab.activeSelf && distance < 2.8)
                             {
+                                highlightedObj = t.gameObject;
                                 Debug.Log("grab");
 
                                 //TODO: fix highlight
@@ -2590,16 +2608,30 @@ namespace StoryGenerator
                         {
                             allObjsNeeded.Remove(env_obj.class_name);
                         }
-                    }
+                    } 
                 }
             }
             return allObjsNeeded;
         }
 
+        public Dictionary<(string, string), List<string>> makeRelGoalsCopy()
+        {
+            Dictionary<(string, string), List<string>> cp = new Dictionary<(string, string), List<string>>();
+            foreach ((string, string) dest in goalRelations.Keys.ToList())
+            {
+                cp[dest] = new List<string>();
+                foreach (string plat in goalRelations[dest])
+                {
+                    cp[dest].Add(string.Copy(plat));
+                }
+            }
+            return cp;
+        }
+
         public string checkTasks(EnvironmentGraph g, EnvironmentGraphCreator gc)
         {
             string completedTask = "None";
-            Dictionary<(string, string), List<string>> goalsCopy = new Dictionary<(string, string), List<string>>(goalRelations);
+            Dictionary<(string, string), List<string>> goalsCopy = makeRelGoalsCopy();
             foreach ((string, string) dest in goalsCopy.Keys.ToList())
             {
                 goalsCopy[dest] = RelationsCompleted(goalsCopy[dest], dest, g, gc);
