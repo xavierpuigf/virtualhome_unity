@@ -918,6 +918,28 @@ namespace StoryGenerator
                         ActionObjectData object_script = new ActionObjectData(character_graph, script, currentState.scriptObjects);
                         last_action.Add(object_script);
 
+                        GameObject rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
+                        GameObject lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
+                        EnvironmentObject obj2;
+                        if (lh != null)
+                        {
+                            currentGraphCreator.objectNodeMap.TryGetValue(lh, out obj2);
+                            character_graph.grabbed_left = obj2;
+
+                        }
+                        else
+                        {
+                            character_graph.grabbed_left = null;
+                        }
+                        if (rh != null)
+                        {
+                            currentGraphCreator.objectNodeMap.TryGetValue(rh, out obj2);
+                            character_graph.grabbed_right = obj2;
+                        }
+                        else
+                        {
+                            character_graph.grabbed_right = null;
+                        }
 
                         foreach (KeyValuePair<Tuple<string, int>, ScriptObjectData> entry in currentState.scriptObjects)
                         {
