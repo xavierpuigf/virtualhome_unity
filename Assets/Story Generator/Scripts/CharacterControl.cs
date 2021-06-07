@@ -96,6 +96,8 @@ namespace StoryGenerator
                     new Vector3(90.0f, 0.0f, -90.0f), new Vector3(90.0f, 0.0f, 90.0f) )},
                   {"Male1", new CharCoeffs(1.168f, -0.8736f, 0.82f, 0.1f, -0.48f, 0.1152f, 0.00336f,
                     new Vector3(90.0f, 0.0f, 0.0f), new Vector3(90.0f, 0.0f, 180.0f) )},
+                  {"Male1_invisible", new CharCoeffs(1.168f, -0.8736f, 0.82f, 0.1f, -0.48f, 0.1152f, 0.00336f,
+                    new Vector3(90.0f, 0.0f, 0.0f), new Vector3(90.0f, 0.0f, 180.0f) )},
                   {"Male1_red", new CharCoeffs(1.168f, -0.8736f, 0.82f, 0.1f, -0.48f, 0.1152f, 0.00336f,
                     new Vector3(90.0f, 0.0f, 0.0f), new Vector3(90.0f, 0.0f, 180.0f) )},
                   {"Male1_blue", new CharCoeffs(1.168f, -0.8736f, 0.82f, 0.1f, -0.48f, 0.1152f, 0.00336f,
