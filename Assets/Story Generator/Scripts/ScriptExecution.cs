@@ -1147,17 +1147,18 @@ namespace StoryGenerator.Utilities
                     }
 
 
-                    IList<DoorAction> doors = characterControl.DoorControl.SelectDoorsOnPath(path.corners, false);
+                    // IList<DoorAction> doors = characterControl.DoorControl.SelectDoorsOnPath(path.corners, false);
                     State s;
-                    if (doors.Count > 0)
-                    {
-                        s = new State(current, a, doors[doors.Count - 1].posOne, ExecuteGoto);
-                        s.AddScriptGameObject(a.Name, go, goPos, doors[doors.Count - 1].posOne);
-                    }
-                    else
-                    {
-                        s = new State(current, a, goPos, ExecuteGoto);
-                    }
+                    // if (doors.Count > 0)
+                    // {
+                    //     s = new State(current, a, doors[doors.Count - 1].posOne, ExecuteGoto);
+                    //     s.AddScriptGameObject(a.Name, go, goPos, doors[doors.Count - 1].posOne);
+                    // }
+                    // else
+                    // {
+                    //     s = new State(current, a, goPos, ExecuteGoto);
+                    // }
+                    s = new State(current, a, goPos, ExecuteGoto);
                     s.AddActionFlag("GOTO_TURN");
 
                     if (this.find_solution)
