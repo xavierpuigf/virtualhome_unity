@@ -935,7 +935,10 @@ namespace StoryGenerator.Utilities
         {
             if (o1.id == o2.id)
                 return;
-
+            if (o1.id  == 193 && o2.id == 139)
+            {
+                Debug.Log("Here");
+            }
             if (!Inside(o1, o2))
                 if (!Inside(o2, o1))
                     if (!On(o1, o2))
@@ -1115,12 +1118,22 @@ namespace StoryGenerator.Utilities
         // Adds ON relation if o1 is on o2 using bounding box-on-bounding box method
         public bool On(EnvironmentObject o1, EnvironmentObject o2)
         {
-            const float Delta = 0.01f; 
+            float Delta = 0.01f; 
 
             float o2MaxY = o2.bounding_box.bounds.max.y;
-            Interval<float> yInt = new Interval<float>(o2MaxY - Delta, o2MaxY + Delta);
+            var pc = o2.transform.GetComponent<Properties_chair>();
+            bool is_chair = false;
 
-            if (yInt.Contains(o1.bounding_box.bounds.min.y) && CheckOnCondition(o1, o2)) {
+            if (pc != null)
+            {
+                List<Properties_chair.SittableUnit> suList = pc.GetSittableUnits();
+                if (suList.Count() > 0)
+                    o2MaxY = suList[0].tsfm_group.position.y;
+                is_chair = true;
+            }
+            Delta = Math.Min(Math.Max(Delta, o1.bounding_box.size[1]*0.3f), 0.2f);
+            Interval<float> yInt = new Interval<float>(o2MaxY - Delta, o2MaxY + Delta);
+            if (yInt.Contains(o1.bounding_box.bounds.min.y) && (is_chair || CheckOnCondition(o1, o2))) {
                 AddGraphEdge(o1, o2, ObjectRelation.ON);
                 return true;
             }
