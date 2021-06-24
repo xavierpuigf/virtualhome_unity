@@ -3213,7 +3213,7 @@ namespace StoryGenerator.Utilities
                         recorder.Recording = true;
                     }
                     prepareStopwatch.Stop();
-                    Debug.Log(String.Format("prepare time: {0}", prepareStopwatch.ElapsedMilliseconds));
+                    //Debug.Log(String.Format("prepare time: {0}", prepareStopwatch.ElapsedMilliseconds));
                     //yield return ExceptionSafeEnumerator(Execute(enumerator.Current));
                     result = ExceptionSafeEnumerator(Execute(enumerator.Current));
 
