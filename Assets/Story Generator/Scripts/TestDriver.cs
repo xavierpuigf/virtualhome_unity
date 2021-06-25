@@ -95,6 +95,9 @@ namespace StoryGenerator
 
         private Keyboard m_keyboard;
         private Mouse m_mouse;
+        private List<Keyboard> m_keyboard_l = new List<Keyboard>();
+        private List<Mouse> m_mouse_l = new List<Mouse>();
+
         static int port_websocket = 80;
 
         bool keyPressed = false;
@@ -102,6 +105,14 @@ namespace StoryGenerator
         bool first_press = false;
         bool first_click = false;
         bool aux_pressed = false;
+        public List<string> scriptLines;
+        EnvironmentGraphCreator currentGraphCreator = null;
+        EnvironmentGraph currentGraph = null;
+        List<WebBrowserInputData> licr;
+        Episode currentEpisode;
+        float currTime;
+        public List<List<string>> action_button;
+        GameObject pointer;
 
         ICollection<string> openableContainers = new HashSet<string>{"bathroomcabinet", "kitchencabinet", "cabinet", "fridge", "stove", "dishwasher", "microwave"}; 
 
@@ -112,23 +123,6 @@ namespace StoryGenerator
             public string sceneName;
             public int frameRate;
         }
-        //void Update()
-        //{
-        //    if (m_keyboard != null && m_keyboard.leftArrowKey.IsPressed())
-        //    {
-
-        //        if (!aux_pressed)
-        //        {
-        //            aux_pressed = true;
-
-        //            Debug.Log("move left!!");
-        //        }
-        //    }
-        //    else
-        //    {
-        //        aux_pressed = false;                
-        //    }
-        //}
 
         IEnumerator Start()
         {
@@ -311,18 +305,25 @@ namespace StoryGenerator
 
         void SetDevice(InputDevice device, bool add = true)
         {
-            Debug.Log(device);
-            Debug.Log(add);
 
-            //            uiController?.SetDevice(device, add);
 
             switch (device)
             {
                 case Mouse mouse:
-                    m_mouse = add ? mouse : null;
+                    if (add)
+                    {
+                        //m_mouse_l.Add(mouse);
+                        m_mouse = mouse;
+                    }
+                    //m_mouse = add ? mouse : null;
                     return;
                 case Keyboard keyboard:
-                    m_keyboard = add ? keyboard : null;
+                    if (add)
+                    {
+                        m_keyboard = keyboard;
+                        //m_keyboard_l.Add(keyboard);
+                        //m_keyboard = add ? keyboard : null;
+                    }
                     return;
 
 
@@ -334,7 +335,7 @@ namespace StoryGenerator
             yield return null;
             string episodePath = $"Episodes/pilot_task_id_{episode}_bounds.json";
             string episodeFile = File.ReadAllText(episodePath);
-            Episode currentEpisode = JsonUtility.FromJson<Episode>(episodeFile);
+            currentEpisode = JsonUtility.FromJson<Episode>(episodeFile);
             currentEpisode.ClearDataFile(episode);
 
             sceneCameras = ScriptUtils.FindAllCameras(transform);
@@ -344,11 +345,10 @@ namespace StoryGenerator
             CameraUtils.DeactivateCameras(cameras);
             OneTimeInitializer cameraInitializer = new OneTimeInitializer();
             OneTimeInitializer homeInitializer = new OneTimeInitializer();
-            EnvironmentGraphCreator currentGraphCreator = null;
-            EnvironmentGraph currentGraph = null;
+            
 
             InitRooms();
-
+            action_button = new List<List<string>>();
             cameraInitializer.initialized = false;
             if (currentGraph == null)
             {
@@ -429,23 +429,62 @@ namespace StoryGenerator
             //add one character by default
             CharacterConfig configchar = new CharacterConfig();//JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
             CharacterControl newchar;
-            newchar = AddCharacter(configchar.character_resource, false, "fix_room", configchar.character_position, currentEpisode.init_rooms[0]);
-            StopCharacterAnimation(newchar.gameObject);
 
-            characters.Add(newchar);
-            CurrentStateList.Add(null);
-            numCharacters++;
-            List<Camera> charCameras = CameraExpander.AddCharacterCameras(newchar.gameObject, transform, "");
-            CameraUtils.DeactivateCameras(charCameras);
-            cameras.AddRange(charCameras);
+            GameObject newRenderStream = new GameObject("RenderStreaming");
+            //RenderStreaming.Create
+            RenderStreaming rs = newRenderStream.AddComponent<RenderStreaming>();
+            rs.runOnAwake = false;
+            MultiPlayerBroadcast bc = newRenderStream.AddComponent<MultiPlayerBroadcast>();
+            Camera currentCamera = new Camera();
+            licr = new List<WebBrowserInputData>();
+            //List<CharacterControl>  characters = new List<CharacterControl>();
+            //List <ScriptExecutor> sExecutors = new List<ScriptExecutor>();
 
+
+
+            scriptLines = new List<string>();
+            for (int itt = 0; itt < 1; itt++)
+            {
+                scriptLines.Add("");
+                action_button.Add(new List<string> ());
+                newchar = AddCharacter(configchar.character_resource, false, "fix_room", configchar.character_position, currentEpisode.init_rooms[0]);
+                StopCharacterAnimation(newchar.gameObject);
+
+                characters.Add(newchar);
+                CurrentStateList.Add(null);
+                numCharacters++;
+                List<Camera> charCameras = CameraExpander.AddCharacterCameras(newchar.gameObject, transform, "");
+                CameraUtils.DeactivateCameras(charCameras);
+                cameras.AddRange(charCameras);
+
+                
+
+                keyPressed = false;
+                click = false;
+                first_press = false;
+                first_click = false;
+
+                
+
+                Camera currentCameraChar = charCameras.Find(c => c.name.Equals("Character_Camera_Fwd"));
+                CameraStreamer cs = currentCameraChar.gameObject.AddComponent<CameraStreamer>();
+
+                WebBrowserInputData icr = currentCameraChar.gameObject.AddComponent<WebBrowserInputData>();
+                icr.SetDriver(this, itt);
+                licr.Add(icr);
+                icr.onDeviceChange += OnDeviceChange;
+                currentCameraChar.gameObject.SetActive(true);
+                //recorders[0].CamCtrls[cameras.IndexOf(currentCamera)].Activate(true);
+                currentCameraChar.transform.localPosition = currentCameraChar.transform.localPosition + new Vector3(0, -0.15f, 0.1f);
+
+
+                
+                bc.AddComponent(cs);
+                bc.AddComponent(icr);
+                currentCamera = currentCameraChar;
+            }
+            yield return null;
             currentGraph = currentGraphCreator.UpdateGraph(transform);
-
-            keyPressed = false;
-            click = false;
-            first_press = false;
-            first_click = false;
-
             ExecutionConfig config = new ExecutionConfig();
             config.walk_before_interaction = false;
             IObjectSelectorProvider objectSelectorProvider = new InstanceSelectorProvider(currentGraph);
@@ -453,23 +492,7 @@ namespace StoryGenerator
             createRecorders(config);
             sExecutors = InitScriptExecutors(config, objectSelectorProvider, sceneCameras, objectList);
 
-            Camera currentCamera = cameras.Find(c => c.name.Equals("Character_Camera_Fwd"));
-            CameraStreamer cs = currentCamera.gameObject.AddComponent<CameraStreamer>();
             
-            WebBrowserInputData icr = currentCamera.gameObject.AddComponent<WebBrowserInputData>();
-            icr.onDeviceChange += OnDeviceChange;
-            currentCamera.gameObject.SetActive(true);
-            //recorders[0].CamCtrls[cameras.IndexOf(currentCamera)].Activate(true);
-            currentCamera.transform.localPosition = currentCamera.transform.localPosition + new Vector3(0, -0.15f, 0.1f);
-
-
-            GameObject newRenderStream = new GameObject("RenderStreaming");
-            //RenderStreaming.Create
-            RenderStreaming rs = newRenderStream.AddComponent<RenderStreaming>();
-            Broadcast bc = newRenderStream.AddComponent<Broadcast>();
-            bc.AddComponent(cs);
-            bc.AddComponent(icr);
-            rs.runOnAwake = false;
             string connection_type = typeof(WebSocketSignaling).FullName;
             float interval = 5.0f;
             Debug.Log("GETTING " + port_websocket.ToString());
@@ -547,9 +570,7 @@ namespace StoryGenerator
             //goPutLeft.SetActive(false);
             //goPutRight.SetActive(false);
 
-            List<string> scriptLines = new List<string>();
-
-            GameObject pointer = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            pointer = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             pointer.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
             pointer.GetComponent<MeshRenderer>().material.color = Color.magenta;
             currentEpisode.StoreGraph(currentGraph, 0);
@@ -558,8 +579,10 @@ namespace StoryGenerator
             {
                 bool saveEpisode = false;
                 click = false;
-                float currTime = Time.time;
+                currTime = Time.time;
                 keyPressed = false;
+                string move = "";
+                int char_id = 0;
                 if (m_keyboard != null)
                 {
                     //Debug.Log("Here");
@@ -569,9 +592,7 @@ namespace StoryGenerator
                         if (!first_press)
                         {
 
-                            string move = "<char0> [walkforward]";
-                            currentEpisode.AddAction(move, currTime);
-                            scriptLines.Add(move);
+                            move = "<char0> [walkforward]";
                             Debug.Log("move forward");
                             keyPressed = true;
                             first_press = true;
@@ -580,9 +601,7 @@ namespace StoryGenerator
                     else if (m_keyboard.downArrowKey.isPressed)
                     {
                         if (!first_press) {
-                            string move = "<char0> [walkbackward]";
-                            currentEpisode.AddAction(move, currTime);
-                            scriptLines.Add(move);
+                            move = "<char0> [walkbackward]";
                             Debug.Log("move backward");
                             keyPressed = true;
                             first_press = true;
@@ -592,9 +611,7 @@ namespace StoryGenerator
                     {
                         if (!first_press)
                         {
-                            string move = "<char0> [turnright]";
-                            currentEpisode.AddAction(move, currTime);
-                            scriptLines.Add(move);
+                            move = "<char0> [turnright]";
                             Debug.Log("move right");
                             keyPressed = true;
                             first_press = true;
@@ -605,9 +622,7 @@ namespace StoryGenerator
                     {
                         if (!first_press)
                         {
-                            string move = "<char0> [turnleft]";
-                            currentEpisode.AddAction(move, currTime);
-                            scriptLines.Add(move);
+                            move = "<char0> [turnleft]";
                             Debug.Log("move left");
                             keyPressed = true;
                             first_press = true;
@@ -678,7 +693,17 @@ namespace StoryGenerator
                         first_press = false;
                     }
 
-                    
+                    if (keyPressed)
+                    {
+                        if (move != "")
+                        {
+                            scriptLines[char_id] = move;
+                            currentEpisode.AddAction(move, currTime);
+                        }
+                        
+
+                    }
+
                     //if (m_keyboard.GetKe)
                 }
                 else
@@ -686,6 +711,7 @@ namespace StoryGenerator
                     first_press = false;
                     keyPressed = false;
                 }
+
                 
 
                 bool mouse_clicked = false;
@@ -832,9 +858,9 @@ namespace StoryGenerator
                             Character character_graph;
                             currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
 
-                            float distance = Vector3.Distance(newchar.transform.position, obj.transform.position);
+                            float distance = Vector3.Distance(characters[0].transform.position, obj.transform.position);
                             //distance = 0.0f;
-                            Debug.Log("MY POSITION " + newchar.transform.position);
+                            Debug.Log("MY POSITION " + characters[0].transform.position);
                             Debug.Log("OBJECT POSITION " + obj.transform.position);
                             Debug.Log("DISTANCE " +  distance);
 
@@ -1100,7 +1126,12 @@ namespace StoryGenerator
                             }
 
                             string button_click_info = JsonConvert.SerializeObject(buttons_show);
-                            icr.SendData(button_click_info);
+                            action_button[0].Clear();
+                            for (int it = 0; it < buttons_show.Count; it++)
+                            {
+                                action_button[0].Add(buttons_show[it].button_action);
+                            }
+                            licr[0].SendData(button_click_info);
                         }
                     }
                 }
@@ -1123,123 +1154,10 @@ namespace StoryGenerator
 
                     Debug.Log(first_press);
                     pointer.SetActive(false);
-                    sExecutors[0].ClearScript();
-                    sExecutors[0].smooth_walk = false;
-                    if (scriptLines.Count == 0)
-                    {
-                        continue;
-                    }
-                    Debug.Log("deleting");
-                    Debug.Log("Scriptlines " + scriptLines[0]);
-                    Debug.Log("Scriptlines count " + scriptLines.Count);
-                    ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
-                    StartCoroutine(sExecutors[0].ProcessAndExecute(false, this));
-
-                    finishedChars = 0;
-                    yield return new WaitUntil(() => finishedChars != numCharacters);
-                    if (!sExecutors[0].Success)
-                    {
-                        currentEpisode.FailAction();
-                        Debug.Log("Failure");
-                    }
-                    else
-                    {
-                        // Update the graph
-                        List<ActionObjectData> last_action = new List<ActionObjectData>();
-                        ScriptPair script = sExecutors[0].script[0];
-                        State currentState = this.CurrentStateList[0];
-                        EnvironmentObject obj1;
-                        currentGraphCreator.objectNodeMap.TryGetValue(characters[0].gameObject, out obj1);
-                        Character character_graph;
-                        currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
-
-                        ActionObjectData object_script = new ActionObjectData(character_graph, script, currentState.scriptObjects);
-                        last_action.Add(object_script);
-
-                        GameObject rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
-                        GameObject lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
-                        EnvironmentObject obj2;
-                        if (lh != null)
-                        {
-                            currentGraphCreator.objectNodeMap.TryGetValue(lh, out obj2);
-                            character_graph.grabbed_left = obj2;
-
-                        }
-                        else
-                        {
-                            character_graph.grabbed_left = null;
-                        }
-                        if (rh != null)
-                        {
-                            currentGraphCreator.objectNodeMap.TryGetValue(rh, out obj2);
-                            character_graph.grabbed_right = obj2;
-                        }
-                        else
-                        {
-                            character_graph.grabbed_right = null;
-                        }
-
-                        foreach (KeyValuePair<Tuple<string, int>, ScriptObjectData> entry in currentState.scriptObjects)
-                        {
-                            if (entry.Value.OpenStatus == OpenStatus.OPEN)
-                            {
-                                currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Remove(Utilities.ObjectState.CLOSED);
-                                currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Add(Utilities.ObjectState.OPEN);
-                            }
-                            else if (entry.Value.OpenStatus == OpenStatus.CLOSED)
-                            {
-                                currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Remove(Utilities.ObjectState.OPEN);
-                                currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Add(Utilities.ObjectState.CLOSED);
-                            }
-                        }
-
-                        currentGraph = currentGraphCreator.UpdateGraph(transform, null, last_action);
-                        string fadeText = currentEpisode.checkTasks(currentGraph, currentGraphCreator);
-                        if (!fadeText.Equals("None"))
-                        {
-                            FadeCompletionText(fadeText, newCanvas);
-                        }
-                        tasksUI.text = currentEpisode.UpdateTasksString();
-                        currentEpisode.StoreGraph(currentGraph, currTime);
-                    }
-
-                    Debug.Log("Finished");
-
-
-
-
-
-                    scriptLines.Clear();
-                    icr.SendData("DeleteButtons");
-                    //goOpen.SetActive(false);
-                    //goGrab.SetActive(false);
-                    //goPutLeft.SetActive(false);
-                    //goPutRight.SetActive(false);   
-
-                    //keyPressed = false;
-                    click = false;
-                    Debug.Log("action executed");
-                    pointer.SetActive(false);
+                    yield return ExecuteScript(char_id);
                     
                 }
 
-                if (newchar.transform.position != currentEpisode.previousPos || newchar.transform.eulerAngles != currentEpisode.previousRotation)
-                {
-                    currentEpisode.AddCharInfo(newchar.transform.position, newchar.transform.eulerAngles, Time.time);
-                }
-                currentEpisode.previousPos = newchar.transform.position;
-                currentEpisode.previousRotation = newchar.transform.eulerAngles;
-
-                if (currentEpisode.IsCompleted || episodeDone)
-                {
-                    string completed = "Tasks: Completed!\nLoading New Episode";
-                    string tasksCompletedText = completed.AddColor(Color.green);
-                    tasksUI.text = tasksCompletedText;
-                    FadeCompletionText(tasksCompletedText, newCanvas);
-                    currentEpisode.RecordData(episode);
-                    episodeDone = true;
-                    episodeNum++;
-                }
                 yield return null;
 
             }
@@ -1259,7 +1177,131 @@ namespace StoryGenerator
             yield return null;
 
         }
+        public IEnumerator ExecuteScript(int char_id)
+        {
+            sExecutors[char_id].ClearScript();
+            sExecutors[char_id].smooth_walk = false;
+            if (scriptLines[char_id] == "")
+            {
+                yield return null;
+            }
+            Debug.Log("deleting");
+            Debug.Log("Scriptlines " + scriptLines[char_id]);
+            Debug.Log("Scriptlines count " + scriptLines.Count);
+            List<string> nscriptLines = new List<string>();
+            nscriptLines.Add(scriptLines[char_id]);
+            ScriptReader.ParseScript(sExecutors, nscriptLines, dataProviders.ActionEquivalenceProvider);
+            StartCoroutine(sExecutors[char_id].ProcessAndExecute(false, this));
+            finishedChars = 0;
+            //yield return new WaitUntil(() => finishedChars != numCharacters);
+            if (!sExecutors[char_id].Success)
+            {
+                currentEpisode.FailAction();
+                Debug.Log("Failure");
+            }
+            else
+            {
+                // Update the graph
+                List<ActionObjectData> last_action = new List<ActionObjectData>();
+                ScriptPair script = sExecutors[char_id].script[0];
+                State currentState = this.CurrentStateList[0];
+                EnvironmentObject obj1;
+                currentGraphCreator.objectNodeMap.TryGetValue(characters[char_id].gameObject, out obj1);
+                Character character_graph;
+                currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
 
+                ActionObjectData object_script = new ActionObjectData(character_graph, script, currentState.scriptObjects);
+                last_action.Add(object_script);
+
+                GameObject rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
+                GameObject lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
+                EnvironmentObject obj2;
+                if (lh != null)
+                {
+                    currentGraphCreator.objectNodeMap.TryGetValue(lh, out obj2);
+                    character_graph.grabbed_left = obj2;
+
+                }
+                else
+                {
+                    character_graph.grabbed_left = null;
+                }
+                if (rh != null)
+                {
+                    currentGraphCreator.objectNodeMap.TryGetValue(rh, out obj2);
+                    character_graph.grabbed_right = obj2;
+                }
+                else
+                {
+                    character_graph.grabbed_right = null;
+                }
+
+                foreach (KeyValuePair<Tuple<string, int>, ScriptObjectData> entry in currentState.scriptObjects)
+                {
+                    if (entry.Value.OpenStatus == OpenStatus.OPEN)
+                    {
+                        currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Remove(Utilities.ObjectState.CLOSED);
+                        currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Add(Utilities.ObjectState.OPEN);
+                    }
+                    else if (entry.Value.OpenStatus == OpenStatus.CLOSED)
+                    {
+                        currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Remove(Utilities.ObjectState.OPEN);
+                        currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Add(Utilities.ObjectState.CLOSED);
+                    }
+                }
+
+                currentGraph = currentGraphCreator.UpdateGraph(transform, null, last_action);
+                string fadeText = currentEpisode.checkTasks(currentGraph, currentGraphCreator);
+
+
+                //if (!fadeText.Equals("None"))
+                //{
+                //    FadeCompletionText(fadeText, newCanvas);
+                //}
+
+                //tasksUI.text = currentEpisode.UpdateTasksString();
+
+                currentEpisode.StoreGraph(currentGraph, currTime);
+            }
+
+            Debug.Log("Finished");
+
+
+
+
+
+            scriptLines[char_id] = "";
+            licr[char_id].SendData("DeleteButtons");
+            //goOpen.SetActive(false);
+            //goGrab.SetActive(false);
+            //goPutLeft.SetActive(false);
+            //goPutRight.SetActive(false);   
+
+            //keyPressed = false;
+            click = false;
+            Debug.Log("action executed");
+            pointer.SetActive(false);
+
+            if (characters[char_id].transform.position != currentEpisode.previousPos || characters[char_id].transform.eulerAngles != currentEpisode.previousRotation)
+            {
+                currentEpisode.AddCharInfo(characters[char_id].transform.position, characters[char_id].transform.eulerAngles, Time.time);
+            }
+            currentEpisode.previousPos = characters[0].transform.position;
+            currentEpisode.previousRotation = characters[0].transform.eulerAngles;
+
+            if (currentEpisode.IsCompleted || episodeDone)
+            {
+                string completed = "Tasks: Completed!\nLoading New Episode";
+                string tasksCompletedText = completed.AddColor(Color.green);
+                //tasksUI.text = tasksCompletedText;
+                //FadeCompletionText(tasksCompletedText, newCanvas);
+                //currentEpisode.RecordData(episode);
+                episodeDone = true;
+                episodeNum++;
+            }
+            yield return null;
+
+        }
         // TODO: move this to utils
         void AddButton(string text)
         {
@@ -1306,807 +1348,7 @@ namespace StoryGenerator
             Destroy(i.gameObject);
         }
 
-        IEnumerator ProcessNetworkRequest()
-        {
-            // There is not always a character
-            // StopCharacterAnimation(character);
-
-            sceneCameras = ScriptUtils.FindAllCameras(transform);
-            numSceneCameras = sceneCameras.Count;
-            cameras = sceneCameras.ToList();
-            cameras.AddRange(CameraExpander.AddRoomCameras(transform));
-            CameraUtils.DeactivateCameras(cameras);
-            OneTimeInitializer cameraInitializer = new OneTimeInitializer();
-            OneTimeInitializer homeInitializer = new OneTimeInitializer();
-            EnvironmentGraphCreator currentGraphCreator = null;
-            EnvironmentGraph currentGraph = null;
-            int expandSceneCount = 0;
-
-            InitRooms();
-
-            //add one character by default
-            CharacterConfig configchar = new CharacterConfig();//JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
-            CharacterControl newchar;
-            newchar = AddCharacter(configchar.character_resource, false, configchar.mode, configchar.character_position, configchar.initial_room);
-
-
-            characters.Add(newchar);
-            CurrentStateList.Add(null);
-            numCharacters++;
-            List<Camera> charCameras = CameraExpander.AddCharacterCameras(newchar.gameObject, transform, "");
-            CameraUtils.DeactivateCameras(charCameras);
-            cameras.AddRange(charCameras);
-            cameraInitializer.initialized = false;
-
-            if (currentGraph == null)
-            {
-                //currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                currentGraph = currentGraphCreator.CreateGraph(transform);
-            }
-            else
-            {
-                currentGraph = currentGraphCreator.UpdateGraph(transform);
-            }
-
-
-            while (true)
-            {
-                Debug.Log("Waiting for request");
-
-                yield return new WaitUntil(() => networkRequest != null);
-
-                Debug.Log("Processing");
-
-                NetworkResponse response = new NetworkResponse() { id = networkRequest.id };
-
-                if (networkRequest.action == "camera_count")
-                {
-                    response.success = true;
-                    response.value = cameras.Count;
-                }
-                else if (networkRequest.action == "camera_data")
-                {
-                    cameraInitializer.Initialize(() => CameraUtils.InitCameras(cameras));
-
-                    IList<int> indexes = networkRequest.intParams;
-
-                    if (!CheckCameraIndexes(indexes, cameras.Count))
-                    {
-                        response.success = false;
-                        response.message = "Invalid parameters";
-                    }
-                    else
-                    {
-                        IList<CameraInfo> cameraData = CameraUtils.CreateCameraData(cameras, indexes);
-
-                        response.success = true;
-                        response.message = JsonConvert.SerializeObject(cameraData);
-                    }
-                }
-                else if (networkRequest.action == "add_camera")
-                {
-                    CameraConfig camera_config = JsonConvert.DeserializeObject<CameraConfig>(networkRequest.stringParams[0]);
-                    String camera_name = cameras.Count().ToString();
-                    GameObject go = new GameObject("new_camera" + camera_name, typeof(Camera));
-                    Camera new_camera = go.GetComponent<Camera>();
-                    new_camera.renderingPath = RenderingPath.UsePlayerSettings;
-                    Vector3 position_vec = camera_config.position;
-                    Vector3 rotation_vec = camera_config.rotation;
-                    go.transform.localPosition = position_vec;
-                    go.transform.localEulerAngles = rotation_vec;
-
-                    cameras.Add(new_camera);
-                    response.message = "New camera created. Id:" + camera_name;
-                    response.success = true; ;
-                    cameraInitializer.initialized = false;
-                    CameraUtils.DeactivateCameras(cameras);
-
-                }
-                else if (networkRequest.action == "camera_image")
-                {
-
-                    cameraInitializer.Initialize(() => CameraUtils.InitCameras(cameras));
-
-                    IList<int> indexes = networkRequest.intParams;
-
-                    if (!CheckCameraIndexes(indexes, cameras.Count))
-                    {
-                        response.success = false;
-                        response.message = "Invalid parameters";
-                    }
-                    else
-                    {
-                        ImageConfig config = JsonConvert.DeserializeObject<ImageConfig>(networkRequest.stringParams[0]);
-                        int cameraPass = ParseCameraPass(config.mode);
-                        if (cameraPass == -1)
-                        {
-                            response.success = false;
-                            response.message = "The current camera mode does not exist";
-                        }
-                        else
-                        {
-
-                            foreach (int i in indexes)
-                            {
-                                CameraExpander.AdjustCamera(cameras[i]);
-                                cameras[i].gameObject.SetActive(true);
-                            }
-                            yield return new WaitForEndOfFrame();
-
-                            List<string> imgs = new List<string>();
-
-                            foreach (int i in indexes)
-                            {
-                                byte[] bytes = CameraUtils.RenderImage(cameras[i], config.image_width, config.image_height, cameraPass);
-                                cameras[i].gameObject.SetActive(false);
-                                imgs.Add(Convert.ToBase64String(bytes));
-                            }
-                            response.success = true;
-                            response.message_list = imgs;
-                        }
-
-                    }
-                }
-                else if (networkRequest.action == "environment_graph")
-                {
-                    if (currentGraph == null)
-                    {
-                        currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                        var graph = currentGraphCreator.CreateGraph(transform);
-                        response.success = true;
-                        response.message = JsonConvert.SerializeObject(graph);
-                        currentGraph = graph;
-                    }
-                    else
-                    {
-                        //s_GetGraphMarker.Begin();
-                        using (s_GetGraphMarker.Auto())
-                            currentGraph = currentGraphCreator.GetGraph();
-                        //s_GetGraphMarker.End();
-                        response.success = true;
-                    }
-
-
-                    using (s_GetMessageMarker.Auto())
-                    {
-                        response.message = JsonConvert.SerializeObject(currentGraph);
-                    }
-                }
-                else if (networkRequest.action == "expand_scene")
-                {
-                    cameraInitializer.initialized = false;
-                    List<IEnumerator> animationEnumerators = new List<IEnumerator>();
-
-                    try
-                    {
-                        if (currentGraph == null)
-                        {
-                            currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                            currentGraph = currentGraphCreator.CreateGraph(transform);
-                        }
-
-                        ExpanderConfig config = JsonConvert.DeserializeObject<ExpanderConfig>(networkRequest.stringParams[0]);
-                        Debug.Log("Successfully de-serialized object");
-                        EnvironmentGraph graph = EnvironmentGraphCreator.FromJson(networkRequest.stringParams[1]);
-
-
-                        if (config.randomize_execution)
-                        {
-                            InitRandom(config.random_seed);
-                        }
-
-                        // Maybe we do not need this
-                        if (config.animate_character)
-                        {
-                            foreach (CharacterControl c in characters)
-                            {
-                                c.GetComponent<Animator>().speed = 1;
-                            }
-                        }
-
-                        SceneExpander graphExpander = new SceneExpander(dataProviders)
-                        {
-                            Randomize = config.randomize_execution,
-                            IgnoreObstacles = config.ignore_obstacles,
-                            AnimateCharacter = config.animate_character,
-                            TransferTransform = config.transfer_transform
-                        };
-
-                        if (networkRequest.stringParams.Count > 2 && !string.IsNullOrEmpty(networkRequest.stringParams[2]))
-                        {
-                            graphExpander.AssetsMap = JsonConvert.DeserializeObject<IDictionary<string, List<string>>>(networkRequest.stringParams[2]);
-                        }
-                        // TODO: set this with a flag
-                        bool exact_expand = false;
-                        graphExpander.ExpandScene(transform, graph, currentGraph, expandSceneCount, exact_expand);
-
-                        SceneExpanderResult result = graphExpander.GetResult();
-
-                        response.success = result.Success;
-                        response.message = JsonConvert.SerializeObject(result.Messages);
-
-                        // TODO: Do we need this?
-                        //currentGraphCreator.SetGraph(graph);
-                        currentGraph = currentGraphCreator.UpdateGraph(transform);
-                        animationEnumerators.AddRange(result.enumerators);
-                        expandSceneCount++;
-                    }
-                    catch (JsonException e)
-                    {
-                        response.success = false;
-                        response.message = "Error deserializing params: " + e.Message;
-                    }
-                    catch (Exception e)
-                    {
-                        response.success = false;
-                        response.message = "Error processing input graph: " + e.Message;
-                        Debug.Log(e);
-                    }
-
-                    foreach (IEnumerator e in animationEnumerators)
-                    {
-                        yield return e;
-                    }
-                    foreach (CharacterControl c in characters)
-                    {
-                        c.GetComponent<Animator>().speed = 0;
-                    }
-
-                }
-                else if (networkRequest.action == "point_cloud")
-                {
-                    if (currentGraph == null)
-                    {
-                        currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                        currentGraph = currentGraphCreator.CreateGraph(transform);
-                    }
-                    PointCloudExporter exporter = new PointCloudExporter(0.01f);
-                    List<ObjectPointCloud> result = exporter.ExportObjects(currentGraph.nodes);
-                    response.success = true;
-                    response.message = JsonConvert.SerializeObject(result);
-                }
-                else if (networkRequest.action == "instance_colors")
-                {
-                    if (currentGraph == null)
-                    {
-                        EnvironmentGraphCreator graphCreator = new EnvironmentGraphCreator(dataProviders);
-                        currentGraph = graphCreator.CreateGraph(transform);
-                    }
-                    response.success = true;
-                    response.message = JsonConvert.SerializeObject(GetInstanceColoring(currentGraph.nodes));
-                    //} else if (networkRequest.action == "start_recorder") {
-                    //    RecorderConfig config = JsonConvert.DeserializeObject<RecorderConfig>(networkRequest.stringParams[0]);
-
-                    //    string outDir = Path.Combine(config.output_folder, config.file_name_prefix);
-                    //    Directory.CreateDirectory(outDir);
-
-                    //    InitRecorder(config, outDir);
-
-                    //    CharacterControl cc = character.GetComponent<CharacterControl>();
-                    //    cc.rcdr = recorder;
-
-                    //    if (recorder.saveSceneStates) {
-                    //        List<GameObject> rooms = ScriptUtils.FindAllRooms(transform);
-                    //        State_char sc = character.AddComponent<State_char>();
-                    //        sc.Initialize(rooms, recorder.sceneStateSequence);
-                    //        cc.stateChar = sc;
-                    //    }
-
-                    //    foreach (Camera camera in sceneCameras) {
-                    //        camera.gameObject.SetActive(true);
-                    //    }
-
-                    //    recorder.Animator = cc.GetComponent<Animator>();
-                    //    recorder.Animator.speed = 1;
-
-                    //    CameraControl cameraControl = new CameraControl(sceneCameras, cc.transform, new Vector3(0, 1.0f, 0));
-                    //    cameraControl.RandomizeCameras = config.randomize_recording;
-                    //    cameraControl.CameraChangeEvent += recorder.UpdateCameraData;
-
-                    //    recorder.CamCtrl = cameraControl;
-                    //    recorder.MaxFrameNumber = 1000;
-                    //    recorder.Recording = true;
-                    //} else if (networkRequest.action == "stop_recorder") {
-                    //    recorder.MarkTermination();
-                    //    yield return WAIT_AFTER_END_OF_SCENE;
-                    //    recorder.Recording = false;
-                    //    recorder.Animator.speed = 0;
-                    //    foreach (Camera camera in sceneCameras) {
-                    //        camera.gameObject.SetActive(false);
-                    //    }
-                }
-                else if (networkRequest.action == "add_character")
-                {
-                    CharacterConfig config = JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
-                    //CharacterControl newchar;
-                    newchar = AddCharacter(config.character_resource, false, config.mode, config.character_position, config.initial_room);
-
-                    if (newchar != null)
-                    {
-                        characters.Add(newchar);
-                        CurrentStateList.Add(null);
-                        numCharacters++;
-                        charCameras = CameraExpander.AddCharacterCameras(newchar.gameObject, transform, "");
-                        CameraUtils.DeactivateCameras(charCameras);
-                        cameras.AddRange(charCameras);
-                        cameraInitializer.initialized = false;
-
-                        if (currentGraph == null)
-                        {
-                            currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                            currentGraph = currentGraphCreator.CreateGraph(transform);
-                        }
-                        else
-                        {
-                            currentGraph = currentGraphCreator.UpdateGraph(transform);
-                        }
-                        // add camera
-                        // cameras.AddRange(CameraExpander.AddCharacterCameras(newchar.gameObject, transform, ""));
-
-
-                        response.success = true;
-                    }
-                    else
-                    {
-                        response.success = false;
-                    }
-
-                }
-
-                else if (networkRequest.action == "move_character")
-                {
-                    CharacterConfig config = JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
-                    Vector3 position = config.character_position;
-                    int char_index = config.char_index;
-                    Debug.Log($"move_char to : {position}");
-
-                    List<GameObject> rooms = ScriptUtils.FindAllRooms(transform);
-                    foreach (GameObject r in rooms)
-                    {
-                        if (r.GetComponent<Properties_room>() != null)
-                            r.AddComponent<Properties_room>();
-                    }
-
-                    bool contained_somewhere = false;
-                    for (int i = 0; i < rooms.Count; i++)
-                    {
-                        if (GameObjectUtils.GetRoomBounds(rooms[i]).Contains(position))
-                        {
-                            contained_somewhere = true;
-                        }
-                    }
-                    if (!contained_somewhere)
-                    {
-                        response.success = false;
-                    }
-                    else
-                    {
-                        response.success = true;
-                        var nma = characters[char_index].gameObject.GetComponent<NavMeshAgent>();
-                        nma.Warp(position);
-                    }
-
-                }
-                // TODO: remove character as well
-
-                else if (networkRequest.action == "render_script")
-                {
-                    if (numCharacters == 0)
-                    {
-                        networkRequest = null;
-
-                        response.message = "No character added yet!";
-                        response.success = false;
-
-                        commServer.UnlockProcessing(response);
-                        continue;
-                    }
-
-                    ExecutionConfig config = JsonConvert.DeserializeObject<ExecutionConfig>(networkRequest.stringParams[0]);
-
-
-                    if (config.randomize_execution)
-                    {
-                        InitRandom(config.random_seed);
-                    }
-
-                    if (currentGraph == null)
-                    {
-                        currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                        currentGraph = currentGraphCreator.CreateGraph(transform);
-                    }
-
-                    string outDir = Path.Combine(config.output_folder, config.file_name_prefix);
-                    if (!config.skip_execution)
-                    {
-                        Directory.CreateDirectory(outDir);
-                    }
-                    IObjectSelectorProvider objectSelectorProvider;
-                    if (config.find_solution)
-                        objectSelectorProvider = new ObjectSelectionProvider(dataProviders.NameEquivalenceProvider);
-                    else
-                        objectSelectorProvider = new InstanceSelectorProvider(currentGraph);
-                    IList<GameObject> objectList = ScriptUtils.FindAllObjects(transform);
-                    // TODO: check if we need this
-                    if (recorders.Count != numCharacters)
-                    {
-                        createRecorders(config);
-                    }
-                    else
-                    {
-                        updateRecorders(config);
-                    }
-
-                    if (!config.skip_execution)
-                    {
-                        for (int i = 0; i < numCharacters; i++)
-                        {
-                            if (config.skip_animation)
-                                characters[i].SetSpeed(150.0f);
-                            else
-                                characters[i].SetSpeed(1.0f);
-                        }
-                    }
-                    if (config.skip_animation)
-                    {
-                        UtilsAnnotator.SetSkipAnimation(transform);
-                    }
-                    // initialize the recorders
-                    if (config.recording)
-                    {
-                        for (int i = 0; i < numCharacters; i++)
-                        {
-                            // Debug.Log($"cameraCtrl is not null? : {recorders[i].CamCtrl != null}");
-                            recorders[i].Initialize();
-                            recorders[i].Animator = characters[i].GetComponent<Animator>();
-
-                            //recorders[i].Animator.speed = 1;
-                        }
-
-                    }
-
-                    if (sExecutors.Count != numCharacters)
-                    {
-                        sExecutors = InitScriptExecutors(config, objectSelectorProvider, sceneCameras, objectList);
-                    }
-
-                    bool parseSuccess;
-                    try
-                    {
-                        List<string> scriptLines = networkRequest.stringParams.ToList();
-                        scriptLines.RemoveAt(0);
-
-                        // not ok, has video
-                        for (int i = 0; i < numCharacters; i++)
-                        {
-                            sExecutors[i].ClearScript();
-                            sExecutors[i].smooth_walk = !config.skip_animation;
-                        }
-
-                        ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
-                        parseSuccess = true;
-                    }
-                    catch (Exception e)
-                    {
-                        parseSuccess = false;
-                        response.success = false;
-                        response.message = $"Error parsing script: {e.Message}";
-                    }
-
-                    //s_SimulatePerfMarker.Begin();
-
-
-                    if (parseSuccess)
-                    {
-                        for (int i = 0; i < numCharacters; i++)
-                        {
-                            StartCoroutine(sExecutors[i].ProcessAndExecute(config.recording, this));
-                            //yield return sExecutors[i].ProcessAndExecute(true, this);
-                        }
-
-                        while (finishedChars != numCharacters)
-                        {
-                            yield return new WaitForSeconds(0.01f);
-                        }
-                    }
-
-
-                    //s_SimulatePerfMarker.End();
-
-                    finishedChars = 0;
-                    ScriptExecutor.actionsPerLine = new Hashtable();
-                    ScriptExecutor.currRunlineNo = 0;
-                    ScriptExecutor.currActionsFinished = 0;
-
-                    response.message = "";
-                    response.success = false;
-                    bool[] success_per_agent = new bool[numCharacters];
-
-                    if (!config.recording)
-                    {
-                        for (int i = 0; i < numCharacters; i++)
-                        {
-                            if (!sExecutors[i].Success)
-                            {
-                                //response.success = false;
-                                response.message += $"ScriptExcutor {i}: ";
-                                response.message += sExecutors[i].CreateReportString();
-                                response.message += "\n";
-                                success_per_agent[i] = false;
-                            }
-                            else
-                            {
-                                response.success = true;
-                                success_per_agent[i] = true;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        for (int i = 0; i < numCharacters; i++)
-                        {
-                            Recorder rec = recorders[i];
-                            if (!sExecutors[i].Success)
-                            {
-                                //response.success = false;
-                                response.message += $"ScriptExcutor {i}: ";
-                                response.message += sExecutors[i].CreateReportString();
-                                response.message += "\n";
-                            }
-                            else if (rec.Error != null)
-                            {
-                                //Directory.Delete(rec.OutputDirectory);
-                                //response.success = false;
-                                response.message += $"Recorder {i}: ";
-                                response.message += recorder.Error.Message;
-                                response.message += "\n";
-                                rec.Recording = false;
-                            }
-                            else
-                            {
-                                response.success = true;
-                                success_per_agent[i] = true;
-                                rec.MarkTermination();
-                                rec.Recording = false;
-                                rec.Animator.speed = 0;
-                                CreateSceneInfoFile(rec.OutputDirectory, new SceneData()
-                                {
-                                    frameRate = config.frame_rate,
-                                    sceneName = SceneManager.GetActiveScene().name
-                                });
-                                rec.CreateTextualGTs();
-                            }
-                        }
-                    }
-
-
-                    ISet<GameObject> changedObjs = new HashSet<GameObject>();
-                    IDictionary<Tuple<string, int>, ScriptObjectData> script_object_changed = new Dictionary<Tuple<string, int>, ScriptObjectData>();
-                    List<ActionObjectData> last_action = new List<ActionObjectData>();
-                    bool single_action = true;
-
-                    for (int char_index = 0; char_index < numCharacters; char_index++)
-                    {
-                        if (success_per_agent[char_index])
-                        {
-                            State currentState = this.CurrentStateList[char_index];
-                            GameObject rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
-                            GameObject lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
-                            EnvironmentObject obj1;
-                            EnvironmentObject obj2;
-                            currentGraphCreator.objectNodeMap.TryGetValue(characters[char_index].gameObject, out obj1);
-                            Character character_graph;
-                            currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
-
-                            if (sExecutors[char_index].script.Count > 1)
-                            {
-                                single_action = false;
-                            }
-                            if (sExecutors[char_index].script.Count == 1)
-                            {
-                                // If only one action was executed, we will use that action to update the environment
-                                // Otherwise, we will update using coordinates
-                                ScriptPair script = sExecutors[char_index].script[0];
-                                ActionObjectData object_script = new ActionObjectData(character_graph, script, currentState.scriptObjects);
-                                last_action.Add(object_script);
-
-                            }
-                            Debug.Assert(character_graph != null);
-                            if (lh != null)
-                            {
-                                currentGraphCreator.objectNodeMap.TryGetValue(lh, out obj2);
-                                character_graph.grabbed_left = obj2;
-
-                            }
-                            else
-                            {
-                                character_graph.grabbed_left = null;
-                            }
-                            if (rh != null)
-                            {
-                                currentGraphCreator.objectNodeMap.TryGetValue(rh, out obj2);
-                                character_graph.grabbed_right = obj2;
-                            }
-                            else
-                            {
-
-                                character_graph.grabbed_right = null;
-                            }
-
-                            IDictionary<Tuple<string, int>, ScriptObjectData> script_objects_state = currentState.scriptObjects;
-                            foreach (KeyValuePair<Tuple<string, int>, ScriptObjectData> entry in script_objects_state)
-                            {
-                                if (!entry.Value.GameObject.IsRoom())
-                                {
-                                    //if (entry.Key.Item1 == "cutleryknife")
-                                    //{
-
-                                    //    //int instance_id = entry.Value.GameObject.GetInstanceID();
-                                    //}
-                                    changedObjs.Add(entry.Value.GameObject);
-                                }
-
-                                if (entry.Value.OpenStatus != OpenStatus.UNKNOWN)
-                                {
-                                    //if (script_object_changed.ContainsKey(entry.Key))
-                                    //{
-                                    //    Debug.Log("Error, 2 agents trying to interact at the same time");
-                                    if (sExecutors[char_index].script.Count > 0 && sExecutors[char_index].script[0].Action.Name.Instance == entry.Key.Item2)
-                                    {
-                                        script_object_changed[entry.Key] = entry.Value;
-                                    }
-
-                                    //}
-                                    //else
-                                    //{
-
-                                    //}
-                                }
-
-                            }
-                            foreach (KeyValuePair<Tuple<string, int>, ScriptObjectData> entry in script_object_changed)
-                            {
-                                if (entry.Value.OpenStatus == OpenStatus.OPEN)
-                                {
-                                    currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Remove(Utilities.ObjectState.CLOSED);
-                                    currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Add(Utilities.ObjectState.OPEN);
-                                }
-                                else if (entry.Value.OpenStatus == OpenStatus.CLOSED)
-                                {
-                                    currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Remove(Utilities.ObjectState.OPEN);
-                                    currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Add(Utilities.ObjectState.CLOSED);
-                                }
-                            }
-                        }
-
-                        using (s_UpdateGraph.Auto())
-                        {
-                            if (single_action)
-                                currentGraph = currentGraphCreator.UpdateGraph(transform, null, last_action);
-                            else
-                                currentGraph = currentGraphCreator.UpdateGraph(transform, changedObjs);
-                        }
-                    }
-
-                }
-                else if (networkRequest.action == "reset")
-                {
-                    cameraInitializer.initialized = false;
-                    networkRequest.action = "environment_graph"; // return result after scene reload
-                    currentGraph = null;
-                    currentGraphCreator = null;
-                    CurrentStateList = new List<State>();
-                    //cc = null;
-                    numCharacters = 0;
-                    characters = new List<CharacterControl>();
-                    sExecutors = new List<ScriptExecutor>();
-                    cameras = cameras.GetRange(0, numSceneCameras);
-
-                    if (networkRequest.intParams?.Count > 0)
-                    {
-                        int sceneIndex = networkRequest.intParams[0];
-
-                        if (sceneIndex >= 0 && sceneIndex < SceneManager.sceneCountInBuildSettings)
-                        {
-
-                            SceneManager.LoadScene(sceneIndex);
-
-                            yield break;
-                        }
-                        else
-                        {
-                            response.success = false;
-                            response.message = "Invalid scene index";
-                        }
-                    }
-                    else
-                    {
-
-                        Debug.Log("Reloading");
-                        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-                        DeleteChar();
-                        Debug.Log("Reloaded");
-                        yield break;
-                    }
-                }
-                else if (networkRequest.action == "fast_reset")
-                {
-                    System.Diagnostics.Stopwatch resetStopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-                    // Reset without reloading scene
-                    cameraInitializer.initialized = false;
-                    networkRequest.action = "environment_graph"; // return result after scene reload
-                    //currentGraph = null;
-                    //currentGraphCreator = null;
-                    var graph = currentGraph;
-                    CurrentStateList = new List<State>();
-
-                    foreach (GameObject go in currentGraphCreator.objectNodeMap.Keys)
-                    {
-                        if (go == null)
-                        {
-                            continue;
-                        }
-                        HandInteraction higo = go.GetComponent<HandInteraction>();
-                        if (higo != null && higo.invisibleCpy != null)
-                        {
-                            bool added_rt = higo.added_runtime;
-                            Destroy(higo);
-                            if (!added_rt)
-                            {
-                                go.AddComponent<HandInteraction>();
-                            }
-                            // Do we need to specify that the invisible copy is not null?
-                        }
-                    }
-                    // Remove characters and objects they may have
-                    for (int i = 0; i < characters.Count; i++)
-                    {
-                        EnvironmentObject character_env_obj = currentGraphCreator.objectNodeMap[characters[i].gameObject];
-                        if (currentGraphCreator.characters[character_env_obj].grabbed_left != null)
-                        {
-                            currentGraphCreator.RemoveObject(currentGraphCreator.characters[character_env_obj].grabbed_left);
-                        }
-                        if (currentGraphCreator.characters[character_env_obj].grabbed_right != null)
-                        {
-                            currentGraphCreator.RemoveObject(currentGraphCreator.characters[character_env_obj].grabbed_right);
-                        }
-                        currentGraphCreator.RemoveObject(character_env_obj);
-                        Destroy(characters[i].gameObject);
-                    }
-                    currentGraphCreator.characters.Clear();
-
-                    characters = new List<CharacterControl>();
-                    numCharacters = 0;
-                    sExecutors = new List<ScriptExecutor>();
-                    cameras = cameras.GetRange(0, numSceneCameras);
-
-
-                    //Start();
-                    response.success = true;
-                    response.message = "";
-
-                    resetStopwatch.Stop();
-                    Debug.Log(String.Format("fast reset time: {0}", resetStopwatch.ElapsedMilliseconds));
-
-                }
-                else if (networkRequest.action == "idle")
-                {
-                    response.success = true;
-                    response.message = "";
-                }
-                else
-                {
-                    response.success = false;
-                    response.message = "Unknown action " + networkRequest.action;
-                }
-
-                // Ready for next request
-                networkRequest = null;
-
-                commServer.UnlockProcessing(response);
-            }
-        }
+        
 
         private bool SeenByCamera(Camera camera, Transform transform)
         {
