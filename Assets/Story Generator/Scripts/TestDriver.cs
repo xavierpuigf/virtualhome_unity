@@ -39,13 +39,29 @@ namespace StoryGenerator
 
         public ButtonClicks(string button_str, string button_action, Vector2 pos)
         {
+            
+            
             this.button_str = button_str;
             this.button_action = button_action;
             button_pos = new float[2]{pos.x, pos.y};
 
         }
+
+
     }
-    
+
+    public class ServerMessage
+    {
+        public string task_name;
+        public string task_content;
+
+        public ServerMessage(string task_name, string task_content)
+        {
+            this.task_name = task_name;
+            this.task_content = task_content;
+        }
+    }
+
     [RequireComponent(typeof(Recorder))]
     public class TestDriver : MonoBehaviour
     {
@@ -55,8 +71,11 @@ namespace StoryGenerator
         static ProfilerMarker s_UpdateGraph = new ProfilerMarker("MySystem.UpdateGraph");
         static ProfilerMarker s_SimulatePerfMarker = new ProfilerMarker("MySystem.Simulate");
 
+        public static ManualResetEvent mre = new ManualResetEvent(false);
+        public static bool t_lock = false;
 
         private const int DefaultPort = 8080;
+        private const int DefaultChars = 1;
         private const int DefaultTimeout = 500000;
 
 
@@ -93,17 +112,22 @@ namespace StoryGenerator
 
         private GameObject highlightedObj = null;
 
-        private Keyboard m_keyboard;
-        private Mouse m_mouse;
-        private List<Keyboard> m_keyboard_l = new List<Keyboard>();
-        private List<Mouse> m_mouse_l = new List<Mouse>();
+
 
         static int port_websocket = 80;
+        static int num_chars = 1;
 
-        bool keyPressed = false;
         bool click = false;
-        bool first_press = false;
-        bool first_click = false;
+
+        List<bool> keyPressed;
+        List<bool> first_press;
+        List<bool> first_click;
+        List<bool> mouse_clicked;
+        List<bool> executing_action;
+        private List<Keyboard> m_keyboard_l;
+        private List<Mouse> m_mouse_l;
+
+
         bool aux_pressed = false;
         public List<string> scriptLines;
         EnvironmentGraphCreator currentGraphCreator = null;
@@ -112,7 +136,7 @@ namespace StoryGenerator
         Episode currentEpisode;
         float currTime;
         public List<List<string>> action_button;
-        GameObject pointer;
+        List<GameObject> pointer;
 
         ICollection<string> openableContainers = new HashSet<string>{"bathroomcabinet", "kitchencabinet", "cabinet", "fridge", "stove", "dishwasher", "microwave"}; 
 
@@ -196,11 +220,17 @@ namespace StoryGenerator
             var argDict = DriverUtils.GetParameterValues(args);
             //Debug.Log(argDict);
             string portString = null;
+            string chString = null;
             int port = DefaultPort;
-
+            int nchars = 1;
+            
             if (!argDict.TryGetValue("http-port", out portString) || !Int32.TryParse(portString, out port))
                 port = DefaultPort;
+
+            if (!argDict.TryGetValue("numchars", out chString) || !Int32.TryParse(portString, out nchars))
+                num_chars = DefaultChars;
             port_websocket = port;
+            num_chars = nchars;
             Debug.Log(this.GetInstanceID());
 
             Debug.Log("Setting port " + port_websocket.ToString());
@@ -312,17 +342,52 @@ namespace StoryGenerator
                 case Mouse mouse:
                     if (add)
                     {
-                        //m_mouse_l.Add(mouse);
-                        m_mouse = mouse;
+                        for (int i = 0; i < m_mouse_l.Count; i++)
+                        {
+                            if (m_mouse_l[i] == null)
+                            {
+                                m_mouse_l[i] = mouse;
+                                break;
+                            }
+
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < m_mouse_l.Count; i++)
+                        {
+                            if (m_mouse_l[i] == mouse)
+                            {
+                                m_mouse_l[i] = null;
+                            }
+                        }
+                        
                     }
                     //m_mouse = add ? mouse : null;
                     return;
                 case Keyboard keyboard:
                     if (add)
                     {
-                        m_keyboard = keyboard;
-                        //m_keyboard_l.Add(keyboard);
+                        for (int i = 0; i < m_keyboard_l.Count; i++)
+                        {
+                            if (m_keyboard_l[i] == null)
+                            {
+                                m_keyboard_l[i] = keyboard;
+                                break;
+                            }
+                                
+                        }
                         //m_keyboard = add ? keyboard : null;
+                    }
+                    else
+                    {
+                        for (int i = 0; i < m_keyboard_l.Count; i++)
+                        {
+                            if (m_keyboard_l[i] == keyboard)
+                            {
+                                m_keyboard_l[i] = null;
+                            }
+                        }
                     }
                     return;
 
@@ -345,7 +410,16 @@ namespace StoryGenerator
             CameraUtils.DeactivateCameras(cameras);
             OneTimeInitializer cameraInitializer = new OneTimeInitializer();
             OneTimeInitializer homeInitializer = new OneTimeInitializer();
-            
+
+            keyPressed = new List<bool>();
+            first_press = new List<bool>();
+            first_click = new List<bool>();
+            mouse_clicked = new List<bool>();
+            executing_action = new List<bool>();
+            m_keyboard_l = new List<Keyboard>();
+            m_mouse_l = new List<Mouse>();
+            pointer = new List<GameObject>();
+
 
             InitRooms();
             action_button = new List<List<string>>();
@@ -360,6 +434,8 @@ namespace StoryGenerator
             cameraInitializer.initialized = false;
             List<IEnumerator> animationEnumerators = new List<IEnumerator>();
             int expandSceneCount = 0;
+            UtilsAnnotator.SetSkipAnimation(transform);
+
             try
             {
                 if (currentGraph == null)
@@ -435,17 +511,21 @@ namespace StoryGenerator
             RenderStreaming rs = newRenderStream.AddComponent<RenderStreaming>();
             rs.runOnAwake = false;
             MultiPlayerBroadcast bc = newRenderStream.AddComponent<MultiPlayerBroadcast>();
-            Camera currentCamera = new Camera();
+            //Broadcast bc = newRenderStream.AddComponent<Broadcast>();
+
+            List<Camera> currentCameras = new List<Camera>();
             licr = new List<WebBrowserInputData>();
             //List<CharacterControl>  characters = new List<CharacterControl>();
             //List <ScriptExecutor> sExecutors = new List<ScriptExecutor>();
 
 
-
             scriptLines = new List<string>();
-            for (int itt = 0; itt < 1; itt++)
+            for (int itt = 0; itt < num_chars; itt++)
             {
+                
                 scriptLines.Add("");
+                m_keyboard_l.Add(null);
+                m_mouse_l.Add(null);
                 action_button.Add(new List<string> ());
                 newchar = AddCharacter(configchar.character_resource, false, "fix_room", configchar.character_position, currentEpisode.init_rooms[0]);
                 StopCharacterAnimation(newchar.gameObject);
@@ -459,11 +539,11 @@ namespace StoryGenerator
 
                 
 
-                keyPressed = false;
-                click = false;
-                first_press = false;
-                first_click = false;
-
+                keyPressed.Add(false);
+                mouse_clicked.Add(false);
+                first_press.Add(false);
+                first_click.Add(false);
+                executing_action.Add(false);
                 
 
                 Camera currentCameraChar = charCameras.Find(c => c.name.Equals("Character_Camera_Fwd"));
@@ -481,7 +561,7 @@ namespace StoryGenerator
                 
                 bc.AddComponent(cs);
                 bc.AddComponent(icr);
-                currentCamera = currentCameraChar;
+                currentCameras.Add(currentCameraChar);
             }
             yield return null;
             currentGraph = currentGraphCreator.UpdateGraph(transform);
@@ -545,593 +625,579 @@ namespace StoryGenerator
             tasksUI.rectTransform.position = new Vector3(posx, +canvasrect.height * 0.5f - sizeh/2.0f - margin);
             tasksUI.rectTransform.sizeDelta = new Vector2(sizew, sizeh);
             currentEpisode.GenerateTasksAndGoals();
-            tasksUI.text = currentEpisode.UpdateTasksString();
-            tasksText.transform.SetParent(newCanvas.transform, false);
 
-            //AddButton("Open");
-            //AddButton("Grab");
-            //AddButton("PutLeft");
-            //AddButton("PutRight");
 
-            //GameObject goOpen = GameObject.Find("OpenButton");
-            //GameObject goGrab = GameObject.Find("GrabButton");
-            //GameObject goPutLeft = GameObject.Find("PutLeftButton");
-            //GameObject goPutRight = GameObject.Find("PutRightButton");
-            
-            //goOpen.gameObject.tag = "HPG_0";
-            //goGrab.gameObject.tag = "HPG_0";
-            //goPutLeft.gameObject.tag = "HPG_0";
-            //goPutRight.gameObject.tag = "HPG_0";
-            
+            List<string> text_task = currentEpisode.UpdateTasksString();
 
-            bool button_created = false;
-            //goOpen.SetActive(false);
-            //goGrab.SetActive(false);
-            //goPutLeft.SetActive(false);
-            //goPutRight.SetActive(false);
+            string task = JsonConvert.SerializeObject(currentEpisode.UpdateTasksString());
+            string task_info = JsonConvert.SerializeObject(new ServerMessage("UpdateTask", task));
+            //for (int itt = 0; itt < num_chars; itt++)
+            //{
 
-            pointer = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            pointer.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
-            pointer.GetComponent<MeshRenderer>().material.color = Color.magenta;
-            currentEpisode.StoreGraph(currentGraph, 0);
+            //    licr[itt].SendData(task_info);
+            //}
+
+
+
+            List<bool> button_created = new List<bool>();
+            for (int itt = 0; itt < num_chars; itt++)
+            {
+                GameObject cpointer = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                cpointer.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
+                cpointer.GetComponent<MeshRenderer>().material.color = Color.magenta;
+                pointer.Add(cpointer);
+                button_created.Add(false);
+            }
+
+            currentEpisode.StoreGraph(currentGraph, 0, "", -1);
 
             while (!episodeDone)
             {
                 bool saveEpisode = false;
-                click = false;
+                
                 currTime = Time.time;
-                keyPressed = false;
                 string move = "";
-                int char_id = 0;
-                if (m_keyboard != null)
+                for (int kboard_id = 0; kboard_id < m_keyboard_l.Count(); kboard_id++)
                 {
-                    //Debug.Log("Here");
+                    if (executing_action[kboard_id])
+                        continue;
+                    keyPressed[kboard_id] = false;
+                    int char_id = kboard_id;
+                    Keyboard m_keyboard = m_keyboard_l[kboard_id];
 
-                    if (m_keyboard.upArrowKey.isPressed)
+                    if (m_keyboard != null)
                     {
-                        if (!first_press)
-                        {
-
-                            move = "<char0> [walkforward]";
-                            Debug.Log("move forward");
-                            keyPressed = true;
-                            first_press = true;
-                        }
-                    }
-                    else if (m_keyboard.downArrowKey.isPressed)
-                    {
-                        if (!first_press) {
-                            move = "<char0> [walkbackward]";
-                            Debug.Log("move backward");
-                            keyPressed = true;
-                            first_press = true;
-                        }
-                    }
-                    else if (m_keyboard.rightArrowKey.isPressed)
-                    {
-                        if (!first_press)
-                        {
-                            move = "<char0> [turnright]";
-                            Debug.Log("move right");
-                            keyPressed = true;
-                            first_press = true;
-                        }
                         
-                    }
-                    else if(m_keyboard.leftArrowKey.isPressed)
-                    {
-                        if (!first_press)
+                        if (m_keyboard.upArrowKey.isPressed)
                         {
-                            move = "<char0> [turnleft]";
-                            Debug.Log("move left");
-                            keyPressed = true;
-                            first_press = true;
+                            if (!first_press[kboard_id])
+                            {
+
+                                move = String.Format("<char{0}> [walkforward]", char_id);
+                                Debug.Log("move forward");
+                                keyPressed[kboard_id] = true;
+                                first_press[kboard_id] = true;
+                            }
                         }
-                        
-                    }
-                    else if(m_keyboard.vKey.isPressed)
-                    {
-                        if (!first_press)
+                        else if (m_keyboard.downArrowKey.isPressed)
                         {
-                            saveEpisode = true;
-                            first_press = true;
+                            if (!first_press[kboard_id])
+                            {
+                                move = String.Format("<char{0}> [walkbackward]", char_id);
+                                Debug.Log("move backward");
+                                keyPressed[kboard_id] = true;
+                                first_press[kboard_id] = true;
+                            }
                         }
-                    }
-                    else if(m_keyboard.gKey.isPressed)
-                    {
-                        if (!first_press)
+                        else if (m_keyboard.rightArrowKey.isPressed)
                         {
-                            episodeDone = true;
-                            first_press = true;
+                            if (!first_press[kboard_id])
+                            {
+                                move = String.Format("<char{0}> [turnright]", char_id);
+                                Debug.Log("move right");
+                                keyPressed[kboard_id] = true;
+                                first_press[kboard_id] = true;
+                            }
+
                         }
-                    }
-                    //TODO: add going backwards and clean up Input code
+                        else if (m_keyboard.leftArrowKey.isPressed)
+                        {
+                            if (!first_press[kboard_id])
+                            {
+                                move = String.Format("<char{0}> [turnleft]", char_id);
+                                Debug.Log("move left");
+                                keyPressed[kboard_id] = true;
+                                first_press[kboard_id] = true;
+                            }
+
+                        }
+                        else if (m_keyboard.vKey.isPressed)
+                        {
+                            if (!first_press[kboard_id])
+                            {
+                                saveEpisode = true;
+                                first_press[kboard_id] = true;
+                            }
+                        }
+                        else if (m_keyboard.gKey.isPressed)
+                        {
+                            if (!first_press[kboard_id])
+                            {
+                                episodeDone = true;
+                                first_press[kboard_id] = true;
+                            }
+                        }
+                        //TODO: add going backwards and clean up Input code
 
 
-                    //TODO: add camera movement
-                    else if(m_keyboard.oKey.isPressed)
-                    {
-                        if (!first_press)
+                        //TODO: add camera movement
+                        else if (m_keyboard.oKey.isPressed)
                         {
-                            Debug.Log("move cam up");
-                            currentEpisode.AddAction("move cam up", currTime);
-                            currentCamera.transform.Rotate(-3, 0, 0);
-                            first_press = true;
+                            if (!first_press[kboard_id])
+                            {
+                                Debug.Log("move cam up");
+                                currentEpisode.AddAction("move cam up", currTime);
+                                currentCameras[kboard_id].transform.Rotate(-3, 0, 0);
+                                first_press[kboard_id] = true;
+                            }
                         }
-                    }
-                    else if(m_keyboard.lKey.isPressed)
-                    {
-                        if (!first_press)
+                        else if (m_keyboard.lKey.isPressed)
                         {
-                            Debug.Log("move cam down");
-                            currentEpisode.AddAction("move cam down", currTime);
-                            currentCamera.transform.Rotate(3, 0, 0);
-                            first_press = true;
+                            if (!first_press[kboard_id])
+                            {
+                                Debug.Log("move cam down");
+                                currentEpisode.AddAction("move cam down", currTime);
+                                currentCameras[kboard_id].transform.Rotate(3, 0, 0);
+                                first_press[kboard_id] = true;
+                            }
+
                         }
-                        
-                    }
-                    else if (m_keyboard.eKey.isPressed)
-                    {
-                        if (highlightedObj != null & !first_press)
+                        else if (m_keyboard.eKey.isPressed)
                         {
-                            highlightedObj.transform.Rotate(new Vector3(0, 1, 0), 15);
-                            first_press = true;
+                            if (highlightedObj != null & !first_press[kboard_id])
+                            {
+                                highlightedObj.transform.Rotate(new Vector3(0, 1, 0), 15);
+                                first_press[kboard_id] = true;
+                            }
                         }
-                    }
-                    else if (m_keyboard.qKey.isPressed)
-                    {
-                        if (highlightedObj != null & !first_press)
+                        else if (m_keyboard.qKey.isPressed)
                         {
-                            highlightedObj.transform.Rotate(new Vector3(0, 1, 0), -15);
-                            first_press = true;
+                            if (highlightedObj != null & !first_press[kboard_id])
+                            {
+                                highlightedObj.transform.Rotate(new Vector3(0, 1, 0), -15);
+                                first_press[kboard_id] = true;
+                            }
                         }
+                        else
+                        {
+                            //Debug.Log("no key pressed");
+                            keyPressed[kboard_id] = false;
+                            first_press[kboard_id] = false;
+                        }
+
+                        if (keyPressed[kboard_id])
+                        {
+                            if (move != "")
+                            {
+                                scriptLines[char_id] = move;
+                                currentEpisode.AddAction(move, currTime);
+                            }
+
+
+                        }
+
+                        //if (m_keyboard.GetKe)
                     }
                     else
                     {
-                        //Debug.Log("no key pressed");
-                        keyPressed = false;
-                        first_press = false;
+                        first_press[kboard_id] = false;
+                        keyPressed[kboard_id] = false;
                     }
 
-                    if (keyPressed)
+
+
+
+                    mouse_clicked[kboard_id] = false;
+                    if (m_mouse_l[kboard_id] != null)
                     {
-                        if (move != "")
+                        if (m_mouse_l[kboard_id].leftButton.isPressed)
                         {
-                            scriptLines[char_id] = move;
-                            currentEpisode.AddAction(move, currTime);
+                            //click = true;
+                            if (!first_click[kboard_id])
+                            {
+                                first_click[kboard_id] = true;
+                                mouse_clicked[kboard_id] = true;
+                            }
+
+
+
                         }
-                        
-
+                        else
+                        {
+                            first_click[kboard_id] = false;
+                        }
                     }
-
-                    //if (m_keyboard.GetKe)
-                }
-                else
-                {
-                    first_press = false;
-                    keyPressed = false;
-                }
-
+                    // rotate highlighted object
+                    if (keyPressed[char_id])
+                    {
+                        highlightedObj = null;
+                    }
                 
 
-                bool mouse_clicked = false;
-                if (m_mouse != null)
-                {
-                    if (m_mouse.leftButton.isPressed)
+
+                    //if (Input.GetMouseButtonDown(0))
+                    if (mouse_clicked[kboard_id] && first_click[kboard_id])
                     {
-                        //click = true;
-                        if (!first_click)
+                        highlightedObj = null;
+                        
+                        if (button_created[kboard_id])
                         {
-                            first_click = true;
-                            mouse_clicked = true;
+
+                            button_created[kboard_id] = false;
+                            pointer[kboard_id].SetActive(false);
+                            licr[kboard_id].SendData("DeleteButtons");
+                            //break;
+                            //continue;
                         }
-                            
-                        
-
-                    }
-                    else
-                    {
-                        first_click = false;
-                    }
-                }
-                // rotate highlighted object
-                if (keyPressed)
-                {
-                    highlightedObj = null;
-                }
-                
-
-                // show/hide tasks bar
-                if (Input.GetKeyDown(KeyCode.T))
-                {
-                    if (tasksText.activeSelf && panel.activeSelf)
-                    {
-                        tasksText.SetActive(false);
-                        panel.SetActive(false);
-                    }
-                    else
-                    {
-                        tasksText.SetActive(true);
-                        panel.SetActive(true);
-                    }
-                }
-
-                //if (Input.GetMouseButtonDown(0))
-                if (mouse_clicked && first_click)
-                {
-                    highlightedObj = null;
-                    if (EventSystem.current.IsPointerOverGameObject() &&
-                        EventSystem.current.currentSelectedGameObject != null &&
-                        EventSystem.current.currentSelectedGameObject.CompareTag("HPG_0"))
-                    {
-                        click = true;
-                        Debug.Log("button clicked");
-                        
-                    }
-                    else if (button_created)
-                    {
-
-                        //goOpen.SetActive(false);
-                        //goOpen.GetComponent<Button>().onClick.RemoveAllListeners();
-                        //goGrab.SetActive(false);
-                        //goGrab.GetComponent<Button>().onClick.RemoveAllListeners();
-                        //goPutLeft.SetActive(false);
-                        //goPutLeft.GetComponent<Button>().onClick.RemoveAllListeners();
-                        //goPutRight.SetActive(false);
-                        //goPutRight.GetComponent<Button>().onClick.RemoveAllListeners();
-                        button_created = false;
-                        pointer.SetActive(false);
-                        //break;
-                        //continue;
-                    }
-                    if (!click)
-                    {
-                        RaycastHit rayHit;
-                        Vector2 mouseClickPosition = new Vector2(m_mouse.position.x.ReadValue(), m_mouse.position.y.ReadValue());
-                        Ray ray = currentCamera.ScreenPointToRay(mouseClickPosition);
-                        bool hit = Physics.Raycast(ray, out rayHit);
-                        //Debug.DrawRay(ray.origin, ray.direction, Color.green, 20, true);
-                        List<ButtonClicks> buttons_show = new List<ButtonClicks> ();
-                        if (hit)
+                        if (!click)
                         {
-
-                            
-
-                            click = true;
-                            Transform t = rayHit.transform;
-                            pointer.SetActive(true);
-
-                            pointer.transform.position = rayHit.point;
-
-                            InstanceSelectorProvider objectInstanceSelectorProvider = (InstanceSelectorProvider)objectSelectorProvider;
-
-                            while (t != null && !objectInstanceSelectorProvider.objectIdMap.ContainsKey(t.gameObject))
+                            RaycastHit rayHit;
+                            Vector2 mouseClickPosition = new Vector2(m_mouse_l[kboard_id].position.x.ReadValue(), m_mouse_l[kboard_id].position.y.ReadValue());
+                            Ray ray = currentCameras[kboard_id].ScreenPointToRay(mouseClickPosition);
+                            bool hit = Physics.Raycast(ray, out rayHit);
+                            //Debug.DrawRay(ray.origin, ray.direction, Color.green, 20, true);
+                            List<ButtonClicks> buttons_show = new List<ButtonClicks>();
+                            if (hit)
                             {
-                                t = t.parent;
-                            }
 
-                            EnvironmentObject obj;
-                            try
-                            {
-                                currentGraphCreator.objectNodeMap.TryGetValue(t.gameObject, out obj);
-                            }
-                            catch
-                            {
-                                obj = null;
-                                Debug.Log("ERROR GETTING OBJECT");
-                                Debug.Log(t);
-                            }
 
-                            if (obj == null)
-                            {
-                                continue;
-                            }
-                            string objectName = obj.class_name;
-                            int objectId = obj.id;
-                            Debug.Log("object name " + objectName);
 
-                            rend = t.GetComponent<Renderer>();
+                                //click = true;
+                                Transform t = rayHit.transform;
+                                pointer[char_id].SetActive(true);
 
-                            //TODO: add Halo around objects, activating and disactivating
-                            /*GameObject haloPrefab = Resources.Load("Halo") as GameObject;
-                            GameObject halo = (GameObject)Instantiate(haloPrefab);
-                            halo.transform.SetParent(t, false);
-                            */
+                                pointer[char_id].transform.position = rayHit.point;
+                                licr[char_id].SendData("DeleteButtons");
 
-                            ICollection<string> objProperties = obj.properties;
-                            ISet<Utilities.ObjectState> objStates = obj.states_set;
+                                InstanceSelectorProvider objectInstanceSelectorProvider = (InstanceSelectorProvider)objectSelectorProvider;
 
-                            // coordinate of click
-                            Vector2 mousePos = new Vector2();
-                            mousePos.x = Input.mousePosition.x;
-                            mousePos.y = currentCamera.pixelHeight - Input.mousePosition.y;
-                            Vector3 point = currentCamera.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, currentCamera.nearClipPlane));
-                            Debug.Log("point " + point);
-
-                            //TODO: grabbing/putting with right and left hands
-                            State currentState = this.CurrentStateList[0];
-                            GameObject rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
-                            GameObject lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
-                            EnvironmentObject obj1, obj2, obj3;
-
-                            currentGraphCreator.objectNodeMap.TryGetValue(characters[0].gameObject, out obj1);
-                            Character character_graph;
-                            currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
-
-                            float distance = Vector3.Distance(characters[0].transform.position, obj.transform.position);
-                            //distance = 0.0f;
-                            Debug.Log("MY POSITION " + characters[0].transform.position);
-                            Debug.Log("OBJECT POSITION " + obj.transform.position);
-                            Debug.Log("DISTANCE " +  distance);
-
-                            if (objProperties.Contains("GRABBABLE") && (lh == null || rh == null) && distance < 2.8)
-                            {
-                                highlightedObj = t.gameObject;
-                                Debug.Log("grab");
-
-                                //TODO: fix highlight
-                                /*if (rend != null)
+                                while (t != null && !objectInstanceSelectorProvider.objectIdMap.ContainsKey(t.gameObject))
                                 {
-                                    startcolor = rend.material.color;
-                                    Debug.Log("rend not null! " + rend.material.color);
-                                    rend.material.color = Color.yellow;
-                                }*/
-
-                                //goGrab.GetComponentInChildren<TextMeshProUGUI>().text = "Grab " + objectName;
-                                
-                                //goGrab.SetActive(true);
-                                //GameObjectUtils.PositionButton(mousePos, goGrab, "center");
-                                buttons_show.Add(new ButtonClicks("Grab " + objectName, String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId),
-                                    new Vector3(mouseClickPosition.x*100.0f/currentCamera.pixelWidth, 100.0f - mouseClickPosition.y*100.0f/currentCamera.pixelHeight)));
-
-                                button_created = true;
-                                //Button buttonGrab = goGrab.GetComponent<Button>();
-                                //buttonGrab.onClick.AddListener(() =>
-                                //{
-                                //    Debug.Log("grabbed");
-                                //    button_created = false;
-
-                                //    string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
-                                    
-                                //    currentEpisode.AddAction(action, currTime);
-                                //    tasksUI.text = currentEpisode.UpdateTasksString();
-                                //    Debug.Log(action);
-                                //    scriptLines.Add(action);
-                                //    goGrab.SetActive(false);
-                                //    keyPressed = true;
-
-                                //    buttonGrab.onClick.RemoveAllListeners();
-                                //});
-                            }
-
-                            //put on/in surfaces
-                            else if ((objProperties.Contains("SURFACES") || (openableContainers.Contains(objectName) && objStates.Contains(Utilities.ObjectState.OPEN)) ||
-                                (objProperties.Contains("CONTAINERS") && !openableContainers.Contains(objectName))) && (rh != null || lh != null)
-                                // && (!goPutLeft.activeSelf || !goPutRight.activeSelf)
-                                && distance < 2)
-                            {
-                                Debug.Log("put");
-
-                                if (lh != null)
-                                {
-                                    currentGraphCreator.objectNodeMap.TryGetValue(lh, out obj2);
-                                    Debug.Log("Put " + obj2.class_name + " on " + objectName);
-                                    //goPutLeft.GetComponentInChildren<TextMeshProUGUI>().text = "Put " + obj2.class_name + "\n on " + objectName;
-                                    //goPutLeft.SetActive(true);
-
-                                    //Button buttonPutLeft = goPutLeft.GetComponent<Button>();
-                                    string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
-
-                                    string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj2.class_name, obj2.id, putPos);
-
-                                    buttons_show.Add(new ButtonClicks("Put " + obj2.class_name + " on " + objectName, String.Format(action, objectName, objectId),
-                                    new Vector3(mouseClickPosition.x * 100.0f / currentCamera.pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCamera.pixelHeight)));
-
-                                    //if (rh == null)
-                                    //    GameObjectUtils.PositionButton(mousePos, goPutLeft, "center");
-                                    //else
-                                    //    GameObjectUtils.PositionButton(mousePos, goPutLeft, "left");
-
-                                    button_created = true;
-
-                                    //buttonPutLeft.onClick.AddListener(() =>
-                                    //{
-                                    //    Debug.Log("put left at " + rayHit.point);
-                                    //    button_created = false;
-
-                                    //    string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
-
-                                    //    string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj2.class_name, obj2.id, putPos);
-                                    //    Debug.Log(action);
-                                        
-                                    //    currentEpisode.AddAction(action, currTime);
-                                    //    tasksUI.text = currentEpisode.UpdateTasksString();
-                                    //    scriptLines.Add(action);
-
-                                    //    goPutLeft.SetActive(false);
-                                    //    keyPressed = true;
-
-                                    //    buttonPutLeft.onClick.RemoveAllListeners();
-                                    //});
-                                }
-                                if (rh != null)
-                                {
-                                    currentGraphCreator.objectNodeMap.TryGetValue(rh, out obj3);
-                                    Debug.Log("Put " + obj3.class_name + " on " + objectName);
-                                    //goPutRight.GetComponentInChildren<TextMeshProUGUI>().text = "Put " + obj3.class_name + "\n on " + objectName;
-                                    //goPutRight.SetActive(true);
-                                    //Button buttonPutRight = goPutRight.GetComponent<Button>();
-
-
-                                    string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
-
-                                    string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj3.class_name, obj3.id, putPos);
-
-                                    buttons_show.Add(new ButtonClicks("Put " + obj3.class_name + " on " + objectName, String.Format(action, objectName, objectId),
-                                    new Vector3(mouseClickPosition.x * 100.0f / currentCamera.pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCamera.pixelHeight)));
-
-                                    //if (lh == null)
-                                    //    GameObjectUtils.PositionButton(mousePos, goPutRight, "center");
-                                    //else
-                                    //    GameObjectUtils.PositionButton(mousePos, goPutRight, "right");
-                                    //TODO: are these buttons in the right location?
-                                    button_created = true;
-
-                                    //buttonPutRight.onClick.AddListener(() =>
-                                    //{
-                                    //    Debug.Log("put right at " + rayHit.point);
-                                    //    button_created = false;
-
-
-                                    //    string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
-
-                                    //    string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj3.class_name, obj3.id, putPos);
-                                    //    Debug.Log(action);
-                                        
-                                    //    currentEpisode.AddAction(action, currTime);
-                                    //    tasksUI.text = currentEpisode.UpdateTasksString();
-                                    //    scriptLines.Add(action);
-
-                                    //    goPutRight.SetActive(false);
-                                    //    keyPressed = true;
-
-                                    //    buttonPutRight.onClick.RemoveAllListeners();
-                                    //});
-
+                                    t = t.parent;
                                 }
 
-                                ////close if open
-                                //if (objProperties.Contains("CAN_OPEN") && !goOpen.activeSelf)
-                                //{
-                                //    if (objStates.Contains(Utilities.ObjectState.OPEN)) 
-                                //    {
-                                //        goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Close " + objectName;
-                                    
-                                //        goOpen.SetActive(true);
-                                //        Button buttonOpen = goOpen.GetComponent<Button>();
-                                //        GameObjectUtils.PositionButton(mousePos, goOpen, "bottom");
-
-                                //        button_created = true;
-
-                                //        buttonOpen.onClick.AddListener(() =>
-                                //        {
-                                //            button_created = false;
-
-                                //            Debug.Log("closed with options of put");
-                                //            //objStates.Remove(Utilities.ObjectState.OPEN);
-                                //            //objStates.Add(Utilities.ObjectState.CLOSED);
-                                //            string action = String.Format("<char0> [close] <{0}> ({1})", objectName, objectId);
-                                            
-                                //            currentEpisode.AddAction(action, currTime);
-                                //            tasksUI.text = currentEpisode.UpdateTasksString();
-                                //            scriptLines.Add(action);
-                                //            goOpen.SetActive(false);
-                                //            keyPressed = true;
-
-                                //            buttonOpen.onClick.RemoveAllListeners();
-                                //        });
-                                //    }
-                                //}
-                            }
-                            //open/close
-                            if (openableContainers.Contains(objectName)  && distance < 2.8)
-                            {
-                                //TODO: fix highlight
-                                /*if (rend != null)
+                                EnvironmentObject obj;
+                                try
                                 {
-                                    startcolor = rend.material.color;
-                                    Debug.Log("rend not null! " + rend.material.color);
-                                    rend.material.color = Color.yellow;
+                                    currentGraphCreator.objectNodeMap.TryGetValue(t.gameObject, out obj);
                                 }
+                                catch
+                                {
+                                    obj = null;
+                                    Debug.Log("ERROR GETTING OBJECT");
+                                    Debug.Log(t);
+                                }
+
+                                if (obj == null)
+                                {
+                                    continue;
+                                }
+                                string objectName = obj.class_name;
+                                int objectId = obj.id;
+                                Debug.Log("object name " + objectName);
+
+                                rend = t.GetComponent<Renderer>();
+
+                                //TODO: add Halo around objects, activating and disactivating
+                                /*GameObject haloPrefab = Resources.Load("Halo") as GameObject;
+                                GameObject halo = (GameObject)Instantiate(haloPrefab);
+                                halo.transform.SetParent(t, false);
                                 */
-                                if (objStates.Contains(Utilities.ObjectState.CLOSED))
+
+                                ICollection<string> objProperties = obj.properties;
+                                ISet<Utilities.ObjectState> objStates = obj.states_set;
+
+                                // coordinate of click
+                                Vector2 mousePos = new Vector2();
+                                mousePos.x = Input.mousePosition.x;
+                                mousePos.y = currentCameras[kboard_id].pixelHeight - Input.mousePosition.y;
+                                Vector3 point = currentCameras[kboard_id].ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, currentCameras[kboard_id].nearClipPlane));
+                                Debug.Log("point " + point);
+
+                                //TODO: grabbing/putting with right and left hands
+                                State currentState = this.CurrentStateList[kboard_id];
+                                if (currentState == null)
                                 {
-                                    Debug.Log("open");
-                                    buttons_show.Add(new ButtonClicks("Open " + objectName, String.Format("<char0> [open] <{0}> ({1})", objectName, objectId),
-                                    new Vector3(mouseClickPosition.x * 100.0f / currentCamera.pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCamera.pixelHeight)));
+                                    Debug.Log("HEre");
+                                }
+                                GameObject rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
+                                GameObject lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
+                                EnvironmentObject obj1, obj2, obj3;
 
+                                currentGraphCreator.objectNodeMap.TryGetValue(characters[char_id].gameObject, out obj1);
+                                Character character_graph;
+                                currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
 
-                                    //goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Open " + objectName;
-                                    //goOpen.SetActive(true);
-                                    //if (button_created)
+                                float distance = Vector3.Distance(characters[char_id].transform.position, obj.transform.position);
+                                //distance = 0.0f;
+                                Debug.Log("MY POSITION " + characters[0].transform.position);
+                                Debug.Log("OBJECT POSITION " + obj.transform.position);
+                                Debug.Log("DISTANCE " + distance);
+
+                                if (objProperties.Contains("GRABBABLE") && (lh == null || rh == null) && distance < 2.8)
+                                {
+                                    highlightedObj = t.gameObject;
+                                    Debug.Log("grab");
+
+                                    //TODO: fix highlight
+                                    /*if (rend != null)
+                                    {
+                                        startcolor = rend.material.color;
+                                        Debug.Log("rend not null! " + rend.material.color);
+                                        rend.material.color = Color.yellow;
+                                    }*/
+
+                                    //goGrab.GetComponentInChildren<TextMeshProUGUI>().text = "Grab " + objectName;
+
+                                    //goGrab.SetActive(true);
+                                    //GameObjectUtils.PositionButton(mousePos, goGrab, "center");
+                                    buttons_show.Add(new ButtonClicks("Grab " + objectName, String.Format("<char{2}> [grab] <{0}> ({1})",
+                                        objectName, objectId, char_id),
+                                        new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
+
+                                    button_created[kboard_id] = true;
+                                    //Button buttonGrab = goGrab.GetComponent<Button>();
+                                    //buttonGrab.onClick.AddListener(() =>
                                     //{
-                                    //    GameObjectUtils.PositionButton(mousePos, goOpen, "bottom");
-                                    //}
-                                    //else
-                                    //{
-                                    //    GameObjectUtils.PositionButton(mousePos, goOpen, "center");
-                                    //}
-                                    //Button buttonOpen = goOpen.GetComponent<Button>();
-                                    //button_created = true;
-                                    //buttonOpen.onClick.AddListener(() =>
-                                    //{
-                                    //    Debug.Log("opened");
+                                    //    Debug.Log("grabbed");
                                     //    button_created = false;
-                                    //    //objStates.Remove(Utilities.ObjectState.CLOSED);
-                                    //    //objStates.Add(Utilities.ObjectState.OPEN);
-                                    //    string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
+
+                                    //    string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
 
                                     //    currentEpisode.AddAction(action, currTime);
                                     //    tasksUI.text = currentEpisode.UpdateTasksString();
+                                    //    Debug.Log(action);
                                     //    scriptLines.Add(action);
-                                    //    goOpen.SetActive(false);
+                                    //    goGrab.SetActive(false);
                                     //    keyPressed = true;
 
-                                    //    buttonOpen.onClick.RemoveAllListeners();
+                                    //    buttonGrab.onClick.RemoveAllListeners();
                                     //});
                                 }
-                                else if (objStates.Contains(Utilities.ObjectState.OPEN))
+
+                                //put on/in surfaces
+                                else if ((objProperties.Contains("SURFACES") || (openableContainers.Contains(objectName) && objStates.Contains(Utilities.ObjectState.OPEN)) ||
+                                    (objProperties.Contains("CONTAINERS") && !openableContainers.Contains(objectName))) && (rh != null || lh != null)
+                                    // && (!goPutLeft.activeSelf || !goPutRight.activeSelf)
+                                    && distance < 2)
                                 {
-                                    Debug.Log("close");
-                                    Debug.Log("open");
-                                    buttons_show.Add(new ButtonClicks("Close " + objectName, String.Format("<char0> [close] <{0}> ({1})", objectName, objectId),
-                                    new Vector3(mouseClickPosition.x * 100.0f / currentCamera.pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCamera.pixelHeight)));
+                                    Debug.Log("put");
+
+                                    if (lh != null)
+                                    {
+                                        currentGraphCreator.objectNodeMap.TryGetValue(lh, out obj2);
+                                        Debug.Log("Put " + obj2.class_name + " on " + objectName);
+                                        //goPutLeft.GetComponentInChildren<TextMeshProUGUI>().text = "Put " + obj2.class_name + "\n on " + objectName;
+                                        //goPutLeft.SetActive(true);
+
+                                        //Button buttonPutLeft = goPutLeft.GetComponent<Button>();
+                                        string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
+
+                                        string action = String.Format("<char{5}> [put] <{2}> ({3}) <{0}> ({1}) {4}",
+                                            objectName, objectId, obj2.class_name, obj2.id, putPos, char_id);
+
+                                        buttons_show.Add(new ButtonClicks("Put " + obj2.class_name + " on " + objectName, String.Format(action, objectName, objectId),
+                                        new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
+
+                                        //if (rh == null)
+                                        //    GameObjectUtils.PositionButton(mousePos, goPutLeft, "center");
+                                        //else
+                                        //    GameObjectUtils.PositionButton(mousePos, goPutLeft, "left");
+
+                                        button_created[kboard_id] = true;
+
+                                        //buttonPutLeft.onClick.AddListener(() =>
+                                        //{
+                                        //    Debug.Log("put left at " + rayHit.point);
+                                        //    button_created = false;
+
+                                        //    string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
+
+                                        //    string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj2.class_name, obj2.id, putPos);
+                                        //    Debug.Log(action);
+
+                                        //    currentEpisode.AddAction(action, currTime);
+                                        //    tasksUI.text = currentEpisode.UpdateTasksString();
+                                        //    scriptLines.Add(action);
+
+                                        //    goPutLeft.SetActive(false);
+                                        //    keyPressed = true;
+
+                                        //    buttonPutLeft.onClick.RemoveAllListeners();
+                                        //});
+                                    }
+                                    if (rh != null)
+                                    {
+                                        currentGraphCreator.objectNodeMap.TryGetValue(rh, out obj3);
+                                        Debug.Log("Put " + obj3.class_name + " on " + objectName);
+                                        //goPutRight.GetComponentInChildren<TextMeshProUGUI>().text = "Put " + obj3.class_name + "\n on " + objectName;
+                                        //goPutRight.SetActive(true);
+                                        //Button buttonPutRight = goPutRight.GetComponent<Button>();
 
 
-                                    //goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Close " + objectName;
-                                    
-                                    //goOpen.SetActive(true);
-                                    //Button buttonOpen = goOpen.GetComponent<Button>();
-                                    //if (button_created)
+                                        string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
+
+                                        string action = String.Format("<char{5}> [put] <{2}> ({3}) <{0}> ({1}) {4}",
+                                            objectName, objectId, obj3.class_name, obj3.id, putPos, char_id);
+
+                                        buttons_show.Add(new ButtonClicks("Put " + obj3.class_name + " on " + objectName, String.Format(action, objectName, objectId),
+                                        new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
+
+                                        //if (lh == null)
+                                        //    GameObjectUtils.PositionButton(mousePos, goPutRight, "center");
+                                        //else
+                                        //    GameObjectUtils.PositionButton(mousePos, goPutRight, "right");
+                                        //TODO: are these buttons in the right location?
+                                        button_created[kboard_id] = true;
+
+                                        //buttonPutRight.onClick.AddListener(() =>
+                                        //{
+                                        //    Debug.Log("put right at " + rayHit.point);
+                                        //    button_created = false;
+
+
+                                        //    string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
+
+                                        //    string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj3.class_name, obj3.id, putPos);
+                                        //    Debug.Log(action);
+
+                                        //    currentEpisode.AddAction(action, currTime);
+                                        //    tasksUI.text = currentEpisode.UpdateTasksString();
+                                        //    scriptLines.Add(action);
+
+                                        //    goPutRight.SetActive(false);
+                                        //    keyPressed = true;
+
+                                        //    buttonPutRight.onClick.RemoveAllListeners();
+                                        //});
+
+                                    }
+
+                                    ////close if open
+                                    //if (objProperties.Contains("CAN_OPEN") && !goOpen.activeSelf)
                                     //{
-                                    //    GameObjectUtils.PositionButton(mousePos, goOpen, "bottom");
+                                    //    if (objStates.Contains(Utilities.ObjectState.OPEN)) 
+                                    //    {
+                                    //        goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Close " + objectName;
+
+                                    //        goOpen.SetActive(true);
+                                    //        Button buttonOpen = goOpen.GetComponent<Button>();
+                                    //        GameObjectUtils.PositionButton(mousePos, goOpen, "bottom");
+
+                                    //        button_created = true;
+
+                                    //        buttonOpen.onClick.AddListener(() =>
+                                    //        {
+                                    //            button_created = false;
+
+                                    //            Debug.Log("closed with options of put");
+                                    //            //objStates.Remove(Utilities.ObjectState.OPEN);
+                                    //            //objStates.Add(Utilities.ObjectState.CLOSED);
+                                    //            string action = String.Format("<char0> [close] <{0}> ({1})", objectName, objectId);
+
+                                    //            currentEpisode.AddAction(action, currTime);
+                                    //            tasksUI.text = currentEpisode.UpdateTasksString();
+                                    //            scriptLines.Add(action);
+                                    //            goOpen.SetActive(false);
+                                    //            keyPressed = true;
+
+                                    //            buttonOpen.onClick.RemoveAllListeners();
+                                    //        });
+                                    //    }
                                     //}
-                                    //else
-                                    //{
-                                    //    GameObjectUtils.PositionButton(mousePos, goOpen, "center");
-                                    //}
-                                        
-
-
-                                    button_created = true;
-
-                                    //buttonOpen.onClick.AddListener(() =>
-                                    //{
-                                    //    button_created = false;
-
-                                    //    Debug.Log("closed");
-                                    //    //objStates.Remove(Utilities.ObjectState.OPEN);
-                                    //    //objStates.Add(Utilities.ObjectState.CLOSED);
-                                    //    string action = String.Format("<char0> [close] <{0}> ({1})", objectName, objectId);
-                                        
-                                    //    currentEpisode.AddAction(action, currTime);
-                                    //    tasksUI.text = currentEpisode.UpdateTasksString();
-                                    //    scriptLines.Add(action);
-                                    //    goOpen.SetActive(false);
-                                    //    keyPressed = true;
-
-                                    //    buttonOpen.onClick.RemoveAllListeners();
-                                    //});
                                 }
-                            }
+                                //open/close
+                                if (openableContainers.Contains(objectName) && distance < 2.8)
+                                {
+                                    //TODO: fix highlight
+                                    /*if (rend != null)
+                                    {
+                                        startcolor = rend.material.color;
+                                        Debug.Log("rend not null! " + rend.material.color);
+                                        rend.material.color = Color.yellow;
+                                    }
+                                    */
+                                    if (objStates.Contains(Utilities.ObjectState.CLOSED))
+                                    {
+                                        Debug.Log("open");
+                                        buttons_show.Add(new ButtonClicks("Open " + objectName, String.Format("<char{2}> [open] <{0}> ({1})", objectName, objectId, char_id),
+                                        new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
 
-                            string button_click_info = JsonConvert.SerializeObject(buttons_show);
-                            action_button[0].Clear();
-                            for (int it = 0; it < buttons_show.Count; it++)
-                            {
-                                action_button[0].Add(buttons_show[it].button_action);
+                                        button_created[kboard_id] = true;
+                                        //goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Open " + objectName;
+                                        //goOpen.SetActive(true);
+                                        //if (button_created)
+                                        //{
+                                        //    GameObjectUtils.PositionButton(mousePos, goOpen, "bottom");
+                                        //}
+                                        //else
+                                        //{
+                                        //    GameObjectUtils.PositionButton(mousePos, goOpen, "center");
+                                        //}
+                                        //Button buttonOpen = goOpen.GetComponent<Button>();
+                                        //button_created = true;
+                                        //buttonOpen.onClick.AddListener(() =>
+                                        //{
+                                        //    Debug.Log("opened");
+                                        //    button_created = false;
+                                        //    //objStates.Remove(Utilities.ObjectState.CLOSED);
+                                        //    //objStates.Add(Utilities.ObjectState.OPEN);
+                                        //    string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
+
+                                        //    currentEpisode.AddAction(action, currTime);
+                                        //    tasksUI.text = currentEpisode.UpdateTasksString();
+                                        //    scriptLines.Add(action);
+                                        //    goOpen.SetActive(false);
+                                        //    keyPressed = true;
+
+                                        //    buttonOpen.onClick.RemoveAllListeners();
+                                        //});
+                                    }
+                                    else if (objStates.Contains(Utilities.ObjectState.OPEN))
+                                    {
+                                        Debug.Log("close");
+                                        Debug.Log("open");
+                                        buttons_show.Add(new ButtonClicks("Close " + objectName, String.Format("<char{2}> [close] <{0}> ({1})", objectName, objectId, kboard_id),
+                                        new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
+                                        button_created[kboard_id] = true;
+
+                                        //goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Close " + objectName;
+
+                                        //goOpen.SetActive(true);
+                                        //Button buttonOpen = goOpen.GetComponent<Button>();
+                                        //if (button_created)
+                                        //{
+                                        //    GameObjectUtils.PositionButton(mousePos, goOpen, "bottom");
+                                        //}
+                                        //else
+                                        //{
+                                        //    GameObjectUtils.PositionButton(mousePos, goOpen, "center");
+                                        //}
+
+
+
+                                        button_created[kboard_id] = true;
+
+                                        //buttonOpen.onClick.AddListener(() =>
+                                        //{
+                                        //    button_created = false;
+
+                                        //    Debug.Log("closed");
+                                        //    //objStates.Remove(Utilities.ObjectState.OPEN);
+                                        //    //objStates.Add(Utilities.ObjectState.CLOSED);
+                                        //    string action = String.Format("<char0> [close] <{0}> ({1})", objectName, objectId);
+
+                                        //    currentEpisode.AddAction(action, currTime);
+                                        //    tasksUI.text = currentEpisode.UpdateTasksString();
+                                        //    scriptLines.Add(action);
+                                        //    goOpen.SetActive(false);
+                                        //    keyPressed = true;
+
+                                        //    buttonOpen.onClick.RemoveAllListeners();
+                                        //});
+                                    }
+                                }
+
+                                string button_click_info = JsonConvert.SerializeObject(buttons_show);
+                                button_click_info = JsonConvert.SerializeObject(new ServerMessage("ButtonInfo", button_click_info));
+                                action_button[kboard_id].Clear();
+                                for (int it = 0; it < buttons_show.Count; it++)
+                                {
+                                    action_button[kboard_id].Add(buttons_show[it].button_action);
+                                }
+
+                                licr[kboard_id].SendData(button_click_info);
                             }
-                            licr[0].SendData(button_click_info);
                         }
                     }
                 }
@@ -1140,22 +1206,24 @@ namespace StoryGenerator
                     Debug.Log("Saving data...");
                     currentEpisode.RecordData(episode);
                 }
-                if (keyPressed)
-                {
-                    //un-highlight TODO 
-                    /*if (rend != null)
+                for (int char_id = 0; char_id < keyPressed.Count(); char_id++) {
+                    if (keyPressed[char_id])
                     {
-                        rend.material.color = startcolor;
-                        rend = null;
-                    }*/
-                    //Debug.Log(first_press);
-                    
+                        //un-highlight TODO 
+                        /*if (rend != null)
+                        {
+                            rend.material.color = startcolor;
+                            rend = null;
+                        }*/
+                        //Debug.Log(first_press);
 
 
-                    Debug.Log(first_press);
-                    pointer.SetActive(false);
-                    yield return ExecuteScript(char_id);
-                    
+
+                        Debug.Log(first_press);
+                        pointer[char_id].SetActive(false);
+                        yield return ExecuteScript(char_id);
+
+                    }
                 }
 
                 yield return null;
@@ -1177,14 +1245,52 @@ namespace StoryGenerator
             yield return null;
 
         }
+
+        private string GetObj(string instr)
+        {
+            string obj_name = "";
+            string pattParams = @"<([\w\s]+)>\s*\((\d+)\)\s*(:\d+:)?";
+            Regex r = new Regex(pattParams);
+            Match m = r.Match(instr);
+            while (m.Success)
+            {
+                obj_name = m.Groups[1].Value + m.Groups[2].Value;
+
+                m = m.NextMatch();
+            }
+            return obj_name;
+
+
+        }
         public IEnumerator ExecuteScript(int char_id)
         {
+            executing_action[char_id] = true;
+            if (t_lock)
+            {
+                mre.WaitOne();
+
+            }
+
+            t_lock = true;
+            if (action_button[char_id].Count > 0)
+                for (int it = 0; it < action_button.Count; it++)
+                {
+                    // Delete action if an agent just did it
+                    if (it != char_id && action_button[it].Count() > 0) {
+                        string obj1 = GetObj(action_button[it][0]);
+                        string obj2 = GetObj(action_button[char_id][0]);
+                        if (obj1 == obj2 && obj1 != "")
+                            action_button[it].Clear();
+
+                    }
+                }
             sExecutors[char_id].ClearScript();
             sExecutors[char_id].smooth_walk = false;
             if (scriptLines[char_id] == "")
             {
                 yield return null;
             }
+            string action_str = scriptLines[char_id];
             Debug.Log("deleting");
             Debug.Log("Scriptlines " + scriptLines[char_id]);
             Debug.Log("Scriptlines count " + scriptLines.Count);
@@ -1193,7 +1299,7 @@ namespace StoryGenerator
             ScriptReader.ParseScript(sExecutors, nscriptLines, dataProviders.ActionEquivalenceProvider);
             StartCoroutine(sExecutors[char_id].ProcessAndExecute(false, this));
             finishedChars = 0;
-            //yield return new WaitUntil(() => finishedChars != numCharacters);
+            yield return new WaitUntil(() => finishedChars > 0);
             if (!sExecutors[char_id].Success)
             {
                 currentEpisode.FailAction();
@@ -1204,7 +1310,7 @@ namespace StoryGenerator
                 // Update the graph
                 List<ActionObjectData> last_action = new List<ActionObjectData>();
                 ScriptPair script = sExecutors[char_id].script[0];
-                State currentState = this.CurrentStateList[0];
+                State currentState = this.CurrentStateList[char_id];
                 EnvironmentObject obj1;
                 currentGraphCreator.objectNodeMap.TryGetValue(characters[char_id].gameObject, out obj1);
                 Character character_graph;
@@ -1254,14 +1360,15 @@ namespace StoryGenerator
                 string fadeText = currentEpisode.checkTasks(currentGraph, currentGraphCreator);
 
 
-                //if (!fadeText.Equals("None"))
-                //{
-                //    FadeCompletionText(fadeText, newCanvas);
-                //}
+                string task = JsonConvert.SerializeObject(currentEpisode.UpdateTasksString());
+                string task_info = JsonConvert.SerializeObject(new ServerMessage("UpdateTask", task));
+                for (int itt = 0; itt < licr.Count; itt++)
+                {
+                    if (licr[itt] != null)
+                        licr[itt].SendData(task_info);
+                }
 
-                //tasksUI.text = currentEpisode.UpdateTasksString();
-
-                currentEpisode.StoreGraph(currentGraph, currTime);
+                currentEpisode.StoreGraph(currentGraph, currTime, action_str, currentEpisode.posAndRotation.Count);
             }
 
             Debug.Log("Finished");
@@ -1272,22 +1379,17 @@ namespace StoryGenerator
 
             scriptLines[char_id] = "";
             licr[char_id].SendData("DeleteButtons");
-            //goOpen.SetActive(false);
-            //goGrab.SetActive(false);
-            //goPutLeft.SetActive(false);
-            //goPutRight.SetActive(false);   
 
-            //keyPressed = false;
             click = false;
             Debug.Log("action executed");
-            pointer.SetActive(false);
+            pointer[char_id].SetActive(false);
 
-            if (characters[char_id].transform.position != currentEpisode.previousPos || characters[char_id].transform.eulerAngles != currentEpisode.previousRotation)
-            {
-                currentEpisode.AddCharInfo(characters[char_id].transform.position, characters[char_id].transform.eulerAngles, Time.time);
-            }
-            currentEpisode.previousPos = characters[0].transform.position;
-            currentEpisode.previousRotation = characters[0].transform.eulerAngles;
+            //if (characters[char_id].transform.position != currentEpisode.previousPos || characters[char_id].transform.eulerAngles != currentEpisode.previousRotation)
+            //{
+            currentEpisode.AddCharInfo(char_id, characters[char_id].transform.position, characters[char_id].transform.eulerAngles, Time.time);
+            //}
+            currentEpisode.previousPos = characters[char_id].transform.position;
+            currentEpisode.previousRotation = characters[char_id].transform.eulerAngles;
 
             if (currentEpisode.IsCompleted || episodeDone)
             {
@@ -1299,6 +1401,11 @@ namespace StoryGenerator
                 episodeDone = true;
                 episodeNum++;
             }
+
+            t_lock = false;
+            mre.Set();
+            mre.Reset();
+            executing_action[char_id] = false;
             yield return null;
 
         }
@@ -1975,9 +2082,9 @@ namespace StoryGenerator
         public List<Goal> goals = new List<Goal>();
         public bool IsCompleted = false;
 
-        private List<(string, float)> allGraphs = new List<(string, float)>();
+        private List<(string, float, string, int)> allGraphs = new List<(string, float, string, int)>();
 
-        private List<(Vector3, Vector3, float)> posAndRotation = new List<(Vector3, Vector3, float)>();
+        public List<(int, Vector3, Vector3, float)> posAndRotation = new List<(int, Vector3, Vector3, float)>();
 
         private List<(string, float)> scriptActions = new List<(string, float)>();
         private Dictionary<(string,string), List<string>> goalRelations = new Dictionary<(string,string), List<string>>();
@@ -2009,15 +2116,15 @@ namespace StoryGenerator
                     o.states_set.Add((Utilities.ObjectState)Enum.Parse(typeof(Utilities.ObjectState), s));
                 }
             }
-            Debug.Log("yo");
         }
 
         public void RecordData(int episode)
         {
             string outputPath = $"Episodes/Episode{episode}Data.txt";
+            File.WriteAllText(outputPath, "");
             StreamWriter outputFile = new StreamWriter(outputPath, true);
             outputFile.WriteLine("Position and Orientation Data:");
-            foreach ((Vector3, Vector3, float) pos in posAndRotation)
+            foreach ((int, Vector3, Vector3, float) pos in posAndRotation)
             {
                 outputFile.WriteLine(pos.ToString());
             }
@@ -2027,16 +2134,21 @@ namespace StoryGenerator
                 outputFile.WriteLine(action);
             }
             outputFile.WriteLine("Graph Data:");
-            foreach ((string, float) g in allGraphs)
+            foreach ((string, float, string, int) g in allGraphs)
             {
-                outputFile.WriteLine(g.ToString());
+                List<string> graph_res = new List<string>();
+                graph_res.Add(g.Item1);
+                graph_res.Add(g.Item2.ToString());
+                graph_res.Add(g.Item3);
+                graph_res.Add(g.Item4.ToString());
+                outputFile.WriteLine(JsonConvert.SerializeObject(graph_res));
             }
             outputFile.Close();
         }
 
-        public void AddCharInfo(Vector3 coord, Vector3 rot, float t)
+        public void AddCharInfo(int char_id, Vector3 coord, Vector3 rot, float t)
         {
-            posAndRotation.Add((coord, rot, t));
+            posAndRotation.Add((char_id, coord, rot, t));
         }
 
         public void FailAction()
@@ -2152,22 +2264,51 @@ namespace StoryGenerator
             return completedTask;
         }
 
-        public string UpdateTasksString()
+        //public string UpdateTasksString()
+        //{
+        //    string response = "Tasks: \n".AddColor(Color.black);
+        //    bool moreTasks = false;
+        //    foreach (Goal g in goals)
+        //    {
+        //        if (g.repetitions == 0)
+        //        {
+        //            string s = $"{g.verb} {g.obj1} {g.relation} {g.obj2} x{g.repetitions}\n";
+        //            response += $"{s.AddColor(Color.green)}";
+        //        }
+        //        else
+        //        {
+        //            moreTasks = true;
+        //            string s = $"{g.verb} {g.obj1} {g.relation} {g.obj2} x{g.repetitions}\n";
+        //            response += $"{s.AddColor(Color.black)}"; 
+        //        }
+        //    }
+        //    if (!moreTasks)
+        //    {
+        //        IsCompleted = true;
+        //    }
+        //    return response;
+        //}
+
+        public List<string> UpdateTasksString()
         {
-            string response = "Tasks: \n".AddColor(Color.black);
+            List<string> response = new List<string>();
             bool moreTasks = false;
             foreach (Goal g in goals)
             {
                 if (g.repetitions == 0)
                 {
                     string s = $"{g.verb} {g.obj1} {g.relation} {g.obj2} x{g.repetitions}\n";
-                    response += $"{s.AddColor(Color.green)}";
+                    //response += $"{s.AddColor(Color.green)}";
+
+                    response.Add(s);
                 }
                 else
                 {
                     moreTasks = true;
                     string s = $"{g.verb} {g.obj1} {g.relation} {g.obj2} x{g.repetitions}\n";
-                    response += $"{s.AddColor(Color.black)}"; 
+                    //response += $"{s.AddColor(Color.black)}";
+
+                    response.Add(s);
                 }
             }
             if (!moreTasks)
@@ -2177,10 +2318,10 @@ namespace StoryGenerator
             return response;
         }
 
-        public void StoreGraph(EnvironmentGraph g, float t)
+        public void StoreGraph(EnvironmentGraph g, float t, string action_str, int ct)
         {
             string graphString = JsonUtility.ToJson(g);
-            allGraphs.Add((graphString, t));
+            allGraphs.Add((graphString, t, action_str, ct));
         }
 
     }

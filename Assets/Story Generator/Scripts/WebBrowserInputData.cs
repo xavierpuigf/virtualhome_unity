@@ -14,7 +14,8 @@ public class WebBrowserInputData : WebBrowserInputChannelReceiver {
         base.SetChannel(connectionId, channel);
     }
     public void SendData(string msg){
-        channel.Send(msg);
+        if (channel != null)
+            channel.Send(msg);
     }
     public void SetDriver(TestDriver td, int char_id)
     {

@@ -64,7 +64,7 @@ namespace Unity.RenderStreaming
                 return;
             }
 
-            if (connectionIds.Count > streams.OfType<VideoStreamBase>().Count())
+            if (connectionIds.Count >= streams.OfType<VideoStreamBase>().Count())
                 return;
             VideoStreamBase vidSrc = streams.OfType<VideoStreamBase>().ElementAt(connectionIds.Count);
             var transceiver = AddTrack(data.connectionId, vidSrc.Track);
@@ -79,19 +79,25 @@ namespace Unity.RenderStreaming
             //    var transceiver = AddTrack(data.connectionId, source.Track);
             //    source.SetSender(data.connectionId, transceiver.Sender);
             //}
-            foreach (var channel in streams.OfType<IDataChannel>().Where(c => c.IsLocal))
+            foreach (var channel in streams.OfType<DataChannelBase>().Where(c => c.IsLocal))
             {
                 var _channel = CreateChannel(data.connectionId, channel.Label);
                 channel.SetChannel(data.connectionId, _channel);
+                connectionIds[data.connectionId].Add(channel);
             }
             SendAnswer(data.connectionId);
         }
 
         public void OnAddChannel(SignalingEventData data)
         {
-            var channel = streams.OfType<IDataChannel>().
+            var channel = streams.OfType<DataChannelBase>().
                 FirstOrDefault(r => r.Channel == null && !r.IsLocal);
             channel?.SetChannel(data.connectionId, data.channel);
+            if (channel != null)
+            {
+                connectionIds[data.connectionId].Add(channel);
+
+            }
         }
     }
 }

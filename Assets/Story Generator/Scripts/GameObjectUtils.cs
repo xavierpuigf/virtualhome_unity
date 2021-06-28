@@ -313,9 +313,6 @@ namespace StoryGenerator.Utilities
 
                         if (HitFlatSurface(srcBounds, srcDelta, goDest, out hity))
                         {
-                            GameObject prim = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                            prim.transform.position = new Vector3(x, 0.0f, z);
-                            prim.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
 
                             float yDelta = hity - (srcBounds.min.y + srcDelta.y);
                             Vector3 delta = srcDelta + new Vector3(0, yDelta, 0);
