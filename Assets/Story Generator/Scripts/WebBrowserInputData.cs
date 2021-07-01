@@ -28,6 +28,6 @@ public class WebBrowserInputData : WebBrowserInputChannelReceiver {
         string action = td.action_button[char_id][elementId];
         
         td.scriptLines[char_id] = action;
-        StartCoroutine(td.ExecuteScript(char_id));
+        td.keyPressed[char_id] = true;
     }
 }

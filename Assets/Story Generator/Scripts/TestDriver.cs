@@ -75,7 +75,7 @@ namespace StoryGenerator
         public static bool t_lock = false;
 
         private const int DefaultPort = 8080;
-        private const int DefaultChars = 1;
+        private const int DefaultChars = 2;
         private const int DefaultTimeout = 500000;
 
 
@@ -110,7 +110,7 @@ namespace StoryGenerator
         private bool episodeDone;
         private int episodeNum = -1;
 
-        private GameObject highlightedObj = null;
+        private List<GameObject> highlightedObj = new List<GameObject> ();
 
 
 
@@ -119,11 +119,11 @@ namespace StoryGenerator
 
         bool click = false;
 
-        List<bool> keyPressed;
+        public List<bool> keyPressed;
         List<bool> first_press;
         List<bool> first_click;
         List<bool> mouse_clicked;
-        List<bool> executing_action;
+        public List<bool> executing_action;
         private List<Keyboard> m_keyboard_l;
         private List<Mouse> m_mouse_l;
 
@@ -221,16 +221,17 @@ namespace StoryGenerator
             //Debug.Log(argDict);
             string portString = null;
             string chString = null;
-            int port = DefaultPort;
-            int nchars = 1;
+            int port;
+            int nchars;
             
             if (!argDict.TryGetValue("http-port", out portString) || !Int32.TryParse(portString, out port))
                 port = DefaultPort;
 
-            if (!argDict.TryGetValue("numchars", out chString) || !Int32.TryParse(portString, out nchars))
-                num_chars = DefaultChars;
-            port_websocket = port;
+            if (!argDict.TryGetValue("numchars", out chString) || !Int32.TryParse(chString, out nchars))
+                nchars = DefaultChars;
+
             num_chars = nchars;
+            port_websocket = port;
             Debug.Log(this.GetInstanceID());
 
             Debug.Log("Setting port " + port_websocket.ToString());
@@ -373,6 +374,16 @@ namespace StoryGenerator
                             if (m_keyboard_l[i] == null)
                             {
                                 m_keyboard_l[i] = keyboard;
+
+                                string task_info = JsonConvert.SerializeObject(new ServerMessage("PlayerInfo", "Player "+i.ToString()));
+                                string task = JsonConvert.SerializeObject(currentEpisode.UpdateTasksString());
+                                string task_info2 = JsonConvert.SerializeObject(new ServerMessage("UpdateTask", task));
+
+                                if (licr[i] != null)
+                                {
+                                    licr[i].SendData(task_info2);
+                                    licr[i].SendData(task_info);
+                                }
                                 break;
                             }
                                 
@@ -480,7 +491,12 @@ namespace StoryGenerator
 
                 // TODO: Do we need this?
                 //currentGraphCreator.SetGraph(graph);
-
+                if (!result.Success)
+                {
+                    Tuple<EnvironmentGraph, string> currentGraph_list = new Tuple<EnvironmentGraph, string> (currentGraph, JsonConvert.SerializeObject(result.Messages));
+                    string cgraph_str = JsonConvert.SerializeObject(currentGraph_list);
+                    File.WriteAllText(String.Format("ErrorGraph_{0}.json", currentEpisode.task_id), cgraph_str);
+                }
 
                 currentGraph = currentGraphCreator.UpdateGraph(transform);
                 animationEnumerators.AddRange(result.enumerators);
@@ -498,7 +514,9 @@ namespace StoryGenerator
             }
             foreach (CharacterControl c in characters)
             {
+                c.SetSpeed(20.0f);
                 c.GetComponent<Animator>().speed = 0;
+                
             }  
             
 
@@ -526,8 +544,10 @@ namespace StoryGenerator
                 scriptLines.Add("");
                 m_keyboard_l.Add(null);
                 m_mouse_l.Add(null);
+                highlightedObj.Add(null);
                 action_button.Add(new List<string> ());
                 newchar = AddCharacter(configchar.character_resource, false, "fix_room", configchar.character_position, currentEpisode.init_rooms[0]);
+                newchar.SetSpeed(20.0f);
                 StopCharacterAnimation(newchar.gameObject);
 
                 characters.Add(newchar);
@@ -627,7 +647,7 @@ namespace StoryGenerator
             currentEpisode.GenerateTasksAndGoals();
 
 
-            List<string> text_task = currentEpisode.UpdateTasksString();
+            List<Goal> text_task = currentEpisode.UpdateTasksString();
 
             string task = JsonConvert.SerializeObject(currentEpisode.UpdateTasksString());
             string task_info = JsonConvert.SerializeObject(new ServerMessage("UpdateTask", task));
@@ -659,9 +679,11 @@ namespace StoryGenerator
                 string move = "";
                 for (int kboard_id = 0; kboard_id < m_keyboard_l.Count(); kboard_id++)
                 {
-                    if (executing_action[kboard_id])
+                    if (keyPressed[kboard_id])
                         continue;
                     keyPressed[kboard_id] = false;
+                    if (executing_action[kboard_id])
+                        continue;
                     int char_id = kboard_id;
                     Keyboard m_keyboard = m_keyboard_l[kboard_id];
 
@@ -754,17 +776,17 @@ namespace StoryGenerator
                         }
                         else if (m_keyboard.eKey.isPressed)
                         {
-                            if (highlightedObj != null & !first_press[kboard_id])
+                            if (highlightedObj[kboard_id] != null & !first_press[kboard_id])
                             {
-                                highlightedObj.transform.Rotate(new Vector3(0, 1, 0), 15);
+                                highlightedObj[kboard_id].transform.Rotate(new Vector3(0, 1, 0), 15);
                                 first_press[kboard_id] = true;
                             }
                         }
                         else if (m_keyboard.qKey.isPressed)
                         {
-                            if (highlightedObj != null & !first_press[kboard_id])
+                            if (highlightedObj[kboard_id] != null & !first_press[kboard_id])
                             {
-                                highlightedObj.transform.Rotate(new Vector3(0, 1, 0), -15);
+                                highlightedObj[kboard_id].transform.Rotate(new Vector3(0, 1, 0), -15);
                                 first_press[kboard_id] = true;
                             }
                         }
@@ -779,7 +801,7 @@ namespace StoryGenerator
                         {
                             if (move != "")
                             {
-                                scriptLines[char_id] = move;
+                                scriptLines[kboard_id] = move;
                                 currentEpisode.AddAction(move, currTime);
                             }
 
@@ -818,9 +840,9 @@ namespace StoryGenerator
                         }
                     }
                     // rotate highlighted object
-                    if (keyPressed[char_id])
+                    if (keyPressed[kboard_id])
                     {
-                        highlightedObj = null;
+                        highlightedObj[kboard_id] = null;
                     }
                 
 
@@ -828,7 +850,7 @@ namespace StoryGenerator
                     //if (Input.GetMouseButtonDown(0))
                     if (mouse_clicked[kboard_id] && first_click[kboard_id])
                     {
-                        highlightedObj = null;
+                        highlightedObj[kboard_id] = null;
                         
                         if (button_created[kboard_id])
                         {
@@ -854,10 +876,10 @@ namespace StoryGenerator
 
                                 //click = true;
                                 Transform t = rayHit.transform;
-                                pointer[char_id].SetActive(true);
+                                pointer[kboard_id].SetActive(true);
 
-                                pointer[char_id].transform.position = rayHit.point;
-                                licr[char_id].SendData("DeleteButtons");
+                                pointer[kboard_id].transform.position = rayHit.point;
+                                licr[kboard_id].SendData("DeleteButtons");
 
                                 InstanceSelectorProvider objectInstanceSelectorProvider = (InstanceSelectorProvider)objectSelectorProvider;
 
@@ -914,11 +936,11 @@ namespace StoryGenerator
                                 GameObject lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
                                 EnvironmentObject obj1, obj2, obj3;
 
-                                currentGraphCreator.objectNodeMap.TryGetValue(characters[char_id].gameObject, out obj1);
+                                currentGraphCreator.objectNodeMap.TryGetValue(characters[kboard_id].gameObject, out obj1);
                                 Character character_graph;
                                 currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
 
-                                float distance = Vector3.Distance(characters[char_id].transform.position, obj.transform.position);
+                                float distance = Vector3.Distance(characters[kboard_id].transform.position, obj.transform.position);
                                 //distance = 0.0f;
                                 Debug.Log("MY POSITION " + characters[0].transform.position);
                                 Debug.Log("OBJECT POSITION " + obj.transform.position);
@@ -926,43 +948,16 @@ namespace StoryGenerator
 
                                 if (objProperties.Contains("GRABBABLE") && (lh == null || rh == null) && distance < 2.8)
                                 {
-                                    highlightedObj = t.gameObject;
+                                    highlightedObj[kboard_id] = t.gameObject;
                                     Debug.Log("grab");
 
-                                    //TODO: fix highlight
-                                    /*if (rend != null)
-                                    {
-                                        startcolor = rend.material.color;
-                                        Debug.Log("rend not null! " + rend.material.color);
-                                        rend.material.color = Color.yellow;
-                                    }*/
-
-                                    //goGrab.GetComponentInChildren<TextMeshProUGUI>().text = "Grab " + objectName;
-
-                                    //goGrab.SetActive(true);
-                                    //GameObjectUtils.PositionButton(mousePos, goGrab, "center");
+ 
                                     buttons_show.Add(new ButtonClicks("Grab " + objectName, String.Format("<char{2}> [grab] <{0}> ({1})",
-                                        objectName, objectId, char_id),
+                                        objectName, objectId, kboard_id),
                                         new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
 
                                     button_created[kboard_id] = true;
-                                    //Button buttonGrab = goGrab.GetComponent<Button>();
-                                    //buttonGrab.onClick.AddListener(() =>
-                                    //{
-                                    //    Debug.Log("grabbed");
-                                    //    button_created = false;
 
-                                    //    string action = String.Format("<char0> [grab] <{0}> ({1})", objectName, objectId);
-
-                                    //    currentEpisode.AddAction(action, currTime);
-                                    //    tasksUI.text = currentEpisode.UpdateTasksString();
-                                    //    Debug.Log(action);
-                                    //    scriptLines.Add(action);
-                                    //    goGrab.SetActive(false);
-                                    //    keyPressed = true;
-
-                                    //    buttonGrab.onClick.RemoveAllListeners();
-                                    //});
                                 }
 
                                 //put on/in surfaces
@@ -977,44 +972,20 @@ namespace StoryGenerator
                                     {
                                         currentGraphCreator.objectNodeMap.TryGetValue(lh, out obj2);
                                         Debug.Log("Put " + obj2.class_name + " on " + objectName);
-                                        //goPutLeft.GetComponentInChildren<TextMeshProUGUI>().text = "Put " + obj2.class_name + "\n on " + objectName;
-                                        //goPutLeft.SetActive(true);
 
-                                        //Button buttonPutLeft = goPutLeft.GetComponent<Button>();
                                         string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
 
                                         string action = String.Format("<char{5}> [put] <{2}> ({3}) <{0}> ({1}) {4}",
-                                            objectName, objectId, obj2.class_name, obj2.id, putPos, char_id);
+                                            objectName, objectId, obj2.class_name, obj2.id, putPos, kboard_id);
 
                                         buttons_show.Add(new ButtonClicks("Put " + obj2.class_name + " on " + objectName, String.Format(action, objectName, objectId),
                                         new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
 
-                                        //if (rh == null)
-                                        //    GameObjectUtils.PositionButton(mousePos, goPutLeft, "center");
-                                        //else
-                                        //    GameObjectUtils.PositionButton(mousePos, goPutLeft, "left");
+
 
                                         button_created[kboard_id] = true;
 
-                                        //buttonPutLeft.onClick.AddListener(() =>
-                                        //{
-                                        //    Debug.Log("put left at " + rayHit.point);
-                                        //    button_created = false;
 
-                                        //    string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
-
-                                        //    string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj2.class_name, obj2.id, putPos);
-                                        //    Debug.Log(action);
-
-                                        //    currentEpisode.AddAction(action, currTime);
-                                        //    tasksUI.text = currentEpisode.UpdateTasksString();
-                                        //    scriptLines.Add(action);
-
-                                        //    goPutLeft.SetActive(false);
-                                        //    keyPressed = true;
-
-                                        //    buttonPutLeft.onClick.RemoveAllListeners();
-                                        //});
                                     }
                                     if (rh != null)
                                     {
@@ -1028,73 +999,18 @@ namespace StoryGenerator
                                         string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
 
                                         string action = String.Format("<char{5}> [put] <{2}> ({3}) <{0}> ({1}) {4}",
-                                            objectName, objectId, obj3.class_name, obj3.id, putPos, char_id);
+                                            objectName, objectId, obj3.class_name, obj3.id, putPos, kboard_id);
 
                                         buttons_show.Add(new ButtonClicks("Put " + obj3.class_name + " on " + objectName, String.Format(action, objectName, objectId),
                                         new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
 
-                                        //if (lh == null)
-                                        //    GameObjectUtils.PositionButton(mousePos, goPutRight, "center");
-                                        //else
-                                        //    GameObjectUtils.PositionButton(mousePos, goPutRight, "right");
-                                        //TODO: are these buttons in the right location?
                                         button_created[kboard_id] = true;
 
-                                        //buttonPutRight.onClick.AddListener(() =>
-                                        //{
-                                        //    Debug.Log("put right at " + rayHit.point);
-                                        //    button_created = false;
 
-
-                                        //    string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
-
-                                        //    string action = String.Format("<char0> [put] <{2}> ({3}) <{0}> ({1}) {4}", objectName, objectId, obj3.class_name, obj3.id, putPos);
-                                        //    Debug.Log(action);
-
-                                        //    currentEpisode.AddAction(action, currTime);
-                                        //    tasksUI.text = currentEpisode.UpdateTasksString();
-                                        //    scriptLines.Add(action);
-
-                                        //    goPutRight.SetActive(false);
-                                        //    keyPressed = true;
-
-                                        //    buttonPutRight.onClick.RemoveAllListeners();
-                                        //});
 
                                     }
 
-                                    ////close if open
-                                    //if (objProperties.Contains("CAN_OPEN") && !goOpen.activeSelf)
-                                    //{
-                                    //    if (objStates.Contains(Utilities.ObjectState.OPEN)) 
-                                    //    {
-                                    //        goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Close " + objectName;
 
-                                    //        goOpen.SetActive(true);
-                                    //        Button buttonOpen = goOpen.GetComponent<Button>();
-                                    //        GameObjectUtils.PositionButton(mousePos, goOpen, "bottom");
-
-                                    //        button_created = true;
-
-                                    //        buttonOpen.onClick.AddListener(() =>
-                                    //        {
-                                    //            button_created = false;
-
-                                    //            Debug.Log("closed with options of put");
-                                    //            //objStates.Remove(Utilities.ObjectState.OPEN);
-                                    //            //objStates.Add(Utilities.ObjectState.CLOSED);
-                                    //            string action = String.Format("<char0> [close] <{0}> ({1})", objectName, objectId);
-
-                                    //            currentEpisode.AddAction(action, currTime);
-                                    //            tasksUI.text = currentEpisode.UpdateTasksString();
-                                    //            scriptLines.Add(action);
-                                    //            goOpen.SetActive(false);
-                                    //            keyPressed = true;
-
-                                    //            buttonOpen.onClick.RemoveAllListeners();
-                                    //        });
-                                    //    }
-                                    //}
                                 }
                                 //open/close
                                 if (openableContainers.Contains(objectName) && distance < 2.8)
@@ -1110,38 +1026,11 @@ namespace StoryGenerator
                                     if (objStates.Contains(Utilities.ObjectState.CLOSED))
                                     {
                                         Debug.Log("open");
-                                        buttons_show.Add(new ButtonClicks("Open " + objectName, String.Format("<char{2}> [open] <{0}> ({1})", objectName, objectId, char_id),
+                                        buttons_show.Add(new ButtonClicks("Open " + objectName, String.Format("<char{2}> [open] <{0}> ({1})", objectName, objectId, kboard_id),
                                         new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
 
                                         button_created[kboard_id] = true;
-                                        //goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Open " + objectName;
-                                        //goOpen.SetActive(true);
-                                        //if (button_created)
-                                        //{
-                                        //    GameObjectUtils.PositionButton(mousePos, goOpen, "bottom");
-                                        //}
-                                        //else
-                                        //{
-                                        //    GameObjectUtils.PositionButton(mousePos, goOpen, "center");
-                                        //}
-                                        //Button buttonOpen = goOpen.GetComponent<Button>();
-                                        //button_created = true;
-                                        //buttonOpen.onClick.AddListener(() =>
-                                        //{
-                                        //    Debug.Log("opened");
-                                        //    button_created = false;
-                                        //    //objStates.Remove(Utilities.ObjectState.CLOSED);
-                                        //    //objStates.Add(Utilities.ObjectState.OPEN);
-                                        //    string action = String.Format("<char0> [open] <{0}> ({1})", objectName, objectId);
 
-                                        //    currentEpisode.AddAction(action, currTime);
-                                        //    tasksUI.text = currentEpisode.UpdateTasksString();
-                                        //    scriptLines.Add(action);
-                                        //    goOpen.SetActive(false);
-                                        //    keyPressed = true;
-
-                                        //    buttonOpen.onClick.RemoveAllListeners();
-                                        //});
                                     }
                                     else if (objStates.Contains(Utilities.ObjectState.OPEN))
                                     {
@@ -1151,40 +1040,11 @@ namespace StoryGenerator
                                         new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
                                         button_created[kboard_id] = true;
 
-                                        //goOpen.GetComponentInChildren<TextMeshProUGUI>().text = "Close " + objectName;
-
-                                        //goOpen.SetActive(true);
-                                        //Button buttonOpen = goOpen.GetComponent<Button>();
-                                        //if (button_created)
-                                        //{
-                                        //    GameObjectUtils.PositionButton(mousePos, goOpen, "bottom");
-                                        //}
-                                        //else
-                                        //{
-                                        //    GameObjectUtils.PositionButton(mousePos, goOpen, "center");
-                                        //}
 
 
 
                                         button_created[kboard_id] = true;
 
-                                        //buttonOpen.onClick.AddListener(() =>
-                                        //{
-                                        //    button_created = false;
-
-                                        //    Debug.Log("closed");
-                                        //    //objStates.Remove(Utilities.ObjectState.OPEN);
-                                        //    //objStates.Add(Utilities.ObjectState.CLOSED);
-                                        //    string action = String.Format("<char0> [close] <{0}> ({1})", objectName, objectId);
-
-                                        //    currentEpisode.AddAction(action, currTime);
-                                        //    tasksUI.text = currentEpisode.UpdateTasksString();
-                                        //    scriptLines.Add(action);
-                                        //    goOpen.SetActive(false);
-                                        //    keyPressed = true;
-
-                                        //    buttonOpen.onClick.RemoveAllListeners();
-                                        //});
                                     }
                                 }
 
@@ -1221,6 +1081,7 @@ namespace StoryGenerator
 
                         Debug.Log(first_press);
                         pointer[char_id].SetActive(false);
+                        keyPressed[char_id] = false;
                         yield return ExecuteScript(char_id);
 
                     }
@@ -1297,8 +1158,11 @@ namespace StoryGenerator
             List<string> nscriptLines = new List<string>();
             nscriptLines.Add(scriptLines[char_id]);
             ScriptReader.ParseScript(sExecutors, nscriptLines, dataProviders.ActionEquivalenceProvider);
-            StartCoroutine(sExecutors[char_id].ProcessAndExecute(false, this));
             finishedChars = 0;
+
+            StartCoroutine(sExecutors[char_id].ProcessAndExecute(false, this));
+            //while (finishedChars == 0)
+            //    yield return new WaitForSeconds(0.01f);
             yield return new WaitUntil(() => finishedChars > 0);
             if (!sExecutors[char_id].Success)
             {
@@ -2254,12 +2118,12 @@ namespace StoryGenerator
             foreach (Goal goal in goals)
             {
                 int newReps = goalsCopy[(goal.obj2, goal.relation)].Where(x => x.Equals(goal.obj1)).Count();
-                if (newReps != goal.repetitions)
+                if (newReps != 0)
                 {
                     completedTask = $"Task Completed!:\n {goal.verb} {goal.obj1} {goal.relation} {goal.obj2} x{goal.repetitions - newReps}";
                     completedTask = $"{completedTask.AddColor(Color.green)}";
                 }
-                goal.repetitions = newReps;
+                goal.count = goal.repetitions - newReps;
             }
             return completedTask;
         }
@@ -2289,33 +2153,23 @@ namespace StoryGenerator
         //    return response;
         //}
 
-        public List<string> UpdateTasksString()
+        public List<Goal> UpdateTasksString()
         {
-            List<string> response = new List<string>();
             bool moreTasks = false;
             foreach (Goal g in goals)
             {
-                if (g.repetitions == 0)
-                {
-                    string s = $"{g.verb} {g.obj1} {g.relation} {g.obj2} x{g.repetitions}\n";
-                    //response += $"{s.AddColor(Color.green)}";
 
-                    response.Add(s);
-                }
-                else
+                if (g.repetitions != g.count)
                 {
+
                     moreTasks = true;
-                    string s = $"{g.verb} {g.obj1} {g.relation} {g.obj2} x{g.repetitions}\n";
-                    //response += $"{s.AddColor(Color.black)}";
-
-                    response.Add(s);
                 }
             }
             if (!moreTasks)
             {
                 IsCompleted = true;
             }
-            return response;
+            return goals;
         }
 
         public void StoreGraph(EnvironmentGraph g, float t, string action_str, int ct)
@@ -2339,6 +2193,7 @@ namespace StoryGenerator
         public string obj1 { get; set; }
         public string obj2 { get; set; }
         public int repetitions { get; set; }
+        public int count { get; set; }
 
         public Goal(string v, string rel, string o1, string o2, int reps)
         {
@@ -2347,6 +2202,7 @@ namespace StoryGenerator
             obj1 = o1;
             obj2 = o2;
             repetitions = reps;
+            count = 0;
         }
     }
 
