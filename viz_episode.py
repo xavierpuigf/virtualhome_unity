@@ -33,7 +33,7 @@ def get_angle(rot):
 def plot_graph_2d(graph, ax, goal_ids, belief_ids=[], c_obs_ids=None):
 
 
-    #nodes_interest = [node for node in graph['nodes'] if 'GRABBABLE' in node['properties']]
+    nodes_interest = [node for node in graph['nodes'] if 'GRABBABLE' in node['properties']]
     goals = [node for node in graph['nodes'] if node['class_name'] in goal_ids]
     
     belief_obj = [node for node in graph['nodes'] if node['id'] in belief_ids]
@@ -96,6 +96,8 @@ def plot_graph_2d(graph, ax, goal_ids, belief_ids=[], c_obs_ids=None):
     if len(belief_obj) > 0:
         add_boxes(belief_obj, ax, points={'s':  30.0, 'alpha': 1.0, 'edgecolors': 'blue', 'facecolors': 'none', 'linewidth': 1.0})
     
+
+    add_boxes(nodes_interest, ax, points=None, rect={'fill': False, 'edgecolor': 'green', 'alpha': 0.5})
     ax.set_aspect('equal')
     bx, by = get_bounds([room['bounding_box'] for room in rooms])
 
@@ -177,11 +179,12 @@ def visualize_trajectory(file_path, gen_vid=False, plot_belief=False, belief_id=
             if line == "Graph Data:":
                 graph_store = True
                 # break
+    
     if belief_id is None:
         plot_belief = False
     
     # Get xy coordinates of the agent
-    print(graphs.keys())
+    
     if 'obj_transform' in graphs[0]['nodes'][0]:
         #rots = [get_angle(ob[1]) for ob in obs]
         rots = None
@@ -208,10 +211,13 @@ def visualize_trajectory(file_path, gen_vid=False, plot_belief=False, belief_id=
 
     # Plot other info, only relevant for the planenr
     elif not plot_belief:
-        fig = plt.figure(figsize=(12,9))
+        ipdb.set_trace()
+        fig = plt.figure(figsize=(6,4))
         ax = plt.axes()
         plt.axis('off')
     else:
+
+        ipdb.set_trace()
         fig = plt.figure(figsize=(12,6))
         grid = plt.GridSpec(2, 3, wspace=0.1, hspace=0.1)
         id_object = belief_id
@@ -348,5 +354,5 @@ def get_location_objects(content, tstep=0):
         
      
 filename = sys.argv[1]
-visualize_trajectory(filename, gen_vid=True, plot_img=True, plot_belief=True, full_obs=True, frame_end=30)
+visualize_trajectory(filename, gen_vid=True, plot_img=False, plot_belief=False, full_obs=True, frame_end=30)
 
