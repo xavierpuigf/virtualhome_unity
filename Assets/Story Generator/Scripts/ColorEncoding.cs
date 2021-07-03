@@ -189,34 +189,54 @@ namespace StoryGenerator.Recording
             idToColorMapping = Helper.SampleRandomOrder(MAX_INSTANCE - 2);
 #endif
             MaterialPropertyBlock mpb = new MaterialPropertyBlock();
+            int gsi_id = 0;
+            Color instClr, classClr;
             foreach (GameObjectSgmtInfo gsi in list_gsi) {
                 bool isWall = false;
                 bool isFloor = false;
                 int instID;
                 // Wall color would be black
-                if (gsi.m_sgmt_inst_id == ID_WALL) {
-                    isWall = true;
+                if (gsi_id == 0)
+                {
                     instID = 0;
+
+                    instClr = Color.white;
+                    classClr = gsi.m_sgmt_class_clr;
                 }
-                // Floor color would be white
-                else if (gsi.m_sgmt_inst_id == ID_FLOOR_INIT) {
-                    isFloor = true;
-                    instID = (int)totalSplit - 1;
-                } else {
-                    // Need -1 index due to the fact that id to color map starts at index 0 and
-                    // id starts at 1 due to 0 is reserved for wall
-                    // Need + 1 at the result because output must start at 1
-                    instID = idToColorMapping[gsi.m_sgmt_inst_id - 1] + 1;
+                else
+                {
+                    if (gsi.m_sgmt_inst_id == ID_WALL)
+                    {
+                        isWall = true;
+                        instID = 0;
+                    }
+                    // Floor color would be white
+                    else if (gsi.m_sgmt_inst_id == ID_FLOOR_INIT)
+                    {
+                        isFloor = true;
+                        instID = (int)totalSplit - 1;
+                    }
+                    else
+                    {
+                        // Need -1 index due to the fact that id to color map starts at index 0 and
+                        // id starts at 1 due to 0 is reserved for wall
+                        // Need + 1 at the result because output must start at 1
+                        instID = idToColorMapping[gsi.m_sgmt_inst_id - 1] + 1;
+                    }
+                    instClr = EncodeIDAsColor(instID);
+                    classClr = gsi.m_sgmt_class_clr;
+                    // This Object is neither floor nor wall but has white segmentaion color
+                    // I used white color to represent null in this case so this is clearly an error.
+                    if (!isFloor && !isWall && (instClr == Color.white || classClr == Color.white))
+                    {
+                        Debug.LogError("Object with " + instID + " color instance ID has white segmentaion color");
+                        Debug.Break();
+                    }
+
                 }
 
-                Color instClr = EncodeIDAsColor(instID);
-                Color classClr = gsi.m_sgmt_class_clr;
-                // This Object is neither floor nor wall but has white segmentaion color
-                // I used white color to represent null in this case so this is clearly an error.
-                if (!isFloor && !isWall && (instClr == Color.white || classClr == Color.white)) {
-                    Debug.LogError("Object with " + instID + " color instance ID has white segmentaion color");
-                    Debug.Break();
-                }
+
+
 
                 instanceColor.Add(gsi.go.GetInstanceID(), instClr);
                 mpb.SetColor("_ObjectColor", instClr);
@@ -225,17 +245,28 @@ namespace StoryGenerator.Recording
                 foreach (Renderer rdr in gsi.list_rdr) {
                     rdr.SetPropertyBlock(mpb);
                 }
+
+                gsi_id += 1;
             }
         }
 
         static void SegmentationHelper(Transform tsfm, int id_inst_parent, Color clr_class_parent,
-          List<GameObjectSgmtInfo> list_gsi, Dictionary<string, int> ggim)
+          List<GameObjectSgmtInfo> list_gsi, Dictionary<string, int> ggim, int index_gsi_parent = 0)
         {
             int id_inst_self = -1;
             Color clr_class_self = Color.white;
 
             Renderer[] arry_rdr = tsfm.GetComponents<Renderer>();
-            
+            if (list_gsi.Count == 0)
+            {
+                GameObject dummy_go = new GameObject();
+                list_gsi.Add(new GameObjectSgmtInfo(dummy_go, -1, clr_class_self));
+                index_gsi_parent = list_gsi.Count - 1;
+            }
+            if (tsfm.name.Contains("StoveCoil"))
+            {
+                Debug.Log("HEre");
+            }
             if (m_instanceGroup_prefab.ContainsKey(tsfm.name)) {
                 id_inst_self = ColorEncoding.GetInstID();
                 id_inst_parent = id_inst_self;
@@ -278,15 +309,21 @@ namespace StoryGenerator.Recording
                 clr_class_parent = c;
 
                 list_gsi.Add(new GameObjectSgmtInfo(tsfm.gameObject, id_inst_self, c));
+                index_gsi_parent = list_gsi.Count - 1;
+
             }
 
-            if (arry_rdr != null && arry_rdr.Length > 0) {
-                list_gsi[list_gsi.Count - 1].AddRenderer(arry_rdr);
+            if (arry_rdr != null && arry_rdr.Length > 0 && list_gsi.Count > 1 && tsfm.IsChildOf(list_gsi[index_gsi_parent].go.transform)) {
+                list_gsi[index_gsi_parent].AddRenderer(arry_rdr);
+            }
+            else
+            {
+                list_gsi[0].AddRenderer(arry_rdr);
             }
 
             // Recursive call
             for (int i = 0; i < tsfm.childCount; i++) {
-                ColorEncoding.SegmentationHelper(tsfm.GetChild(i), id_inst_parent, clr_class_parent, list_gsi, ggim);
+                ColorEncoding.SegmentationHelper(tsfm.GetChild(i), id_inst_parent, clr_class_parent, list_gsi, ggim, index_gsi_parent);
             }
         }
     }

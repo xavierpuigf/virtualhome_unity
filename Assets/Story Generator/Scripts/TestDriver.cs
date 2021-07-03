@@ -918,6 +918,63 @@ namespace StoryGenerator
                         yield break;
                     }
                 }
+                else if (networkRequest.action == "observation")
+                {
+
+                    if (currentGraph == null)
+                    {
+                        response.success = false;
+                        response.message = "Envrionment graph is not yet initialized";
+                    }
+                    else
+                    {
+                        IList<int> indices = networkRequest.intParams;
+                        if (!CheckCameraIndexes(indices, cameras.Count))
+                        {
+                            response.success = false;
+                            response.message = "Invalid parameters";
+                        }
+                        else
+                        {
+                            int index = indices[0];
+                            Camera cam = cameras[index];
+                            CameraExpander.AdjustCamera(cam);
+                            cameras[index].gameObject.SetActive(true);
+                            cam.enabled = true;
+                            yield return new WaitForEndOfFrame();
+
+                            Plane[] frustum = GeometryUtility.CalculateFrustumPlanes(cam);
+
+                            Dictionary<int, String> visibleObjs = new Dictionary<int, String>();
+                            foreach (EnvironmentObject node in currentGraph.nodes)
+                            {
+                                if (EnvironmentGraphCreator.IGNORE_IN_EDGE_OBJECTS.Contains(node.class_name))
+                                {
+                                    continue;
+                                }
+
+                                // check if the object bounding box is in the camera frustum
+                                if (GeometryUtility.TestPlanesAABB(frustum, node.bounding_box.bounds))
+                                {
+                                    // check is camera can actually see the object by raycasting
+                                    if (SeenByCamera(cam, node.transform))
+                                    {
+                                        visibleObjs.Add(node.id, node.class_name);
+                                    }
+                                }
+                            }
+                            cam.enabled = false;
+                            Debug.Log(visibleObjs);
+
+                            response.success = true;
+                            response.message = JsonConvert.SerializeObject(visibleObjs);
+
+                        }
+                    }
+
+
+                }
+
                 else if (networkRequest.action == "fast_reset")
                 {
                     System.Diagnostics.Stopwatch resetStopwatch = System.Diagnostics.Stopwatch.StartNew();
