@@ -79,6 +79,7 @@ namespace StoryGenerator
         private const int DefaultPort = 8080;
         private const int DefaultChars = 2;
         private const int DefaultTimeout = 500000;
+        private const string DefaultFileName = "default";
 
 
         //static ProcessingController processingController;
@@ -118,6 +119,7 @@ namespace StoryGenerator
 
         static int port_websocket = 80;
         static int num_chars = 1;
+        static string file_name = "default";
 
         bool click = false;
 
@@ -130,7 +132,6 @@ namespace StoryGenerator
         private List<Mouse> m_mouse_l;
 
 
-        bool aux_pressed = false;
         public List<string> scriptLines;
         EnvironmentGraphCreator currentGraphCreator = null;
         EnvironmentGraph currentGraph = null;
@@ -206,6 +207,7 @@ namespace StoryGenerator
                 string episodeFileContent = File.ReadAllText(episodePath);
                 //TextAsset episodeFile = Resources.Load<TextAsset>(episodePath);
                 Episode currentEpisode = JsonUtility.FromJson<Episode>(episodeFileContent);
+                currentEpisode.file_name = file_name;
                 SceneManager.LoadScene(currentEpisode.env_id);
                 yield return null;
             }
@@ -232,6 +234,9 @@ namespace StoryGenerator
 
             if (!argDict.TryGetValue("numchars", out chString) || !Int32.TryParse(chString, out nchars))
                 nchars = DefaultChars;
+
+            if(!argDict.TryGetValue("filename", out file_name))
+                file_name = DefaultFileName;
 
             num_chars = nchars;
             port_websocket = port;
@@ -423,7 +428,8 @@ namespace StoryGenerator
             string episodePath = $"Episodes/pilot_task_id_{episode}_bounds.json";
             string episodeFile = File.ReadAllText(episodePath);
             currentEpisode = JsonUtility.FromJson<Episode>(episodeFile);
-            currentEpisode.ClearDataFile(episode);
+            currentEpisode.ClearDataFile();
+            currentEpisode.file_name = file_name;
 
             sceneCameras = ScriptUtils.FindAllCameras(transform);
             numSceneCameras = sceneCameras.Count;
@@ -762,6 +768,8 @@ namespace StoryGenerator
                             if (!first_press[kboard_id])
                             {
                                 episodeDone = true;
+
+                                saveEpisode = true;
                                 first_press[kboard_id] = true;
                             }
                         }
@@ -1146,7 +1154,11 @@ namespace StoryGenerator
                 if (saveEpisode)
                 {
                     Debug.Log("Saving data...");
-                    currentEpisode.RecordData(episode);
+                    currentEpisode.RecordData();
+                    for (int itt = 0; itt < licr.Count(); itt++)
+                    {
+                        licr[itt].SendData("SaveTime");
+                    }
                 }
                 for (int char_id = 0; char_id < keyPressed.Count(); char_id++) {
                     if (keyPressed[char_id])
@@ -1352,8 +1364,15 @@ namespace StoryGenerator
             currentEpisode.previousPos = characters[char_id].transform.position;
             currentEpisode.previousRotation = characters[char_id].transform.eulerAngles;
 
-            if (currentEpisode.IsCompleted || episodeDone)
+            //if (currentEpisode.IsCompleted || episodeDone)
+            if (episodeDone)
+
             {
+                currentEpisode.RecordData();
+                for (int itt = 0; itt < licr.Count(); itt++)
+                {
+                    licr[itt].SendData("SaveTime");
+                }
                 string completed = "Tasks: Completed!\nLoading New Episode";
                 string tasksCompletedText = completed.AddColor(Color.green);
                 //tasksUI.text = tasksCompletedText;
@@ -2032,6 +2051,7 @@ namespace StoryGenerator
     [System.Serializable]
     public class Episode
     {
+        public string file_name = "default";
         public int env_id;
         public int task_id;
         public int episode;
@@ -2054,9 +2074,9 @@ namespace StoryGenerator
         public Vector3 previousPos = new Vector3(0, 0, 0);
         public Vector3 previousRotation = new Vector3(0, 0, 0);
 
-        public void ClearDataFile(int episode)
+        public void ClearDataFile()
         {
-            string outputPath = $"Episodes/Episode{episode}Data.txt";
+            string outputPath = $"Episodes/{file_name}_Episode{episode}Data.txt";
             using (FileStream fs = File.Create(outputPath)) { }
             foreach (EnvironmentRelation r in init_graph.edges)
             {
@@ -2079,9 +2099,9 @@ namespace StoryGenerator
             }
         }
 
-        public void RecordData(int episode)
+        public void RecordData()
         {
-            string outputPath = $"Episodes/Episode{episode}Data.txt";
+            string outputPath = $"Episodes/{file_name}_Episode{episode}Data.txt";
             File.WriteAllText(outputPath, "");
             StreamWriter outputFile = new StreamWriter(outputPath, true);
             outputFile.WriteLine("Position and Orientation Data:");
