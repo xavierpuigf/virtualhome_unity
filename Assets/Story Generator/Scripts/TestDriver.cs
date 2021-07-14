@@ -71,6 +71,7 @@ namespace StoryGenerator
         static ProfilerMarker s_GetMessageMarker = new ProfilerMarker("MySystem.GetMessage");
         static ProfilerMarker s_UpdateGraph = new ProfilerMarker("MySystem.UpdateGraph");
         static ProfilerMarker s_SimulatePerfMarker = new ProfilerMarker("MySystem.Simulate");
+        static ProfilerMarker s_GetImageMarker = new ProfilerMarker("MySystem.GetImageMark");
 
         public static ManualResetEvent mre = new ManualResetEvent(false);
         public static bool t_lock = false;
@@ -959,6 +960,7 @@ namespace StoryGenerator
                                 pointer[kboard_id].SetActive(true);
 
                                 pointer[kboard_id].transform.position = rayHit.point;
+                                s_GetImageMarker.Begin();
                                 licr[kboard_id].SendData("DeleteButtons");
                                 if (!use_video_stream)
                                 {
@@ -970,6 +972,7 @@ namespace StoryGenerator
                                         licr[cam_id].SendData(current_image);
                                     }
                                 }
+                                s_GetImageMarker.End();
 
                                 InstanceSelectorProvider objectInstanceSelectorProvider = (InstanceSelectorProvider)objectSelectorProvider;
 
