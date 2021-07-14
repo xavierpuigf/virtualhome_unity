@@ -18,6 +18,7 @@ using StoryGenerator.Scripts;
 using StoryGenerator.Utilities;
 using StoryGenerator.Communication;
 using Newtonsoft.Json;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -73,6 +74,7 @@ namespace StoryGenerator
 
         public static ManualResetEvent mre = new ManualResetEvent(false);
         public static bool t_lock = false;
+        public static bool use_video_stream = false;
 
         private const int DefaultPort = 8080;
         private const int DefaultChars = 2;
@@ -133,6 +135,7 @@ namespace StoryGenerator
         EnvironmentGraphCreator currentGraphCreator = null;
         EnvironmentGraph currentGraph = null;
         List<WebBrowserInputData> licr;
+        List<Camera> currentCameras;
         Episode currentEpisode;
         float currTime;
         public List<List<string>> action_button;
@@ -381,6 +384,14 @@ namespace StoryGenerator
 
                                 if (licr[i] != null)
                                 {
+                                    if (!use_video_stream)
+                                    {
+                                        
+                                        byte[] bytes = CameraUtils.RenderImage(currentCameras[i], 384, 256, 0);
+                                        string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
+                                        licr[i].SendData(current_image);
+                                        
+                                    }
                                     licr[i].SendData(task_info2);
                                     licr[i].SendData(task_info);
                                 }
@@ -531,7 +542,7 @@ namespace StoryGenerator
             MultiPlayerBroadcast bc = newRenderStream.AddComponent<MultiPlayerBroadcast>();
             //Broadcast bc = newRenderStream.AddComponent<Broadcast>();
 
-            List<Camera> currentCameras = new List<Camera>();
+            currentCameras = new List<Camera>();
             licr = new List<WebBrowserInputData>();
             //List<CharacterControl>  characters = new List<CharacterControl>();
             //List <ScriptExecutor> sExecutors = new List<ScriptExecutor>();
@@ -567,20 +578,25 @@ namespace StoryGenerator
                 
 
                 Camera currentCameraChar = charCameras.Find(c => c.name.Equals("Character_Camera_Fwd"));
-                CameraStreamer cs = currentCameraChar.gameObject.AddComponent<CameraStreamer>();
 
                 WebBrowserInputData icr = currentCameraChar.gameObject.AddComponent<WebBrowserInputData>();
                 icr.SetDriver(this, itt);
                 licr.Add(icr);
                 icr.onDeviceChange += OnDeviceChange;
+
+                CameraUtils.InitCamera(currentCameraChar);
                 currentCameraChar.gameObject.SetActive(true);
                 //recorders[0].CamCtrls[cameras.IndexOf(currentCamera)].Activate(true);
                 currentCameraChar.transform.localPosition = currentCameraChar.transform.localPosition + new Vector3(0, -0.15f, 0.1f);
 
 
-                
-                bc.AddComponent(cs);
+                if (use_video_stream)
+                {
+                    CameraStreamer cs = currentCameraChar.gameObject.AddComponent<CameraStreamer>();
+                    bc.AddComponent(cs);
+                }
                 bc.AddComponent(icr);
+                
                 currentCameras.Add(currentCameraChar);
             }
             yield return null;
@@ -761,6 +777,13 @@ namespace StoryGenerator
                                 currentEpisode.AddAction("move cam up", currTime);
                                 currentCameras[kboard_id].transform.Rotate(-3, 0, 0);
                                 first_press[kboard_id] = true;
+                                if (!use_video_stream)
+                                {
+                                    byte[] bytes = CameraUtils.RenderImage(currentCameras[kboard_id], 384, 256, 0);
+                                    string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
+                                    licr[kboard_id].SendData(current_image);
+
+                                }
                             }
                         }
                         else if (m_keyboard.lKey.isPressed)
@@ -771,6 +794,13 @@ namespace StoryGenerator
                                 currentEpisode.AddAction("move cam down", currTime);
                                 currentCameras[kboard_id].transform.Rotate(3, 0, 0);
                                 first_press[kboard_id] = true;
+                                if (!use_video_stream)
+                                {
+                                    byte[] bytes = CameraUtils.RenderImage(currentCameras[kboard_id], 384, 256, 0);
+                                    string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
+                                    licr[kboard_id].SendData(current_image);
+
+                                }
                             }
 
                         }
@@ -780,6 +810,17 @@ namespace StoryGenerator
                             {
                                 highlightedObj[kboard_id].transform.Rotate(new Vector3(0, 1, 0), 15);
                                 first_press[kboard_id] = true;
+                                if (!use_video_stream)
+                                {
+                                    for (int ii = 0; ii < currentCameras.Count(); ii++)
+                                    {
+
+                                        byte[] bytes = CameraUtils.RenderImage(currentCameras[kboard_id], 384, 256, 0);
+                                        string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
+                                        licr[kboard_id].SendData(current_image);
+                                    }
+
+                                }
                             }
                         }
                         else if (m_keyboard.qKey.isPressed)
@@ -788,6 +829,17 @@ namespace StoryGenerator
                             {
                                 highlightedObj[kboard_id].transform.Rotate(new Vector3(0, 1, 0), -15);
                                 first_press[kboard_id] = true;
+                                if (!use_video_stream)
+                                {
+                                    for (int ii = 0; ii < currentCameras.Count(); ii++)
+                                    {
+
+                                        byte[] bytes = CameraUtils.RenderImage(currentCameras[kboard_id], 384, 256, 0);
+                                        string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
+                                        licr[kboard_id].SendData(current_image);
+                                    }
+
+                                }
                             }
                         }
                         else
@@ -864,7 +916,27 @@ namespace StoryGenerator
                         if (!click)
                         {
                             RaycastHit rayHit;
-                            Vector2 mouseClickPosition = new Vector2(m_mouse_l[kboard_id].position.x.ReadValue(), m_mouse_l[kboard_id].position.y.ReadValue());
+                            float x = m_mouse_l[kboard_id].position.x.ReadValue();
+                            float y = m_mouse_l[kboard_id].position.y.ReadValue();
+                            if (!use_video_stream)
+                            {
+                                float ratio1 = 384.0f / 256.0f;
+                                float ratio2 = (1.0f*currentCameras[kboard_id].pixelWidth) / (currentCameras[kboard_id].pixelHeight*1.0f);
+                                if (ratio1 > ratio2)
+                                {
+                                    // clip in y
+                                    x = (x / 384.0f) * currentCameras[kboard_id].pixelWidth;
+                                }
+                                else
+                                {
+                                    // clip in x
+                                    float clipped_width = currentCameras[kboard_id].pixelHeight * ratio1;
+                                    float pad = (currentCameras[kboard_id].pixelWidth - clipped_width) / 2.0f;
+                                    x = ((x / 384.0f) * clipped_width) + pad;
+                                    y = (y / 256.0f) * currentCameras[kboard_id].pixelHeight;
+                                }
+                            }
+                            Vector2 mouseClickPosition = new Vector2(x, y);
                             Ray ray = currentCameras[kboard_id].ScreenPointToRay(mouseClickPosition);
                             bool hit = Physics.Raycast(ray, out rayHit);
                             //Debug.DrawRay(ray.origin, ray.direction, Color.green, 20, true);
@@ -880,6 +952,16 @@ namespace StoryGenerator
 
                                 pointer[kboard_id].transform.position = rayHit.point;
                                 licr[kboard_id].SendData("DeleteButtons");
+                                if (!use_video_stream)
+                                {
+                                    for (int cam_id = 0; cam_id < currentCameras.Count; cam_id++)
+                                    {
+
+                                        byte[] bytes = CameraUtils.RenderImage(currentCameras[cam_id], 384, 256, 0);
+                                        string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
+                                        licr[cam_id].SendData(current_image);
+                                    }
+                                }
 
                                 InstanceSelectorProvider objectInstanceSelectorProvider = (InstanceSelectorProvider)objectSelectorProvider;
 
@@ -1164,6 +1246,17 @@ namespace StoryGenerator
             //while (finishedChars == 0)
             //    yield return new WaitForSeconds(0.01f);
             yield return new WaitUntil(() => finishedChars > 0);
+
+            if (!use_video_stream) {
+                for (int cam_id = 0; cam_id < currentCameras.Count; cam_id++)
+                {
+
+                    byte[] bytes = CameraUtils.RenderImage(currentCameras[cam_id], 384, 256, 0);
+                    string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
+                    licr[cam_id].SendData(current_image);
+                }
+            }
+
             if (!sExecutors[char_id].Success)
             {
                 currentEpisode.FailAction();
@@ -1229,7 +1322,11 @@ namespace StoryGenerator
                 for (int itt = 0; itt < licr.Count; itt++)
                 {
                     if (licr[itt] != null)
+                    {
                         licr[itt].SendData(task_info);
+
+                    }
+                        
                 }
 
                 currentEpisode.StoreGraph(currentGraph, currTime, action_str, currentEpisode.posAndRotation.Count);
