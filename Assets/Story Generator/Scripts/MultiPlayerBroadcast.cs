@@ -64,14 +64,20 @@ namespace Unity.RenderStreaming
                 return;
             }
 
-            if (connectionIds.Count >= streams.OfType<VideoStreamBase>().Count())
+            if (connectionIds.Count >= streams.OfType<WebBrowserInputData>().Count())
                 return;
-            VideoStreamBase vidSrc = streams.OfType<VideoStreamBase>().ElementAt(connectionIds.Count);
-            var transceiver = AddTrack(data.connectionId, vidSrc.Track);
-            vidSrc.SetSender(data.connectionId, transceiver.Sender);
 
             connectionIds.Add(data.connectionId, new List<Component>());
-            connectionIds[data.connectionId].Add(vidSrc);
+
+            if (streams.OfType<VideoStreamBase>().Count() >= connectionIds.Count)
+            {
+                VideoStreamBase vidSrc = streams.OfType<VideoStreamBase>().ElementAt(connectionIds.Count - 1);
+                var transceiver = AddTrack(data.connectionId, vidSrc.Track);
+                vidSrc.SetSender(data.connectionId, transceiver.Sender);
+                connectionIds[data.connectionId].Add(vidSrc);
+
+            }
+
 
 
             //foreach (var source in streams.OfType<IStreamSource>())

@@ -119,7 +119,7 @@ namespace StoryGenerator
 
 
         static int port_websocket = 80;
-        static int num_chars = 1;
+        static int num_chars = DefaultChars;
         static string file_name = "default";
 
         bool click = false;
@@ -227,6 +227,7 @@ namespace StoryGenerator
             //Debug.Log(argDict);
             string portString = null;
             string chString = null;
+            string vString = null;
             int port;
             int nchars;
             
@@ -236,11 +237,22 @@ namespace StoryGenerator
             if (!argDict.TryGetValue("numchars", out chString) || !Int32.TryParse(chString, out nchars))
                 nchars = DefaultChars;
 
-            if(!argDict.TryGetValue("filename", out file_name))
+            if (!argDict.TryGetValue("staticstream", out vString))
+                vString = "0";
+
+            if (!argDict.TryGetValue("filename", out file_name))
                 file_name = DefaultFileName;
 
             num_chars = nchars;
             port_websocket = port;
+            if (vString == "0")
+            {
+                use_video_stream = true;
+            }
+            else
+            {
+                use_video_stream = false;
+            }
             Debug.Log(this.GetInstanceID());
 
             Debug.Log("Setting port " + port_websocket.ToString());
@@ -713,7 +725,7 @@ namespace StoryGenerator
                     if (m_keyboard != null)
                     {
                         
-                        if (m_keyboard.upArrowKey.isPressed)
+                        if (m_keyboard.wKey.isPressed)
                         {
                             if (!first_press[kboard_id])
                             {
@@ -724,7 +736,7 @@ namespace StoryGenerator
                                 first_press[kboard_id] = true;
                             }
                         }
-                        else if (m_keyboard.downArrowKey.isPressed)
+                        else if (m_keyboard.sKey.isPressed)
                         {
                             if (!first_press[kboard_id])
                             {
@@ -734,7 +746,7 @@ namespace StoryGenerator
                                 first_press[kboard_id] = true;
                             }
                         }
-                        else if (m_keyboard.rightArrowKey.isPressed)
+                        else if (m_keyboard.fKey.isPressed)
                         {
                             if (!first_press[kboard_id])
                             {
@@ -745,7 +757,7 @@ namespace StoryGenerator
                             }
 
                         }
-                        else if (m_keyboard.leftArrowKey.isPressed)
+                        else if (m_keyboard.aKey.isPressed)
                         {
                             if (!first_press[kboard_id])
                             {
@@ -778,7 +790,7 @@ namespace StoryGenerator
 
 
                         //TODO: add camera movement
-                        else if (m_keyboard.oKey.isPressed)
+                        else if (m_keyboard.upArrowKey.isPressed)
                         {
                             if (!first_press[kboard_id])
                             {
@@ -795,7 +807,7 @@ namespace StoryGenerator
                                 }
                             }
                         }
-                        else if (m_keyboard.lKey.isPressed)
+                        else if (m_keyboard.downArrowKey.isPressed)
                         {
                             if (!first_press[kboard_id])
                             {
@@ -931,6 +943,8 @@ namespace StoryGenerator
                             {
                                 float ratio1 = 384.0f / 256.0f;
                                 float ratio2 = (1.0f*currentCameras[kboard_id].pixelWidth) / (currentCameras[kboard_id].pixelHeight*1.0f);
+                                Debug.Log(String.Format("{0} {1} {2} {3} {4} {5}", x, y, ratio1, ratio2, currentCameras[kboard_id].pixelHeight, currentCameras[kboard_id].pixelWidth));
+
                                 if (ratio1 > ratio2)
                                 {
                                     // clip in y
@@ -960,19 +974,16 @@ namespace StoryGenerator
                                 pointer[kboard_id].SetActive(true);
 
                                 pointer[kboard_id].transform.position = rayHit.point;
-                                s_GetImageMarker.Begin();
                                 licr[kboard_id].SendData("DeleteButtons");
                                 if (!use_video_stream)
                                 {
-                                    for (int cam_id = 0; cam_id < currentCameras.Count; cam_id++)
-                                    {
+                                    
 
-                                        byte[] bytes = CameraUtils.RenderImage(currentCameras[cam_id], 384, 256, 0);
-                                        string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
-                                        licr[cam_id].SendData(current_image);
-                                    }
+                                    byte[] bytes = CameraUtils.RenderImage(currentCameras[kboard_id], 384, 256, 0);
+                                    string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
+                                    licr[kboard_id].SendData(current_image);
+                                    
                                 }
-                                s_GetImageMarker.End();
 
                                 InstanceSelectorProvider objectInstanceSelectorProvider = (InstanceSelectorProvider)objectSelectorProvider;
 
@@ -1021,12 +1032,19 @@ namespace StoryGenerator
 
                                 //TODO: grabbing/putting with right and left hands
                                 State currentState = this.CurrentStateList[kboard_id];
+
+                                GameObject rh, lh;
                                 if (currentState == null)
                                 {
                                     Debug.Log("HEre");
+                                    rh = lh = null;
                                 }
-                                GameObject rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
-                                GameObject lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
+                                else
+                                {
+
+                                    rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
+                                    lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
+                                }
                                 EnvironmentObject obj1, obj2, obj3;
 
                                 currentGraphCreator.objectNodeMap.TryGetValue(characters[kboard_id].gameObject, out obj1);
@@ -1042,7 +1060,6 @@ namespace StoryGenerator
                                 if (objProperties.Contains("GRABBABLE") && (lh == null || rh == null) && distance < 2.8)
                                 {
                                     highlightedObj[kboard_id] = t.gameObject;
-                                    Debug.Log("grab");
 
  
                                     buttons_show.Add(new ButtonClicks("Grab " + objectName, String.Format("<char{2}> [grab] <{0}> ({1})",
