@@ -1018,6 +1018,7 @@ namespace StoryGenerator.Utilities
         // Adds CLOSE relation if distance from center of o1 to bounds of o2 (or vice-versa) is <= MAX_CLOSE_DISTANCE
         public bool Close(EnvironmentObject o1, EnvironmentObject o2)
         {
+            
             if (o1.id == o2.id)
             {
                 return false;
@@ -1050,6 +1051,7 @@ namespace StoryGenerator.Utilities
                 }
                 close = Vector3.Distance(o1center, o1Too2) <= MAX_CLOSE_DISTANCE;
             }
+
             if (close) {
                 AddGraphEdge(o1, o2, ObjectRelation.CLOSE);
                 AddGraphEdge(o2, o1, ObjectRelation.CLOSE);

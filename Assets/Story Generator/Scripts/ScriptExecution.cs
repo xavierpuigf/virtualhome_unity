@@ -1134,16 +1134,19 @@ namespace StoryGenerator.Utilities
                     if (path.status == NavMeshPathStatus.PathComplete)
                     {
                         Debug.Log("Path complete");
+                        canSelect = true;
                     }
                     else if (path.status == NavMeshPathStatus.PathInvalid)
                     {
                         Debug.Log("Path invalid");
                         errormessage = "Path invalid";
+                        canSelect = false;
                     }
                     else if (path.status == NavMeshPathStatus.PathPartial)
                     {
                         Debug.Log("Path partial");
-                        errormessage = "Path partial";
+                        errormessage = "Path partially completed";
+                        canSelect = false;
                     }
 
 
@@ -1158,15 +1161,19 @@ namespace StoryGenerator.Utilities
                     // {
                     //     s = new State(current, a, goPos, ExecuteGoto);
                     // }
-                    s = new State(current, a, goPos, ExecuteGoto);
-                    s.AddActionFlag("GOTO_TURN");
 
-                    if (this.find_solution)
-                        s.AddObject("ROOM_CONSTRAINT", roomSelector.ExtractRoomName(go.name));
+                    if (canSelect)
+                    {
+                        s = new State(current, a, goPos, ExecuteGoto);
+                        s.AddActionFlag("GOTO_TURN");
 
-                    canSelect = true;
+                        if (this.find_solution)
+                            s.AddObject("ROOM_CONSTRAINT", roomSelector.ExtractRoomName(go.name));
 
-                    yield return s;
+
+                        yield return s;
+                    }
+
                 }
                 else if (a.Intention == InteractionType.SIT)
                 {
