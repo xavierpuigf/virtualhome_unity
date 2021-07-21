@@ -243,6 +243,7 @@ namespace StoryGenerator
                     String camera_name = cameras.Count().ToString();
                     GameObject go = new GameObject("new_camera" + camera_name, typeof(Camera));
                     Camera new_camera = go.GetComponent<Camera>();
+                    new_camera.usePhysicalProperties = true;
                     new_camera.renderingPath = RenderingPath.UsePlayerSettings;
                     Vector3 position_vec = camera_config.position;
                     Vector3 rotation_vec = camera_config.rotation;
@@ -388,8 +389,25 @@ namespace StoryGenerator
                         }
                         // TODO: set this with a flag
                         bool exact_expand = false;
-                        graphExpander.ExpandScene(transform, graph, currentGraph, expandSceneCount, exact_expand);
+                        List<GameObject> added_chars = new List<GameObject>();
+                        graphExpander.ExpandScene(transform, graph, currentGraph, expandSceneCount, added_chars, exact_expand);
+                        foreach(GameObject added_char in added_chars)
+                        {
+                            CharacterControl cc = added_char.GetComponent<CharacterControl>();
+                            added_char.SetActive(true);
+                            var nma = added_char.GetComponent<NavMeshAgent>();
+                            nma.Warp(added_char.transform.position);
 
+                            characters.Add(cc);
+                            CurrentStateList.Add(null);
+                            numCharacters++;
+                            List<Camera> charCameras = CameraExpander.AddCharacterCameras(added_char.gameObject, transform, "");
+                            CameraUtils.DeactivateCameras(charCameras);
+                            cameras.AddRange(charCameras);
+                            cameraInitializer.initialized = false;
+
+
+                        }
                         SceneExpanderResult result = graphExpander.GetResult();
 
                         response.success = result.Success;

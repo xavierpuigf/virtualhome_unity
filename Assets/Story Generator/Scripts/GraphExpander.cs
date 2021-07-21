@@ -176,8 +176,9 @@ namespace StoryGenerator.Utilities
             return expanderResult;
         }
 
-        public void ExpandScene(Transform transform, EnvironmentGraph graph, EnvironmentGraph sceneGraph, int previousExpandsCount, bool exact_alignment = false)
+        public void ExpandScene(Transform transform, EnvironmentGraph graph, EnvironmentGraph sceneGraph, int previousExpandsCount, List<GameObject> added_chars, bool exact_alignment = false)
         {
+            // graph is the graph that we will expand, sceneGraph is the graph we currently have
             CreateGraphMaps(graph, out id2ObjectMap, out edgeMap);
             CreateGraphMaps(sceneGraph, out sceneId2ObjectMap, out sceneEdgeMap);
             var tm = TimeMeasurement.Start("alignment");
@@ -188,26 +189,27 @@ namespace StoryGenerator.Utilities
             expanderResult = new SceneExpanderResult();
 
             try {
-                DoExpandScene(transform, graph, sceneGraph, exact_alignment);
+                DoExpandScene(transform, graph, sceneGraph, added_chars, exact_alignment);
             } catch (ExpanderException e) {
                 expanderResult.AddItem(FATAL, e.Message);
             }
         }
 
-        private void DoExpandScene(Transform transform, EnvironmentGraph graph, EnvironmentGraph sceneGraph, bool exact_alignment=false)
+        private void DoExpandScene(Transform transform, EnvironmentGraph graph, EnvironmentGraph sceneGraph, List<GameObject> added_chars, bool exact_alignment=false)
         {
             // Detect missing objects and invalid class ids
             List<EnvironmentObject> missingObjects = new List<EnvironmentObject>();
 
-            EnvironmentObject characterObject = null;
-            EnvironmentObject sceneCharacterObject = null;
+            List<EnvironmentObject> characterObjects = new List<EnvironmentObject> ();
+            List<EnvironmentObject> sceneCharacterObject = new List<EnvironmentObject>();
+            List<Tuple<EnvironmentObject, EnvironmentObject> > objects_grabbed = new List<Tuple< EnvironmentObject, EnvironmentObject> >();
 
             // For which objects we found a maching transformation
             List<int> id_transformed = new List<int>();
 
             foreach (EnvironmentObject obj in graph.nodes) {
                 if (obj.class_name == "character")
-                    characterObject = obj;
+                    characterObjects.Add(obj);
 
                 EnvironmentObject sceneObj;
 
@@ -216,7 +218,7 @@ namespace StoryGenerator.Utilities
                     // objectMessages.Add($"Missing {obj.class_name} ({obj.id})");
                 } else {
                     if (sceneObj.class_name == "character") {
-                        sceneCharacterObject = sceneObj;
+                        sceneCharacterObject.Add(sceneObj);
                     }
                     
                     if (this.TransferTransform && obj.obj_transform != null && obj.prefab_name == sceneObj.prefab_name)
@@ -249,7 +251,7 @@ namespace StoryGenerator.Utilities
             {
                 foreach (var e in id2ObjectMap)
                 {
-                    if (!alignment.ContainsKey(e.Key) && e.Key < NEW_OBJECT_ID)
+                    if (!alignment.ContainsKey(e.Key) && e.Key < NEW_OBJECT_ID && e.Key > EnvironmentGraphCreator.ids_char)
                     {
                         expanderResult.AddItem(UNALIGNED_IDS, e.Key);
                     }
@@ -279,36 +281,53 @@ namespace StoryGenerator.Utilities
                 // Check if object transformation is available
 
                 bool object_inst = false;
+                bool is_char = false;
                 GameObject loadedObj = null;
+                GameObject newGo = null;
                 if (this.TransferTransform)
                 {
-                    if (obj.prefab_name != null)
+                    if (obj.id <= EnvironmentGraphCreator.ids_char)
                     {
-                        string prefab_path;
-                        bool exists_path = dataProviders.AssetPathMap.TryGetValue(obj.prefab_name, out prefab_path);
-                        if (exists_path)
+                        string path = obj.prefab_name;
+                        loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName("Chars/"+path)) as GameObject;
+                        if (loadedObj == null)
                         {
+                            loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName("Chars/Male1")) as GameObject;
 
-                            loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(prefab_path)) as GameObject;
                         }
+                        is_char = true;
                     }
-                    if (loadedObj == null)
+                    else
                     {
-                        List<string> names = dataProviders.NameEquivalenceProvider.GetEquivalentNames(obj.class_name);
-                        if (names.Count > 0)
+                        if (obj.prefab_name != null)
                         {
-                            List<string> fileNames;
-                            if (TryGetAssets(names[0], out fileNames))
+                            string prefab_path;
+                            bool exists_path = dataProviders.AssetPathMap.TryGetValue(obj.prefab_name, out prefab_path);
+                            if (exists_path)
                             {
-                                if (obj.obj_transform != null || obj.bounding_box != null)
-                                {
-                                    loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(fileNames[0])) as GameObject;
-                                }
-                                
+
+                                loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(prefab_path)) as GameObject;
                             }
                         }
+                        if (loadedObj == null)
+                        {
+                            List<string> names = dataProviders.NameEquivalenceProvider.GetEquivalentNames(obj.class_name);
+                            if (names.Count > 0)
+                            {
+                                List<string> fileNames;
+                                if (TryGetAssets(names[0], out fileNames))
+                                {
+                                    if (obj.obj_transform != null || obj.bounding_box != null)
+                                    {
+                                        loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(fileNames[0])) as GameObject;
+                                    }
 
+                                }
+                            }
+
+                        }
                     }
+                    
                 }
                 
                 if (loadedObj != null)
@@ -320,7 +339,7 @@ namespace StoryGenerator.Utilities
                         if (loadedObj != null && GameObjectUtils.GetCollider(loadedObj) != null)
                         {
                             Transform destObjRoom = GameObjectUtils.GetRoomTransform(objectsInRelation[0].transform);
-                            GameObject newGo = UnityEngine.Object.Instantiate(loadedObj, destObjRoom) as GameObject;
+                            newGo = UnityEngine.Object.Instantiate(loadedObj, destObjRoom) as GameObject;
                             newGo.name = loadedObj.name;
                             if (obj.obj_transform == null)
                             {
@@ -352,13 +371,13 @@ namespace StoryGenerator.Utilities
                                 Quaternion rotation = obj.obj_transform.GetRotation();
                                 newGo.transform.position = position;
                                 newGo.transform.rotation = rotation;
-
                                 if (obj.obj_transform.GetScale() != null)
                                 {
                                     newGo.transform.localScale = (Vector3) obj.obj_transform.GetScale();
-                                }
-                                    
+                                }    
                                 object_inst = true;
+
+                                obj.transform = newGo.transform;
                                 ObjectAnnotator.AnnotateObj(newGo.transform);
                                 ColorEncoding.EncodeGameObject(newGo);
                             }
@@ -374,98 +393,140 @@ namespace StoryGenerator.Utilities
                     // Put inside
 
                     if (HandleCreateInside(obj))
-                        continue;
-
+                    {
+                        object_inst = true;
+                    }
                     // Put on
-                    if (HandleCreateOn(obj))
-                        continue;
-
+                    else if (HandleCreateOn(obj))
+                    {
+                        object_inst = true;
+                    }
                     // Put inside
-                    if (!edgeMap.ContainsKey(Tuple.Create(obj.id, ObjectRelation.ON)))
+                    else if (!edgeMap.ContainsKey(Tuple.Create(obj.id, ObjectRelation.ON)))
                     {
                         if (HandleCreateInsideRoom(obj))
-                            continue;
+                        {
+                            object_inst = true;
+                        }
+                            
                     }
-                    expanderResult.AddItem(UNPLACED, obj.class_name + "." + obj.id.ToString());
+                    if (!object_inst)
+                    {
+                        expanderResult.AddItem(UNPLACED, obj.class_name + "." + obj.id.ToString());
+
+                    }
+                    else
+                    {
+                        newGo = obj.transform.gameObject;
+                        ObjectAnnotator.AnnotateObj(obj.transform);
+                        ColorEncoding.EncodeGameObject(obj.transform.gameObject);
+                    }
                 }
+
+                if (object_inst && is_char)
+                {
+                    added_chars.Add(newGo);
+                    
+                }
+                
+
+
+            }
+            Dictionary<EnvironmentObject, Tuple<EnvironmentObject, ObjectRelation> > object_grabbed = new Dictionary< EnvironmentObject, Tuple< EnvironmentObject, ObjectRelation > >();
+            foreach (EnvironmentObject characterObject in characterObjects)
+            {
+                List<EnvironmentObject> heldObjsLH = GetObjectsInRelation(edgeMap, characterObject, ObjectRelation.HOLDS_LH);
+                //List<EnvironmentObject> heldSceneObjsLH = GetObjectsInRelation(sceneEdgeMap, sceneCharacterObject, ObjectRelation.HOLDS_LH);
+                List<EnvironmentObject> heldObjsRH = GetObjectsInRelation(edgeMap, characterObject, ObjectRelation.HOLDS_RH);
+                //List<EnvironmentObject> heldSceneObjsRH = GetObjectsInRelation(sceneEdgeMap, sceneCharacterObject, ObjectRelation.HOLDS_RH);
+                EnvironmentObject lh = null;
+                EnvironmentObject rh = null;
+                if (heldObjsLH.Count() > 0)
+                {
+                    lh = heldObjsLH[0];
+                    object_grabbed[lh] = new Tuple<EnvironmentObject, ObjectRelation>(characterObject, ObjectRelation.HOLDS_LH);
+                }
+                    
+                if (heldObjsRH.Count() > 0)
+                {
+                    rh = heldObjsRH[0];
+                    object_grabbed[rh] = new Tuple<EnvironmentObject, ObjectRelation>(characterObject, ObjectRelation.HOLDS_RH);
+                }
+                Tuple<EnvironmentObject, EnvironmentObject> tp = new Tuple<EnvironmentObject, EnvironmentObject>(lh, rh);
+                objects_grabbed.Add(tp);
 
             }
 
-            List<EnvironmentObject> heldObjsLH = GetObjectsInRelation(edgeMap, characterObject, ObjectRelation.HOLDS_LH);
-            List<EnvironmentObject> heldSceneObjsLH = GetObjectsInRelation(sceneEdgeMap, sceneCharacterObject, ObjectRelation.HOLDS_LH);
-            List<EnvironmentObject> heldObjsRH = GetObjectsInRelation(edgeMap, characterObject, ObjectRelation.HOLDS_RH);
-            List<EnvironmentObject> heldSceneObjsRH = GetObjectsInRelation(sceneEdgeMap, sceneCharacterObject, ObjectRelation.HOLDS_RH);
+            
+
 
             // Change relations -- move objects
             foreach (EnvironmentObject obj in graph.nodes) {
                 // If we don't have a model, check if we interact with it
-                if (obj.transform == null) {
 
-                    // Report error if holding of obj has changed 
-                    if (heldObjsRH.Contains(obj) || heldObjsLH.Contains(obj)) {
-                        expanderResult.AddItem(MISSING_INT, obj.class_name + "." + obj.id.ToString());
-                        continue;
-                    }
-                }
+                bool object_inst = false;
 
                 if (missingObjects.Contains(obj)) {
+                    // missing objects have already been added
                     continue;
                 }
 
-                List<EnvironmentObject> objsInRelation;
-                List<EnvironmentObject> sceneObjsInRelation;
-
-                bool object_inst = false;
-                if (this.TransferTransform)
+                if (object_grabbed.ContainsKey(obj))
                 {
-                    if (id_transformed.Contains(obj.id))
+                    Tuple<EnvironmentObject, ObjectRelation> tp = object_grabbed[obj];
+                    PlaceObjectInHand(tp.Item2, tp.Item1, obj);
+                }
+                else
+                {
+                    List<EnvironmentObject> objsInRelation;
+                    List<EnvironmentObject> sceneObjsInRelation;
+
+                    if (this.TransferTransform)
                     {
-                        object_inst = true;
-                        List<EnvironmentObject> objectsInRelation;
-                        if (edgeMap.TryGetValue(Tuple.Create(obj.id, ObjectRelation.INSIDE), out objectsInRelation))
+                        if (id_transformed.Contains(obj.id))
                         {
-                            Transform destObjRoom = GameObjectUtils.GetRoomTransform(objectsInRelation[0].transform);
-                            obj.transform.SetParent(destObjRoom);
+                            object_inst = true;
+                            List<EnvironmentObject> objectsInRelation;
+                            if (edgeMap.TryGetValue(Tuple.Create(obj.id, ObjectRelation.INSIDE), out objectsInRelation))
+                            {
+                                Transform destObjRoom = GameObjectUtils.GetRoomTransform(objectsInRelation[0].transform);
+                                obj.transform.SetParent(destObjRoom);
 
 
+                            }
+                        }
+
+                        if (!object_inst)
+                        {
+
+                            // "ON"
+                            objsInRelation = GetObjectsInRelation(edgeMap, obj, ObjectRelation.ON);
+                            sceneObjsInRelation = GetObjectsInRelation(sceneEdgeMap, obj, ObjectRelation.ON);
+
+                            if (HandleOnPlacing(obj, objsInRelation, sceneObjsInRelation))
+                                continue;
+
+                            
+                            // "INSIDE"
+                            objsInRelation = GetObjectsInRelation(edgeMap, obj, ObjectRelation.INSIDE);
+                            sceneObjsInRelation = GetObjectsInRelation(sceneEdgeMap, obj, ObjectRelation.INSIDE);
+
+                            if (characterObjects.Contains(obj))
+                            {
+                                HandleCharacterInsidePlacing(obj, objsInRelation, sceneObjsInRelation, GetObjectsInRelation(edgeMap, obj, ObjectRelation.CLOSE),
+                                    GetObjectsInRelation(sceneEdgeMap, obj, ObjectRelation.CLOSE));
+                            }
+                            else
+                            {
+
+                                HandleInsidePlacing(obj, objsInRelation, sceneObjsInRelation);
+                            }
                         }
                     }
                 }
+                
 
-                if (!object_inst)
-                {
-
-                    // "ON"
-                    objsInRelation = GetObjectsInRelation(edgeMap, obj, ObjectRelation.ON);
-                    sceneObjsInRelation = GetObjectsInRelation(sceneEdgeMap, obj, ObjectRelation.ON);
-
-                    if (HandleOnPlacing(obj, objsInRelation, sceneObjsInRelation))
-                        continue;
-
-                    if (characterObject != null)
-                    {
-                        // "HOLDS_LH"
-                        if (HandleHoldsPlacing(ObjectRelation.HOLDS_LH, characterObject, obj, heldObjsLH, heldSceneObjsLH))
-                            continue;
-
-                        // "HOLDS_RH"
-                        if (HandleHoldsPlacing(ObjectRelation.HOLDS_RH, characterObject, obj, heldObjsRH, heldSceneObjsRH))
-                            continue;
-                    }
-
-                    // "INSIDE"
-                    objsInRelation = GetObjectsInRelation(edgeMap, obj, ObjectRelation.INSIDE);
-                    sceneObjsInRelation = GetObjectsInRelation(sceneEdgeMap, obj, ObjectRelation.INSIDE);
-
-                    if (characterObject != null && obj.Equals(characterObject))
-                    {
-                        HandleCharacterInsidePlacing(obj, objsInRelation, sceneObjsInRelation, GetObjectsInRelation(edgeMap, obj, ObjectRelation.CLOSE),
-                            GetObjectsInRelation(sceneEdgeMap, obj, ObjectRelation.CLOSE));
-                    } else {
-                 
-                        HandleInsidePlacing(obj, objsInRelation, sceneObjsInRelation);
-                    }
-                }
+                
             }
             
             // Change states
@@ -666,13 +727,19 @@ namespace StoryGenerator.Utilities
                 return true;
 
             if (objsInRelation.Contains(obj)) {
-                string handName = rel == ObjectRelation.HOLDS_LH ? "MiddleFinger1_L" : "MiddleFinger1_R";
-                var hands = ScriptUtils.FindAllObjects(characterObject.transform, t => t.name == handName);
-                obj.transform.parent = hands.First().transform;
-                obj.transform.localPosition = Vector3.zero;
+                PlaceObjectInHand(rel, characterObject, obj);
                 return true;
             }
             return false;
+        }
+
+        private void PlaceObjectInHand(ObjectRelation rel, EnvironmentObject characterObject, EnvironmentObject obj)
+        {
+            string handName = rel == ObjectRelation.HOLDS_LH ? "MiddleFinger1_L" : "MiddleFinger1_R";
+            var hands = ScriptUtils.FindAllObjects(characterObject.transform, t => t.name == handName);
+            obj.transform.parent = hands.First().transform;
+            obj.transform.localPosition = Vector3.zero;
+
         }
 
         private void CreateGraphMaps(EnvironmentGraph graph, out Dictionary<int, EnvironmentObject> id2ObjectMap,

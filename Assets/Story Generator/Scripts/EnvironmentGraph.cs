@@ -268,6 +268,7 @@ namespace StoryGenerator.Utilities
         public const string DoorClassName = "door";
         public const string DoorjambClassName = "doorjamb";
         public const string DoorsCategory = "Doors";
+        public static int ids_char = 10;
 
         private DataProviders dataProviders;
 
@@ -279,7 +280,7 @@ namespace StoryGenerator.Utilities
         private IList<EnvironmentObject> doors;
 
         public IDictionary<EnvironmentObject, Character> characters;
-        private int nodeCounter = 11;
+        private int nodeCounter = ids_char + 1;
         public double EdgeRadius2 { get; set; } = 25.0;
 
         public EnvironmentGraphCreator(DataProviders dataProviders)
