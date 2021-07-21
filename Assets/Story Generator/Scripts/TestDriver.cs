@@ -154,6 +154,7 @@ namespace StoryGenerator
         void ProcessHome(bool randomizeExecution)
         {
             UtilsAnnotator.ProcessHome(transform, randomizeExecution);
+
             ColorEncoding.EncodeCurrentScene(transform);
             // Disable must come after color encoding. Otherwise, GetComponent<Renderer> failes to get
             // Renderer for the disabled objects.
@@ -243,8 +244,12 @@ namespace StoryGenerator
                     String camera_name = cameras.Count().ToString();
                     GameObject go = new GameObject("new_camera" + camera_name, typeof(Camera));
                     Camera new_camera = go.GetComponent<Camera>();
-                    new_camera.usePhysicalProperties = true;
+
+                    // new_camera.usePhysicalProperties = true;
+                    // new_camera.focalLength = 30.0f;
+
                     new_camera.renderingPath = RenderingPath.UsePlayerSettings;
+
                     Vector3 position_vec = camera_config.position;
                     Vector3 rotation_vec = camera_config.rotation;
                     go.transform.localPosition = position_vec;
@@ -1212,7 +1217,7 @@ namespace StoryGenerator
             //Debug.Log($"config.recording : {config.recording}");
             //Debug.Log($"cameraCtrl is not null2? : {cameraControl != null}");
             rec.Recording = config.recording;
-
+            rec.currentframeNum = 0;
             rec.currentCameraMode = config.camera_mode;
             rec.FrameRate = config.frame_rate;
             rec.imageSynthesis = config.image_synthesis;
