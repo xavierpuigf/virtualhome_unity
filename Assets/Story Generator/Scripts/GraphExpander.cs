@@ -410,8 +410,6 @@ namespace StoryGenerator.Utilities
                     else
                     {
                         newGo = obj.transform.gameObject;
-                        ObjectAnnotator.AnnotateObj(obj.transform);
-                        ColorEncoding.EncodeGameObject(obj.transform.gameObject);
                     }
                 }
 
