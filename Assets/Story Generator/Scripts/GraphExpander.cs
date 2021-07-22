@@ -338,49 +338,41 @@ namespace StoryGenerator.Utilities
                     {
                         if (loadedObj != null && GameObjectUtils.GetCollider(loadedObj) != null)
                         {
-                            Transform destObjRoom = GameObjectUtils.GetRoomTransform(objectsInRelation[0].transform);
-                            newGo = UnityEngine.Object.Instantiate(loadedObj, destObjRoom) as GameObject;
-                            newGo.name = loadedObj.name;
-                            if (obj.obj_transform == null)
+                            if (obj.bounding_box != null || obj.obj_transform != null)
                             {
-                                if (obj.bounding_box == null)
+                                Transform destObjRoom = GameObjectUtils.GetRoomTransform(objectsInRelation[0].transform);
+                                newGo = UnityEngine.Object.Instantiate(loadedObj, destObjRoom) as GameObject;
+                                newGo.name = loadedObj.name;
+                                if (obj.obj_transform == null)
                                 {
-                                    // We should never be getting here...
-                                    object_inst = false;
-                                    UnityEngine.Object.Destroy(loadedObj);
-
-                                }
                                     
-                                else
-                                {
                                     // Set position based on bounding box
                                     ObjectBounds lo = ObjectBounds.FromGameObject(newGo);
                                     Vector3 loc = new Vector3(lo.center[0], lo.center[1], lo.center[2]);
                                     Vector3 objc = new Vector3(obj.bounding_box.center[0], obj.bounding_box.center[1], obj.bounding_box.center[2]);
                                     newGo.transform.position = newGo.transform.position - loc + objc;
-                                    object_inst = true;
-                                    obj.transform = newGo.transform;
-                                    ObjectAnnotator.AnnotateObj(newGo.transform);
-                                    ColorEncoding.EncodeGameObject(newGo);
+                                   
+                                }
+                                else
+                                {
+                                    Vector3 position = obj.obj_transform.GetPosition();
+                                    Quaternion rotation = obj.obj_transform.GetRotation();
+                                    newGo.transform.position = position;
+                                    newGo.transform.rotation = rotation;
+                                    if (obj.obj_transform.GetScale() != null)
+                                    {
+                                        newGo.transform.localScale = (Vector3)obj.obj_transform.GetScale();
+                                    }
+
+                                    
                                 }
 
-                            }
-                            else
-                            {
-                                Vector3 position = obj.obj_transform.GetPosition();
-                                Quaternion rotation = obj.obj_transform.GetRotation();
-                                newGo.transform.position = position;
-                                newGo.transform.rotation = rotation;
-                                if (obj.obj_transform.GetScale() != null)
-                                {
-                                    newGo.transform.localScale = (Vector3) obj.obj_transform.GetScale();
-                                }    
                                 object_inst = true;
-
                                 obj.transform = newGo.transform;
                                 ObjectAnnotator.AnnotateObj(newGo.transform);
                                 ColorEncoding.EncodeGameObject(newGo);
                             }
+                            
 
                         }
                     }
@@ -985,7 +977,16 @@ namespace StoryGenerator.Utilities
 
         private bool TryPlaceSingleObject(EnvironmentObject src, EnvironmentObject dest, Vector3 centerDelta, bool inside)
         {
-            GameObject newGo = TryPlaceObject(src.class_name, dest, centerDelta, inside);
+            GameObject newGo;
+            if (src.prefab_name != null)
+            {
+                string prefab_path = "";
+                dataProviders.AssetPathMap.TryGetValue(src.prefab_name, out prefab_path);
+                PlaceObject(inside, src.class_name, prefab_path, dest, centerDelta, out newGo);
+            }
+
+            else
+                newGo = TryPlaceObject(src.class_name, dest, centerDelta, inside);
 
             if (newGo == null) {
                 return false;
