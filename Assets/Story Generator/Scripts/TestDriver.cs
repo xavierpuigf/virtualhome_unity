@@ -395,9 +395,12 @@ namespace StoryGenerator
                         // TODO: set this with a flag
                         bool exact_expand = false;
                         List<GameObject> added_chars = new List<GameObject>();
-                        graphExpander.ExpandScene(transform, graph, currentGraph, expandSceneCount, added_chars, exact_expand);
+                        Dictionary<GameObject, List<Tuple<GameObject, ObjectRelation>>> grabbed_objs = new Dictionary<GameObject, List<Tuple<GameObject, ObjectRelation>>>();
+                        graphExpander.ExpandScene(transform, graph, currentGraph, expandSceneCount, added_chars, grabbed_objs, exact_expand);
                         foreach(GameObject added_char in added_chars)
                         {
+                            Debug.Assert(!currentGraphCreator.IsInGraph(added_char));
+
                             CharacterControl cc = added_char.GetComponent<CharacterControl>();
                             added_char.SetActive(true);
                             var nma = added_char.GetComponent<NavMeshAgent>();
@@ -411,6 +414,8 @@ namespace StoryGenerator
                             cameras.AddRange(charCameras);
                             cameraInitializer.initialized = false;
 
+                            EnvironmentObject char_obj = currentGraphCreator.AddChar(added_char.transform);
+
 
                         }
                         SceneExpanderResult result = graphExpander.GetResult();
@@ -418,9 +423,35 @@ namespace StoryGenerator
                         response.success = result.Success;
                         response.message = JsonConvert.SerializeObject(result.Messages);
 
-                        // TODO: Do we need this?
-                        //currentGraphCreator.SetGraph(graph);
+                        
                         currentGraph = currentGraphCreator.UpdateGraph(transform);
+
+                        // Update grabbed stuff. This is a hack because it is difficult to get
+                        // from the transforms the grabbing relationships. Could be much improved
+                        foreach (GameObject character_grabbing in grabbed_objs.Keys)
+                        {
+                            EnvironmentObject char_obj = currentGraphCreator.objectNodeMap[character_grabbing];
+                            Character char_char = currentGraphCreator.characters[char_obj];
+                            foreach (Tuple<GameObject, ObjectRelation> grabbed_obj in grabbed_objs[character_grabbing])
+                            {
+                                EnvironmentObject obj_grabbed = currentGraphCreator.objectNodeMap[grabbed_obj.Item1];
+                                if (grabbed_obj.Item2 == ObjectRelation.HOLDS_LH)
+                                {
+                                    char_char.grabbed_left = obj_grabbed;
+                                    
+                                }
+                                if (grabbed_obj.Item2 == ObjectRelation.HOLDS_RH)
+                                {
+
+                                    char_char.grabbed_right = obj_grabbed;
+                                }
+                                EnvironmentObject roomobj2 = currentGraphCreator.FindRoomLocation(obj_grabbed);
+                                currentGraphCreator.RemoveGraphEdgesWithObject(obj_grabbed);
+                                currentGraphCreator.AddGraphEdge(char_obj, obj_grabbed, grabbed_obj.Item2);
+                                currentGraphCreator.AddGraphEdge(obj_grabbed, roomobj2, ObjectRelation.INSIDE);
+                            }
+                        }
+
                         animationEnumerators.AddRange(result.enumerators);
                         expandSceneCount++;
                     } catch (JsonException e) {
@@ -670,7 +701,7 @@ namespace StoryGenerator
                         parseSuccess = false;
                         response.success = false;
                         response.message = $"Error parsing script: {e.Message}";
-                        continue;
+                        //continue;
                     }
 
                     //s_SimulatePerfMarker.Begin();
@@ -698,206 +729,206 @@ namespace StoryGenerator
                             sExecutors[error_messages[error_index].Item1].report.AddItem(error_messages[error_index].Item2.Item1, error_messages[error_index].Item2.Item2);
                         }
 
-                    }
-
-                    //s_SimulatePerfMarker.End();
-
-                    finishedChars = 0;
-                    ScriptExecutor.actionsPerLine = new Hashtable();
-                    ScriptExecutor.currRunlineNo = 0;
-                    ScriptExecutor.currActionsFinished = 0;
-
-                    response.message = "";
-                    response.success = false;
-                    bool[] success_per_agent = new bool[numCharacters];
                     
-                    bool agent_failed_action = false;
-                    Dictionary <int, Dictionary <String, String> > messages = new Dictionary<int, Dictionary<String, String> > ();
-                    if (!config.recording)
-                    {
-                        for (int i = 0; i < numCharacters; i++)
-                        {
-                            Dictionary<String, String> current_message = new Dictionary<String, String>();
+                        //s_SimulatePerfMarker.End();
 
-                            if (!sExecutors[i].Success)
-                            {
-                                String message = "";
-                                message += $"ScriptExcutor {i}: ";
-                                message += sExecutors[i].CreateReportString();
-                                message += "\n";
-                                current_message["message"] = message;
+                        finishedChars = 0;
+                        ScriptExecutor.actionsPerLine = new Hashtable();
+                        ScriptExecutor.currRunlineNo = 0;
+                        ScriptExecutor.currActionsFinished = 0;
 
-                                success_per_agent[i] = false;
-                                agent_failed_action = true;
-                            }
-                            else
-                            {
-                                current_message["message"] = "Success";
-                                response.success = true;
-                                success_per_agent[i] = true;
-                            }
-                            messages[i] = current_message;
-                        }
-                    }
-                    else
-                    {
-                        for (int i = 0; i < numCharacters; i++)
-                        {
-                            Dictionary<String, String> current_message = new Dictionary<String, String>();
-                            Recorder rec = recorders[i];
-                            if (!sExecutors[i].Success)
-                            {
-                                //response.success = false;
-                                String message = "";
-                                message += $"ScriptExcutor {i}: ";
-                                message += sExecutors[i].CreateReportString();
-                                message += "\n";
-                                current_message["message"] = message;
-                            }
-                            else if (rec.Error != null)
-                            {
-                                //Directory.Delete(rec.OutputDirectory);
-                                //response.success = false;
-                                agent_failed_action = true;
-                                String message = "";
-                                message += $"Recorder {i}: ";
-                                message += recorder.Error.Message;
-                                message += "\n";
-                                rec.Recording = false;
-                                current_message["message"] = message;
-                            }
-                            else
-                            {
-                                current_message["message"] = "Success";
-                                response.success = true;
-                                success_per_agent[i] = true;
-                                    rec.MarkTermination();
-                                rec.Recording = false;
-                                rec.Animator.speed = 0;
-                                CreateSceneInfoFile(rec.OutputDirectory, new SceneData()
-                                {
-                                    frameRate = config.frame_rate,
-                                    sceneName = SceneManager.GetActiveScene().name
-                                });
-                                rec.CreateTextualGTs();
-                            }
-
-
-                            messages[i] = current_message;
-                        }
-                    }
-
-                    // If any of the agent fails an action, report failure
-                    if (parseSuccess)
-                    {
-                        response.message = JsonConvert.SerializeObject(messages);
-                    }
-                    if (agent_failed_action)
+                        response.message = "";
                         response.success = false;
-                    ISet<GameObject> changedObjs = new HashSet<GameObject>();
-                    IDictionary<Tuple<string, int>, ScriptObjectData> script_object_changed = new Dictionary<Tuple<string, int>, ScriptObjectData>();
-                    List<ActionObjectData> last_action = new List<ActionObjectData>();
-                    bool single_action = true;
-                    for (int char_index = 0; char_index < numCharacters; char_index++)
-                    {
-                        if (success_per_agent[char_index])
+                        bool[] success_per_agent = new bool[numCharacters];
+
+                        bool agent_failed_action = false;
+                        Dictionary<int, Dictionary<String, String>> messages = new Dictionary<int, Dictionary<String, String>>();
+
+
+                        if (!config.recording)
                         {
-                            State currentState = this.CurrentStateList[char_index];
-                            GameObject rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
-                            GameObject lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
-                            EnvironmentObject obj1;
-                            EnvironmentObject obj2;
-                            currentGraphCreator.objectNodeMap.TryGetValue(characters[char_index].gameObject, out obj1);
-                            Character character_graph;
-                            currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
+                            for (int i = 0; i < numCharacters; i++)
+                            {
+                                Dictionary<String, String> current_message = new Dictionary<String, String>();
 
-                            if (sExecutors[char_index].script.Count > 1)
-                            {
-                                single_action = false;
-                            }
-                            if (sExecutors[char_index].script.Count == 1)
-                            {
-                                // If only one action was executed, we will use that action to update the environment
-                                // Otherwise, we will update using coordinates
-                                ScriptPair script = sExecutors[char_index].script[0];
-                                ActionObjectData object_script = new ActionObjectData(character_graph, script, currentState.scriptObjects);
-                                last_action.Add(object_script);
-
-                            }
-                            Debug.Assert(character_graph != null);
-                            if (lh != null)
-                            {
-                                currentGraphCreator.objectNodeMap.TryGetValue(lh, out obj2);
-                                character_graph.grabbed_left = obj2;
-
-                            }
-                            else
-                            {
-                                character_graph.grabbed_left = null;
-                            }
-                            if (rh != null)
-                            {
-                                currentGraphCreator.objectNodeMap.TryGetValue(rh, out obj2);
-                                character_graph.grabbed_right = obj2;
-                            }
-                            else
-                            {
-
-                                character_graph.grabbed_right = null;
-                            }
-
-                            IDictionary<Tuple<string, int>, ScriptObjectData> script_objects_state = currentState.scriptObjects;
-                            foreach (KeyValuePair<Tuple<string, int>, ScriptObjectData> entry in script_objects_state)
-                            {
-                                if (!entry.Value.GameObject.IsRoom())
+                                if (!sExecutors[i].Success)
                                 {
-                                    //if (entry.Key.Item1 == "cutleryknife")
-                                    //{
+                                    String message = "";
+                                    message += $"ScriptExcutor {i}: ";
+                                    message += sExecutors[i].CreateReportString();
+                                    message += "\n";
+                                    current_message["message"] = message;
 
-                                    //    //int instance_id = entry.Value.GameObject.GetInstanceID();
-                                    //}
-                                    changedObjs.Add(entry.Value.GameObject);
+                                    success_per_agent[i] = false;
+                                    agent_failed_action = true;
+                                }
+                                else
+                                {
+                                    current_message["message"] = "Success";
+                                    response.success = true;
+                                    success_per_agent[i] = true;
+                                }
+                                messages[i] = current_message;
+                            }
+                        }
+                        else
+                        {
+                            for (int i = 0; i < numCharacters; i++)
+                            {
+                                Dictionary<String, String> current_message = new Dictionary<String, String>();
+                                Recorder rec = recorders[i];
+                                if (!sExecutors[i].Success)
+                                {
+                                    //response.success = false;
+                                    String message = "";
+                                    message += $"ScriptExcutor {i}: ";
+                                    message += sExecutors[i].CreateReportString();
+                                    message += "\n";
+                                    current_message["message"] = message;
+                                }
+                                else if (rec.Error != null)
+                                {
+                                    //Directory.Delete(rec.OutputDirectory);
+                                    //response.success = false;
+                                    agent_failed_action = true;
+                                    String message = "";
+                                    message += $"Recorder {i}: ";
+                                    message += recorder.Error.Message;
+                                    message += "\n";
+                                    rec.Recording = false;
+                                    current_message["message"] = message;
+                                }
+                                else
+                                {
+                                    current_message["message"] = "Success";
+                                    response.success = true;
+                                    success_per_agent[i] = true;
+                                    rec.MarkTermination();
+                                    rec.Recording = false;
+                                    rec.Animator.speed = 0;
+                                    CreateSceneInfoFile(rec.OutputDirectory, new SceneData()
+                                    {
+                                        frameRate = config.frame_rate,
+                                        sceneName = SceneManager.GetActiveScene().name
+                                    });
+                                    rec.CreateTextualGTs();
                                 }
 
-                                if (entry.Value.OpenStatus != OpenStatus.UNKNOWN)
+
+                                messages[i] = current_message;
+                            }
+                        }
+                        response.message = JsonConvert.SerializeObject(messages);
+
+                        // If any of the agent fails an action, report failure
+
+                        if (agent_failed_action)
+                            response.success = false;
+                        ISet<GameObject> changedObjs = new HashSet<GameObject>();
+                        IDictionary<Tuple<string, int>, ScriptObjectData> script_object_changed = new Dictionary<Tuple<string, int>, ScriptObjectData>();
+                        List<ActionObjectData> last_action = new List<ActionObjectData>();
+                        bool single_action = true;
+                        for (int char_index = 0; char_index < numCharacters; char_index++)
+                        {
+                            if (success_per_agent[char_index])
+                            {
+                                State currentState = this.CurrentStateList[char_index];
+                                GameObject rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
+                                GameObject lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
+                                EnvironmentObject obj1;
+                                EnvironmentObject obj2;
+                                currentGraphCreator.objectNodeMap.TryGetValue(characters[char_index].gameObject, out obj1);
+                                Character character_graph;
+                                currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
+
+                                if (sExecutors[char_index].script.Count > 1)
                                 {
-                                    //if (script_object_changed.ContainsKey(entry.Key))
-                                    //{
-                                    //    Debug.Log("Error, 2 agents trying to interact at the same time");
-                                    if (sExecutors[char_index].script.Count > 0 && sExecutors[char_index].script[0].Action.Name.Instance == entry.Key.Item2)
+                                    single_action = false;
+                                }
+                                if (sExecutors[char_index].script.Count == 1)
+                                {
+                                    // If only one action was executed, we will use that action to update the environment
+                                    // Otherwise, we will update using coordinates
+                                    ScriptPair script = sExecutors[char_index].script[0];
+                                    ActionObjectData object_script = new ActionObjectData(character_graph, script, currentState.scriptObjects);
+                                    last_action.Add(object_script);
+
+                                }
+                                Debug.Assert(character_graph != null);
+                                if (lh != null)
+                                {
+                                    currentGraphCreator.objectNodeMap.TryGetValue(lh, out obj2);
+                                    character_graph.grabbed_left = obj2;
+
+                                }
+                                else
+                                {
+                                    character_graph.grabbed_left = null;
+                                }
+                                if (rh != null)
+                                {
+                                    currentGraphCreator.objectNodeMap.TryGetValue(rh, out obj2);
+                                    character_graph.grabbed_right = obj2;
+                                }
+                                else
+                                {
+
+                                    character_graph.grabbed_right = null;
+                                }
+
+                                IDictionary<Tuple<string, int>, ScriptObjectData> script_objects_state = currentState.scriptObjects;
+                                foreach (KeyValuePair<Tuple<string, int>, ScriptObjectData> entry in script_objects_state)
+                                {
+                                    if (!entry.Value.GameObject.IsRoom())
                                     {
-                                        script_object_changed[entry.Key] = entry.Value;
+                                        //if (entry.Key.Item1 == "cutleryknife")
+                                        //{
+
+                                        //    //int instance_id = entry.Value.GameObject.GetInstanceID();
+                                        //}
+                                        changedObjs.Add(entry.Value.GameObject);
                                     }
 
-                                    //}
-                                    //else
-                                    //{
+                                    if (entry.Value.OpenStatus != OpenStatus.UNKNOWN)
+                                    {
+                                        //if (script_object_changed.ContainsKey(entry.Key))
+                                        //{
+                                        //    Debug.Log("Error, 2 agents trying to interact at the same time");
+                                        if (sExecutors[char_index].script.Count > 0 && sExecutors[char_index].script[0].Action.Name.Instance == entry.Key.Item2)
+                                        {
+                                            script_object_changed[entry.Key] = entry.Value;
+                                        }
 
-                                    //}
+                                        //}
+                                        //else
+                                        //{
+
+                                        //}
+                                    }
+
                                 }
-
+                                foreach (KeyValuePair<Tuple<string, int>, ScriptObjectData> entry in script_object_changed)
+                                {
+                                    if (entry.Value.OpenStatus == OpenStatus.OPEN)
+                                    {
+                                        currentGraphCreator.objectNodeMap[entry.Value.GameObject].states.Remove(Utilities.ObjectState.CLOSED);
+                                        currentGraphCreator.objectNodeMap[entry.Value.GameObject].states.Add(Utilities.ObjectState.OPEN);
+                                    }
+                                    else if (entry.Value.OpenStatus == OpenStatus.CLOSED)
+                                    {
+                                        currentGraphCreator.objectNodeMap[entry.Value.GameObject].states.Remove(Utilities.ObjectState.OPEN);
+                                        currentGraphCreator.objectNodeMap[entry.Value.GameObject].states.Add(Utilities.ObjectState.CLOSED);
+                                    }
+                                }
                             }
-                            foreach (KeyValuePair<Tuple<string, int>, ScriptObjectData> entry in script_object_changed)
+
+                            using (s_UpdateGraph.Auto())
                             {
-                                if (entry.Value.OpenStatus == OpenStatus.OPEN)
-                                {
-                                    currentGraphCreator.objectNodeMap[entry.Value.GameObject].states.Remove(Utilities.ObjectState.CLOSED);
-                                    currentGraphCreator.objectNodeMap[entry.Value.GameObject].states.Add(Utilities.ObjectState.OPEN);
-                                }
-                                else if (entry.Value.OpenStatus == OpenStatus.CLOSED)
-                                {
-                                    currentGraphCreator.objectNodeMap[entry.Value.GameObject].states.Remove(Utilities.ObjectState.OPEN);
-                                    currentGraphCreator.objectNodeMap[entry.Value.GameObject].states.Add(Utilities.ObjectState.CLOSED);
-                                }
+                                if (single_action)
+                                    currentGraph = currentGraphCreator.UpdateGraph(transform, null, last_action);
+                                else
+                                    currentGraph = currentGraphCreator.UpdateGraph(transform, changedObjs);
                             }
-                        }
-
-                        using (s_UpdateGraph.Auto())
-                        {
-                            if (single_action)
-                                currentGraph = currentGraphCreator.UpdateGraph(transform, null, last_action);
-                            else
-                                currentGraph = currentGraphCreator.UpdateGraph(transform, changedObjs);
                         }
                     }
 

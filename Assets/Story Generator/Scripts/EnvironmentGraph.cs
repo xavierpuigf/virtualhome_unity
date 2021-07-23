@@ -376,13 +376,19 @@ namespace StoryGenerator.Utilities
             return graph;
         }
 
-
+        public EnvironmentObject AddChar(Transform transform)
+        {
+            EnvironmentObject o = AddCharacterObject(transform);
+            characters[o] = new Character(o);
+            AddRoomRelation(o, FindRoomLocation(o)); // Add IN relation to room
+            return o;
+        }
         // Adds nodes and edges to the environment graph, recursively from transform
         // - parentTransform is immediate parent of this transform
         // - category is name of transform which is immediately "below" the room
         // - roomObject is room this object belongs to
         // Should only be called by CreateGraph
-        private void UpdateGraphNodes(Transform transform, Transform parentTransform, String category, EnvironmentObject roomObject)
+        public void UpdateGraphNodes(Transform transform, Transform parentTransform, String category, EnvironmentObject roomObject)
         {
             GameObject gameObject = transform.gameObject;
             string prefabName = gameObject.name;
@@ -413,9 +419,7 @@ namespace StoryGenerator.Utilities
                 else if (transform.CompareTag(Tags.TYPE_CHARACTER))
                 {
                     // Object is a character
-                    EnvironmentObject o = AddCharacterObject(transform);
-                    characters[o] = new Character(o);
-                    AddRoomRelation(o, FindRoomLocation(o)); // Add IN relation to room
+                    AddChar(transform);
                     return;
                 }
                 else
@@ -584,7 +588,7 @@ namespace StoryGenerator.Utilities
             return true;
         }
 
-        private EnvironmentObject FindRoomLocation(EnvironmentObject currentObject)
+        public EnvironmentObject FindRoomLocation(EnvironmentObject currentObject)
         {
             List<EnvironmentObject> candidates = new List<EnvironmentObject>();
             Vector3 objectCenter = currentObject.bounding_box.bounds.center;
@@ -626,7 +630,7 @@ namespace StoryGenerator.Utilities
 
         }
 
-        private Boolean IsInGraph(GameObject go)
+        public Boolean IsInGraph(GameObject go)
         {
             return objectNodeMap.Keys.Contains(go) && graph.nodes.Contains(objectNodeMap[go]);
         }
@@ -846,12 +850,14 @@ namespace StoryGenerator.Utilities
                 AddRoomRelation(char_o1, room_char);
                 if (char_action.grabbed_left != null)
                 {
+
                     RemoveGraphEdgesWithObject(char_action.grabbed_left, ObjectRelation.INSIDE);
                     AddRoomRelation(char_action.grabbed_left, room_char);
 
                 }
                 if (char_action.grabbed_right != null)
                 {
+
                     RemoveGraphEdgesWithObject(char_action.grabbed_right, ObjectRelation.INSIDE);
                     AddRoomRelation(char_action.grabbed_right, room_char);
 
@@ -950,7 +956,7 @@ namespace StoryGenerator.Utilities
             Facing(o1, o2);
         }
 
-        private void AddGraphEdge(EnvironmentObject n1, EnvironmentObject n2, ObjectRelation or)
+        public void AddGraphEdge(EnvironmentObject n1, EnvironmentObject n2, ObjectRelation or)
         {
             if (n1 == n2)
                 return;
@@ -969,7 +975,7 @@ namespace StoryGenerator.Utilities
             graph.nodes.Remove(o);
         }
 
-        private void RemoveGraphEdgesWithObject(EnvironmentObject o, ObjectRelation? or = null)
+        public void RemoveGraphEdgesWithObject(EnvironmentObject o, ObjectRelation? or = null)
         {
             if (or.HasValue)
             {

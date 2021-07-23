@@ -176,7 +176,7 @@ namespace StoryGenerator.Utilities
             return expanderResult;
         }
 
-        public void ExpandScene(Transform transform, EnvironmentGraph graph, EnvironmentGraph sceneGraph, int previousExpandsCount, List<GameObject> added_chars, bool exact_alignment = false)
+        public void ExpandScene(Transform transform, EnvironmentGraph graph, EnvironmentGraph sceneGraph, int previousExpandsCount, List<GameObject> added_chars, Dictionary<GameObject, List<Tuple<GameObject, ObjectRelation>>> grabbed_objs, bool exact_alignment = false)
         {
             // graph is the graph that we will expand, sceneGraph is the graph we currently have
             CreateGraphMaps(graph, out id2ObjectMap, out edgeMap);
@@ -189,20 +189,19 @@ namespace StoryGenerator.Utilities
             expanderResult = new SceneExpanderResult();
 
             try {
-                DoExpandScene(transform, graph, sceneGraph, added_chars, exact_alignment);
+                DoExpandScene(transform, graph, sceneGraph, added_chars, grabbed_objs, exact_alignment);
             } catch (ExpanderException e) {
                 expanderResult.AddItem(FATAL, e.Message);
             }
         }
 
-        private void DoExpandScene(Transform transform, EnvironmentGraph graph, EnvironmentGraph sceneGraph, List<GameObject> added_chars, bool exact_alignment=false)
+        private void DoExpandScene(Transform transform, EnvironmentGraph graph, EnvironmentGraph sceneGraph, List<GameObject> added_chars, Dictionary<GameObject, List<Tuple<GameObject, ObjectRelation>>> grabbed_objs, bool exact_alignment=false)
         {
             // Detect missing objects and invalid class ids
             List<EnvironmentObject> missingObjects = new List<EnvironmentObject>();
 
             List<EnvironmentObject> characterObjects = new List<EnvironmentObject> ();
             List<EnvironmentObject> sceneCharacterObject = new List<EnvironmentObject>();
-            List<Tuple<EnvironmentObject, EnvironmentObject> > objects_grabbed = new List<Tuple< EnvironmentObject, EnvironmentObject> >();
 
             // For which objects we found a maching transformation
             List<int> id_transformed = new List<int>();
@@ -431,19 +430,22 @@ namespace StoryGenerator.Utilities
                 //List<EnvironmentObject> heldSceneObjsRH = GetObjectsInRelation(sceneEdgeMap, sceneCharacterObject, ObjectRelation.HOLDS_RH);
                 EnvironmentObject lh = null;
                 EnvironmentObject rh = null;
+                grabbed_objs[characterObject.transform.gameObject] = new List<Tuple<GameObject, ObjectRelation>>();
                 if (heldObjsLH.Count() > 0)
                 {
                     lh = heldObjsLH[0];
                     object_grabbed[lh] = new Tuple<EnvironmentObject, ObjectRelation>(characterObject, ObjectRelation.HOLDS_LH);
+                    grabbed_objs[characterObject.transform.gameObject].Add(new Tuple <GameObject, ObjectRelation> (lh.transform.gameObject, ObjectRelation.HOLDS_LH));
                 }
                     
                 if (heldObjsRH.Count() > 0)
                 {
                     rh = heldObjsRH[0];
                     object_grabbed[rh] = new Tuple<EnvironmentObject, ObjectRelation>(characterObject, ObjectRelation.HOLDS_RH);
+                    grabbed_objs[characterObject.transform.gameObject].Add(new Tuple<GameObject, ObjectRelation>(rh.transform.gameObject, ObjectRelation.HOLDS_RH));
+
                 }
                 Tuple<EnvironmentObject, EnvironmentObject> tp = new Tuple<EnvironmentObject, EnvironmentObject>(lh, rh);
-                objects_grabbed.Add(tp);
 
             }
 
