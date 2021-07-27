@@ -3467,7 +3467,7 @@ namespace StoryGenerator.Utilities
             return front_vec;
         }
 
-        private static HandInteraction.HandPose? GetGrabPose(GameObject go)
+        public static HandInteraction.HandPose? GetGrabPose(GameObject go)
         {
             if (go == null)
                 return null;

@@ -541,7 +541,7 @@ namespace StoryGenerator.Utilities
 
                     ObjectBounds bounds = ObjectBounds.FromGameObject(gameObject);
                     objectNodeMap[gameObject].bounding_box = bounds;
-
+                    objectNodeMap[gameObject].obj_transform = new ObjectTransform(gameObject.transform); 
                 }
             }
             // Update bounds of character
@@ -559,12 +559,16 @@ namespace StoryGenerator.Utilities
                     bounds = ObjectBounds.FromGameObject(gameObjectGrabbed);
                     objectNodeMap[gameObjectGrabbed].bounding_box = bounds;
 
+                    objectNodeMap[gameObjectGrabbed].obj_transform = new ObjectTransform(gameObjectGrabbed.transform); 
+
                 }
                 if (character.grabbed_right != null)
                 {
                     GameObject gameObjectGrabbed = character.grabbed_right.transform.gameObject;
                     bounds = ObjectBounds.FromGameObject(gameObjectGrabbed);
                     objectNodeMap[gameObjectGrabbed].bounding_box = bounds;
+
+                    objectNodeMap[gameObjectGrabbed].obj_transform = new ObjectTransform(gameObjectGrabbed.transform); 
 
                 }
             }

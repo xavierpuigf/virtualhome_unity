@@ -729,7 +729,7 @@ namespace StoryGenerator.Utilities
         {
             string handName = rel == ObjectRelation.HOLDS_LH ? "MiddleFinger1_L" : "MiddleFinger1_R";
             var hands = ScriptUtils.FindAllObjects(characterObject.transform, t => t.name == handName);
-            obj.transform.parent = hands.First().transform;
+            obj.transform.parent = characterObject.transform.parent; // hands.First().transform;
             obj.transform.localPosition = Vector3.zero;
 
         }
