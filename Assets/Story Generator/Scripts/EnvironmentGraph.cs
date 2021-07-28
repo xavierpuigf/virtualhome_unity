@@ -900,7 +900,7 @@ namespace StoryGenerator.Utilities
 
                 float[] center = o1.bounding_box.center;
                 Tuple<float[], EnvironmentObject>[] searchResult = tree.RadialSearch(center, EdgeRadius2);
-
+                
                 foreach (var t in searchResult)
                 {
                     if (t.Item2 != o1)
@@ -1146,7 +1146,7 @@ namespace StoryGenerator.Utilities
             }
             Delta = Math.Min(Math.Max(Delta, o1.bounding_box.size[1]*0.3f), 0.2f);
             Interval<float> yInt = new Interval<float>(o2MaxY - Delta, o2MaxY + Delta);
-            if (yInt.Contains(o1.bounding_box.bounds.min.y) && (is_chair || CheckOnCondition(o1, o2))) {
+            if (yInt.Contains(o1.bounding_box.bounds.min.y) && CheckOnCondition(o1, o2, !is_chair)) {
                 AddGraphEdge(o1, o2, ObjectRelation.ON);
                 return true;
             }
@@ -1237,9 +1237,9 @@ namespace StoryGenerator.Utilities
                 new Vector3(dwSize, 1.0f, dwSize)));
         }
 
-        private static bool CheckOnCondition(EnvironmentObject o1, EnvironmentObject o2)
+        private static bool CheckOnCondition(EnvironmentObject o1, EnvironmentObject o2, bool y_check=true)
         {
-            if (o2.bounding_box.bounds.center.y > o1.bounding_box.bounds.min.y)
+            if (y_check && o2.bounding_box.bounds.center.y > o1.bounding_box.bounds.min.y)
                 return false;
 
             Rect o1XZRect = BoundsUtils.XZRect(o1.bounding_box.bounds);

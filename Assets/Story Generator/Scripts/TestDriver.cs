@@ -449,65 +449,65 @@ namespace StoryGenerator
                     yield return null;
                     currentGraph = currentGraphCreator.UpdateGraph(transform);
 
-                        // Update grabbed stuff. This is a hack because it is difficult to get
-                        // from the transforms the grabbing relationships. Could be much improved
-                        foreach (GameObject character_grabbing in grabbed_objs.Keys)
+                    // Update grabbed stuff. This is a hack because it is difficult to get
+                    // from the transforms the grabbing relationships. Could be much improved
+                    foreach (GameObject character_grabbing in grabbed_objs.Keys)
+                    {
+                        EnvironmentObject char_obj = currentGraphCreator.objectNodeMap[character_grabbing];
+                        Character char_char = currentGraphCreator.characters[char_obj];
+                        State new_state = new State(character_grabbing.transform.position);
+
+                        foreach (Tuple<GameObject, ObjectRelation> grabbed_obj in grabbed_objs[character_grabbing])
                         {
-                            EnvironmentObject char_obj = currentGraphCreator.objectNodeMap[character_grabbing];
-                            Character char_char = currentGraphCreator.characters[char_obj];
-                            State new_state = new State(character_grabbing.transform.position);
-
-                            foreach (Tuple<GameObject, ObjectRelation> grabbed_obj in grabbed_objs[character_grabbing])
+                            EnvironmentObject obj_grabbed = currentGraphCreator.objectNodeMap[grabbed_obj.Item1];
+                            GameObject obj_grabbedgo = grabbed_obj.Item1;
+                            HandInteraction hi;
+                            if (obj_grabbedgo.GetComponent<HandInteraction>() == null)
                             {
-                                EnvironmentObject obj_grabbed = currentGraphCreator.objectNodeMap[grabbed_obj.Item1];
-                                GameObject obj_grabbedgo = grabbed_obj.Item1;
-                                HandInteraction hi;
-                                if (obj_grabbedgo.GetComponent<HandInteraction>() == null)
-                                {
-                                    hi = obj_grabbedgo.AddComponent<HandInteraction>();
-                                    hi.added_runtime = true;
-                                    hi.allowPickUp = true;
-                                    hi.grabHandPose = ScriptExecutor.GetGrabPose(obj_grabbedgo).Value; // HandInteraction.HandPose.GrabVertical;
-                                    hi.Initialize();
+                                hi = obj_grabbedgo.AddComponent<HandInteraction>();
+                                hi.added_runtime = true;
+                                hi.allowPickUp = true;
+                                hi.grabHandPose = ScriptExecutor.GetGrabPose(obj_grabbedgo).Value; // HandInteraction.HandPose.GrabVertical;
+                                hi.Initialize();
                                     
-                                }
-                                else
-                                {
-                                    hi = obj_grabbedgo.GetComponent<HandInteraction>();
-                                }
-                                if (grabbed_obj.Item2 == ObjectRelation.HOLDS_LH)
-                                {
-                                    char_char.grabbed_left = obj_grabbed;
-                                    new_state.AddScriptGameObject(obj_grabbed.class_name, obj_grabbed.id, obj_grabbedgo, Vector3.one, Vector3.one, true);
-                                    new_state.AddGameObject("LEFT_HAND_OBJECT", grabbed_obj.Item1);
+                            }
+                            else
+                            {
+                                hi = obj_grabbedgo.GetComponent<HandInteraction>();
+                            }
+                            if (grabbed_obj.Item2 == ObjectRelation.HOLDS_LH)
+                            {
+                                char_char.grabbed_left = obj_grabbed;
+                                new_state.AddScriptGameObject(obj_grabbed.class_name, obj_grabbed.id, obj_grabbedgo, Vector3.one, Vector3.one, true);
+                                new_state.AddGameObject("LEFT_HAND_OBJECT", grabbed_obj.Item1);
 
-                                    new_state.AddObject("INTERACTION_HAND", FullBodyBipedEffector.LeftHand);
-                                    // hi.Get_IO_grab(character_grabbing.transform, FullBodyBipedEffector.LeftHand);
+                                new_state.AddObject("INTERACTION_HAND", FullBodyBipedEffector.LeftHand);
+                                // hi.Get_IO_grab(character_grabbing.transform, FullBodyBipedEffector.LeftHand);
 
-                                }
-                                if (grabbed_obj.Item2 == ObjectRelation.HOLDS_RH)
-                                {
+                            }
+                            if (grabbed_obj.Item2 == ObjectRelation.HOLDS_RH)
+                            {
 
-                                    char_char.grabbed_right = obj_grabbed;
-                                    new_state.AddScriptGameObject(obj_grabbed.class_name, obj_grabbed.id, obj_grabbedgo, Vector3.one, Vector3.one, true);
-                                    new_state.AddGameObject("RIGHT_HAND_OBJECT", grabbed_obj.Item1);
-                                    new_state.AddObject("INTERACTION_HAND", FullBodyBipedEffector.RightHand);
-                                    // hi.Get_IO_grab(character_grabbing.transform, FullBodyBipedEffector.RightHand);
-
-                                }
-
-                                yield return characters[char_ind[character_grabbing]].GrabObject(obj_grabbedgo, (FullBodyBipedEffector)new_state.GetObject("INTERACTION_HAND"));
-                                EnvironmentObject roomobj2 = currentGraphCreator.FindRoomLocation(obj_grabbed);
-                                currentGraphCreator.RemoveGraphEdgesWithObject(obj_grabbed);
-                                currentGraphCreator.AddGraphEdge(char_obj, obj_grabbed, grabbed_obj.Item2);
-                                currentGraphCreator.AddGraphEdge(obj_grabbed, roomobj2, ObjectRelation.INSIDE);
-
+                                char_char.grabbed_right = obj_grabbed;
+                                new_state.AddScriptGameObject(obj_grabbed.class_name, obj_grabbed.id, obj_grabbedgo, Vector3.one, Vector3.one, true);
+                                new_state.AddGameObject("RIGHT_HAND_OBJECT", grabbed_obj.Item1);
+                                new_state.AddObject("INTERACTION_HAND", FullBodyBipedEffector.RightHand);
+                                // hi.Get_IO_grab(character_grabbing.transform, FullBodyBipedEffector.RightHand);
 
                             }
 
-                            
-                            CurrentStateList[char_ind[character_grabbing]] = new_state;
+                            yield return characters[char_ind[character_grabbing]].GrabObject(obj_grabbedgo, (FullBodyBipedEffector)new_state.GetObject("INTERACTION_HAND"));
+                            EnvironmentObject roomobj2 = currentGraphCreator.FindRoomLocation(obj_grabbed);
+                            currentGraphCreator.RemoveGraphEdgesWithObject(obj_grabbed);
+                            currentGraphCreator.AddGraphEdge(char_obj, obj_grabbed, grabbed_obj.Item2);
+                            currentGraphCreator.AddGraphEdge(obj_grabbed, roomobj2, ObjectRelation.INSIDE);
+
+
                         }
+
+                            
+                        CurrentStateList[char_ind[character_grabbing]] = new_state;
+                    }
 
                         //animationEnumerators.AddRange(result.enumerators);
                         expandSceneCount++;
