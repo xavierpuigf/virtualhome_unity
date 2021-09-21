@@ -396,7 +396,7 @@ namespace StoryGenerator
                             graphExpander.AssetsMap = JsonConvert.DeserializeObject<IDictionary<string, List<string>>>(networkRequest.stringParams[2]);
                         }
                         // TODO: set this with a flag
-                        bool exact_expand = false;
+                        bool exact_expand = config.exact_expand;
 
 
 
@@ -1674,6 +1674,7 @@ namespace StoryGenerator
         public bool ignore_obstacles = false;
         public bool animate_character = false;
         public bool transfer_transform = true;
+        public bool exact_expand = true;
     }
 
     public class CharacterConfig
