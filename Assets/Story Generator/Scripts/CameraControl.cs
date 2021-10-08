@@ -533,6 +533,7 @@ namespace StoryGenerator.Utilities
                 CameraInfo data = new CameraInfo() {
                     index = i,
                     name = camera.name,
+                    aspect = camera.aspect,
                     projection_matrix = projArray,
                     world_to_camera_matrix = cameraArray
                 };
@@ -577,6 +578,7 @@ namespace StoryGenerator.Utilities
     {
         public int index;
         public string name;
+        public float aspect;
         public float[] projection_matrix;
         public float[] world_to_camera_matrix;
     }
