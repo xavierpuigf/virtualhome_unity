@@ -18,6 +18,7 @@ using StoryGenerator.Utilities;
 using System.Text;
 using StoryGenerator.DoorProperties;
 using System.Threading;
+using System.Globalization;
 
 
 namespace StoryGenerator.Utilities
@@ -343,16 +344,20 @@ namespace StoryGenerator.Utilities
     {
         public ScriptObjectName Name { get; private set; }
         public ScriptObjectName DestName { get; private set; }
+        public Vector2? DestPos { get; private set; } // put destination position
+        public float Y { get; private set; }
         public int ScriptLine { get; private set; }
         public bool PutInside { get; private set; }
         public IObjectSelector Selector;
 
 
-        public PutAction(int scriptLine, IObjectSelector selector, string name, int instance, string destName, int destInstance, bool putInside)
+        public PutAction(int scriptLine, IObjectSelector selector, string name, int instance, string destName, int destInstance, bool putInside, Vector2? destPos, float y = -1)
         {
             ScriptLine = scriptLine;
             Name = new ScriptObjectName(name, instance);
             DestName = new ScriptObjectName(destName, destInstance);
+            DestPos = destPos;
+            Y = y;
             PutInside = putInside;
             Selector = selector;
 
@@ -2463,7 +2468,7 @@ namespace StoryGenerator.Utilities
                 if (fbbe != null)
                 {
                     // We need to calculate putback position
-                    foreach (Vector3 pos in GameObjectUtils.CalculatePutPositions(current.InteractionPosition, sod.GameObject, sodDest.GameObject, a.PutInside, false))
+                    foreach (Vector3 pos in GameObjectUtils.CalculatePutPositions(current.InteractionPosition, sod.GameObject, sodDest.GameObject, a.PutInside, false, a.DestPos, a.Y))
                     {
                         State s = new State(current, a, current.InteractionPosition, ExecutePut);
                         s.AddScriptGameObject(a.Name, sod.GameObject, pos, current.InteractionPosition, false);
@@ -4000,7 +4005,7 @@ namespace StoryGenerator.Utilities
                 ParseScriptForChar(sExecutors[i], scriptLines, i, actionEquivProvider);
             }
         }
-
+            
         private static void ParseScriptForChar(ScriptExecutor sExecutor, IList<string> scriptLines, int charIndex,
             ActionEquivalenceProvider actionEquivProvider)
         {
@@ -4014,7 +4019,7 @@ namespace StoryGenerator.Utilities
                 if (sl != null)
                     sLines.Add(sl);
             }
-            sExecutor.sLines = new List<ScriptLine>(sLines);
+            //sExecutor.sLines = new List<ScriptLine>(sLines);
             for (int i = 0; i < sLines.Count; i++)
             {
                 ScriptLineToAction(sExecutor, i, sLines);
@@ -4124,7 +4129,37 @@ namespace StoryGenerator.Utilities
                 case InteractionType.PUTIN:
                     if (string.IsNullOrEmpty(name1))
                         throw new ScriptReaderException($"No second argument for [{sl.Interaction}]");
-                    sExecutor.AddAction(new PutAction(sl.LineNumber, sExecutor.GetObjectSelector(name1, instance1), name0, instance0, name1, instance1, sl.Interaction == InteractionType.PUTIN));
+                    
+                    if (sl.Parameters.Count > 2)
+                    {
+                        string strpos = sl.Parameters[sl.Parameters.Count-1].Item1;
+                        Debug.Log("POSITION: " + strpos);
+                        string[] positions = strpos.Split(',');
+                        if (positions.Length == 3)
+                        {
+                            NumberFormatInfo fmt = new NumberFormatInfo();
+                            fmt.NegativeSign = "-";
+                            Vector2 pos = new Vector2(float.Parse(positions[0], fmt), float.Parse(positions[2], fmt));
+                            float y = float.Parse(positions[1], fmt);
+                            sExecutor.AddAction(new PutAction(sl.LineNumber, sExecutor.GetObjectSelector(name1, instance1), name0, instance0, name1, instance1, sl.Interaction == InteractionType.PUTIN, pos, y)); //TODO: add destPos
+                        }
+                        else if (positions.Length == 2)
+                        {
+                            NumberFormatInfo fmt = new NumberFormatInfo();
+                            fmt.NegativeSign = "-";
+                            Vector2 pos = new Vector2(float.Parse(positions[0], fmt), float.Parse(positions[1], fmt));
+                            sExecutor.AddAction(new PutAction(sl.LineNumber, sExecutor.GetObjectSelector(name1, instance1), name0, instance0, name1, instance1, sl.Interaction == InteractionType.PUTIN, pos, -1)); //TODO: add destPos
+                        }
+                        else
+                        {
+                            sExecutor.AddAction(new PutAction(sl.LineNumber, sExecutor.GetObjectSelector(name1, instance1), name0, instance0, name1, instance1, sl.Interaction == InteractionType.PUTIN, null, -1));
+                        }
+                    }
+                    else
+                    {
+                        sExecutor.AddAction(new PutAction(sl.LineNumber, sExecutor.GetObjectSelector(name1, instance1), name0, instance0, name1, instance1, sl.Interaction == InteractionType.PUTIN, null, -1));
+                    }
+                    
                     break;
                 case InteractionType.PUTOBJBACK:
                     sExecutor.AddAction(new PutBackAction(sl.LineNumber, name0, instance0));
@@ -4215,6 +4250,7 @@ namespace StoryGenerator.Utilities
             string pattAction = @"\[(\w+)\]";
             string pattParams = @"<([\w\s]+)>\s*\((\d+)\)\s*(:\d+:)?";
             string pattchar = @"<char(\d+)>";
+            string pattPos = @"(-?\d+\.?\d*(E-\d+)?),(-?\d+\.?\d*(E-\d+)?),(-?\d+\.?\d*(E-\d+)?)";
 
             string[] sentences = line.Split('|');
 
@@ -4235,7 +4271,6 @@ namespace StoryGenerator.Utilities
 
 
                 //				Debug.Log (lineNo + ',' + sentence);
-
 
 
                 // Parse action
@@ -4263,7 +4298,6 @@ namespace StoryGenerator.Utilities
                     }
                     m = m.NextMatch();
                 }
-
                 if (paramList.Count == 1)
                 {
                     string newActionStr;
@@ -4278,6 +4312,23 @@ namespace StoryGenerator.Utilities
                     if (actionEquivProvider.TryGetEquivalentAction(actionStr, paramList[0].Item1, paramList[1].Item1, out newActionStr))
                         actionStr = newActionStr;
                 }
+                /*else if (paramList.Count == 3) //TODO: either continue with this or remove/use parse position
+                {
+                    string newActionStr;
+                    if (actionEquivProvider.TryGetEquivalentAction(actionStr, paramList[0].Item1, paramList[1].Item1, paramList[2].Item1, out newActionStr))
+                        actionStr = newActionStr;
+                }*/
+
+                // Parse position
+                r = new Regex(pattPos);
+                m = r.Match(sentence);
+
+                if (m.Success)
+                {
+                    // 2.5,3.4,1.5
+                    paramList.Add(Tuple.Create(m.Groups[0].Value, 0));
+                }
+
 
                 InteractionType action = (InteractionType)Enum.Parse(typeof(InteractionType), actionStr, true);
                 return new ScriptLine() { Interaction = action, Parameters = paramList, LineNumber = lineNo, modifier = modifier };
