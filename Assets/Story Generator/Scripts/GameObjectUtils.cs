@@ -207,15 +207,15 @@ namespace StoryGenerator.Utilities
         }
 
         public static List<Vector3> CalculatePutPositions(Vector3 intPos, GameObject go, GameObject goDest, bool putInside,
-            bool ignoreObstacles)
+            bool ignoreObstacles, Vector2? destPos = null, float yPos = -1)
         {
 
-            return CalculatePutPositions(intPos, GetBounds(go), go.transform.position, goDest, putInside, ignoreObstacles);
+            return CalculatePutPositions(intPos, GetBounds(go), go.transform.position, goDest, putInside, ignoreObstacles, destPos, yPos);
         }
 
         // Put object go to goDest, character is at interaction position
         public static List<Vector3> CalculatePutPositions(Vector3 intPos, Bounds srcBounds, Vector3 srcPos, GameObject goDest, 
-            bool putInside, bool ignoreObstacles)
+            bool putInside, bool ignoreObstacles, Vector2? destPos = null, float yPos = -1)
         {
 
             // "Optimal" distance from character to search for space (0.5 meters)
@@ -266,35 +266,66 @@ namespace StoryGenerator.Utilities
             }
 
             Vector3 center = new Vector3(intPos.x + dir.x, 0, intPos.z + dir.z);
+            // If position specified
+            if (destPos == null)
+                for (float r = min_center_distance; r <= putCenterDistance; r += 0.1f) {  // advance radii by 10 cm
+                    for (int i = 0; i < 20; i++) {                      // angle quantization is 360/20 = 18 degrees
+                        float phi = 2 * Mathf.PI * i / 20;
+                        float x = center.x + r * Mathf.Cos(phi);
+                        float z = center.z + r * Mathf.Sin(phi);
+                        Vector3 srcDelta;
 
-            for (float r = min_center_distance; r <= putCenterDistance; r += 0.1f) {  // advance radii by 10 cm
-                for (int i = 0; i < 20; i++) {                      // angle quantization is 360/20 = 18 degrees
-                    float phi = 2 * Mathf.PI * i / 20;
-                    float x = center.x + r * Mathf.Cos(phi);
-                    float z = center.z + r * Mathf.Sin(phi);
-                    Vector3 srcDelta;
+                        if (putInside)
+                            srcDelta = new Vector3(x - srcCenter.x, destMax.y - srcBounds.size.y - 0.03f - srcBounds.min.y, z - srcCenter.z);
+                        else
+                            srcDelta = new Vector3(x - srcCenter.x, destMax.y - srcBounds.min.y, z - srcCenter.z);
 
-                    if (putInside)
-                        srcDelta = new Vector3(x - srcCenter.x, destMax.y - srcBounds.size.y - 0.03f - srcBounds.min.y, z - srcCenter.z);
-                    else
-                        srcDelta = new Vector3(x - srcCenter.x, destMax.y - srcBounds.min.y, z - srcCenter.z);
+                        // Check if placement is sufficiently far from boundary
+                        // bool ok = x > destMin.x + 0.1f && z > destMin.z + 0.1f && x < destMax.x - 0.1f && z < destMax.z - 0.1f;
 
-                    // Check if placement is sufficiently far from boundary
-                    // bool ok = x > destMin.x + 0.1f && z > destMin.z + 0.1f && x < destMax.x - 0.1f && z < destMax.z - 0.1f;
+                        //if (!ok)
+                        //    continue;
 
-                    //if (!ok)
-                    //    continue;
+                        float hity;
 
-                    float hity;
+                        if (HitFlatSurface(srcBounds, srcDelta, goDest, out hity)) {
 
-                    if (HitFlatSurface(srcBounds, srcDelta, goDest, out hity)) {
+                            float yDelta = hity - (srcBounds.min.y + srcDelta.y);
+                            Vector3 delta = srcDelta + new Vector3(0, yDelta, 0);
 
-                        float yDelta = hity - (srcBounds.min.y + srcDelta.y);
-                        Vector3 delta = srcDelta + new Vector3(0, yDelta, 0);
-
-                        if (putInside || ignoreObstacles || !CheckBox(srcBounds, delta, 0.01f, goDest)) {
-                            result.Add(srcPos + delta);
+                            if (putInside || ignoreObstacles || !CheckBox(srcBounds, delta, 0.01f, goDest)) {
+                                result.Add(srcPos + delta);
+                            }
                         }
+                    }
+                }
+            else
+            {
+                // obtain x and z values from the destination
+                float x = destPos.Value.x;
+                float z = destPos.Value.y;
+
+                Vector3 srcDelta;
+
+                if (yPos != -1) {
+                    srcDelta = new Vector3(x - srcCenter.x, yPos, z - srcCenter.z);
+                }
+                else if (putInside)
+                    srcDelta = new Vector3(x - srcCenter.x, destMax.y - srcBounds.size.y - 0.03f - srcBounds.min.y, z - srcCenter.z);
+                else
+                    srcDelta = new Vector3(x - srcCenter.x, destMax.y - srcBounds.min.y, z - srcCenter.z);
+
+                float hity;
+
+                if (HitFlatSurface(srcBounds, srcDelta, goDest, out hity))
+                {
+
+                    float yDelta = hity - (srcBounds.min.y + srcDelta.y);
+                    Vector3 delta = srcDelta + new Vector3(0, yDelta, 0);
+
+                    if (putInside || ignoreObstacles || !CheckBox(srcBounds, delta, 0.01f, goDest))
+                    {
+                        result.Add(srcPos + delta);
                     }
                 }
             }
