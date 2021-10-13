@@ -4251,6 +4251,7 @@ namespace StoryGenerator.Utilities
             string pattParams = @"<([\w\s]+)>\s*\((\d+)\)\s*(:\d+:)?";
             string pattchar = @"<char(\d+)>";
             string pattPos = @"(-?\d+\.?\d*(E-\d+)?),(-?\d+\.?\d*(E-\d+)?),(-?\d+\.?\d*(E-\d+)?)";
+            string pattPosXZ = @"(-?\d+\.?\d*(E-\d+)?),(-?\d+\.?\d*(E-\d+)?)";
 
             string[] sentences = line.Split('|');
 
@@ -4319,13 +4320,23 @@ namespace StoryGenerator.Utilities
                         actionStr = newActionStr;
                 }*/
 
-                // Parse position
+                // Parse position x,y,z
                 r = new Regex(pattPos);
                 m = r.Match(sentence);
 
                 if (m.Success)
                 {
                     // 2.5,3.4,1.5
+                    paramList.Add(Tuple.Create(m.Groups[0].Value, 0));
+                }
+
+                // Parse position x,z
+                r = new Regex(pattPosXZ);
+                m = r.Match(sentence);
+
+                if (m.Success)
+                {
+                    // 2.5,3.4
                     paramList.Add(Tuple.Create(m.Groups[0].Value, 0));
                 }
 

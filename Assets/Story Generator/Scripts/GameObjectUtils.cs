@@ -266,6 +266,7 @@ namespace StoryGenerator.Utilities
             }
 
             Vector3 center = new Vector3(intPos.x + dir.x, 0, intPos.z + dir.z);
+            // If position specified
             if (destPos == null)
                 for (float r = min_center_distance; r <= putCenterDistance; r += 0.1f) {  // advance radii by 10 cm
                     for (int i = 0; i < 20; i++) {                      // angle quantization is 360/20 = 18 degrees
