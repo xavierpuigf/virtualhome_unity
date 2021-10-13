@@ -4328,17 +4328,20 @@ namespace StoryGenerator.Utilities
                 {
                     // 2.5,3.4,1.5
                     paramList.Add(Tuple.Create(m.Groups[0].Value, 0));
-                }
-
-                // Parse position x,z
-                r = new Regex(pattPosXZ);
-                m = r.Match(sentence);
-
-                if (m.Success)
+                } else
                 {
-                    // 2.5,3.4
-                    paramList.Add(Tuple.Create(m.Groups[0].Value, 0));
+                    // Parse position x,z
+                    r = new Regex(pattPosXZ);
+                    m = r.Match(sentence);
+
+                    if (m.Success)
+                    {
+                        // 2.5,3.4
+                        paramList.Add(Tuple.Create(m.Groups[0].Value, 0));
+                    }
                 }
+
+              
 
 
                 InteractionType action = (InteractionType)Enum.Parse(typeof(InteractionType), actionStr, true);
