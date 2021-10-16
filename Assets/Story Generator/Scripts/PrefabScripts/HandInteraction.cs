@@ -35,7 +35,7 @@ namespace StoryGenerator.CharInteraction
         bool isThisOriginal = false;
 
 
-        bool isPickedUp = false;
+        public bool isPickedUp = false;
 
         // Whether the hand interaction is added when running the script
         public bool added_runtime = false;
@@ -45,18 +45,18 @@ namespace StoryGenerator.CharInteraction
         InteractionObject m_io_grab;
 
         // The original parent transform. Used for resetting parent transform after putting back this GameObject
-        Transform m_tsfm_parent;
+        public Transform m_tsfm_parent;
 
         // The transform of a character that will pick up this GameObject. It's used to genenerate textual GTs regarding which will new parent of this GameObject upon picked up.
         Transform m_tsfm_char;
-        
+
         // Save which hand is used when m_io_grab is requested so that we know which field of State_char to update.
         FullBodyBipedEffector grabHand;
 
         // Used to identify which switch is activated after InteractionObject is returned to caller
         int m_activatedSwitchIdx;
 
-        // List of switch position, in local coordinates. We save local because the throughout several interactions, their world 
+        // List of switch position, in local coordinates. We save local because the throughout several interactions, their world
         // coordinate might change.
         List<Vector3> m_list_switchPos = null;
 
@@ -81,7 +81,7 @@ namespace StoryGenerator.CharInteraction
             {"Male6", 1},
             {"Male10", 1},
         };
-            
+
         static readonly string[] HAND_POSE_PATHS = {"Chars/HandPoses/Male1/", "Chars/HandPoses/Mixamo/"};
 
         public enum HandPose
@@ -154,7 +154,7 @@ namespace StoryGenerator.CharInteraction
                 sharedVisualChanges = svc;
             }
 
-            public ActivationSwitch(HandPose hp, ActivationAction aa, Vector3 swchPos, 
+            public ActivationSwitch(HandPose hp, ActivationAction aa, Vector3 swchPos,
               List<TransitionBase> tb, List<TransitionSequence.TransitionType> tt,
               Transform swchTsfm = null, SharedVisualChange[] svc = null)
             {
@@ -195,7 +195,7 @@ namespace StoryGenerator.CharInteraction
                         hi.StartCoroutine( ts.Start(hi) );
                     }
                 }
-                
+
                 if (sharedVisualChanges != null)
                 {
                     foreach (SharedVisualChange svc in sharedVisualChanges)
@@ -306,7 +306,7 @@ namespace StoryGenerator.CharInteraction
                         yield break;
                     }
 
-                    // If this is not the last transition (which has no link) and type is 
+                    // If this is not the last transition (which has no link) and type is
                     // manual, break the loop so that it can continue later.
                     if (idx != transitions.Count - 1 && links[idx] == TransitionType.Manual)
                     {
@@ -530,7 +530,7 @@ namespace StoryGenerator.CharInteraction
             [Tooltip("If useInitialValue is toggled, transition will start from this value.")]
             readonly Vector4 from;
 
-            [Tooltip("This value would be added to starting value during transition.")]            
+            [Tooltip("This value would be added to starting value during transition.")]
             readonly Vector4 delta;
 
             public ChangeColor(List<GameObject> _targets, float _delay, float _duration,
@@ -763,7 +763,7 @@ namespace StoryGenerator.CharInteraction
                     }
                     else if (ib_transition == InterruptBehavior.Revert)
                     {
-                        proceed = false;                        
+                        proceed = false;
                         yield return Revert(hi, -1.0f);
                     }
                 }
@@ -778,7 +778,7 @@ namespace StoryGenerator.CharInteraction
             protected virtual void PreTransition() {}
             protected virtual void PostTransition() {}
             protected virtual void UpdatePropertyValue(float direction, float weight) {}
-            
+
             bool ShouldContinue(InterruptBehavior ib)
             {
                 return 0.0f <= normalizedTime_elapsed && normalizedTime_elapsed <= 1.0f &&
@@ -860,7 +860,7 @@ namespace StoryGenerator.CharInteraction
         #endregion
 
         /// <summary>
-        /// Returns List<Vector3> that contains the location of the switch in world coordinate. Can be used to decide which switch to 
+        /// Returns List<Vector3> that contains the location of the switch in world coordinate. Can be used to decide which switch to
         /// use. E.g. choosing which drawer to open among this shelf.
         /// Note: the index of Vector3 can be used later to get InteractionObject corresponding to this swtich.
         /// </summary>
@@ -878,7 +878,42 @@ namespace StoryGenerator.CharInteraction
             }
             return arry_worldPos;
         }
+        public void CreateInvisibleCpy(){
+          invisibleCpy = Instantiate(gameObject) as GameObject;
 
+          const int IDX_IO_WEIGHTCURVE_POSER_WEIGHT = 1;
+          // Delete Mesh Renderer so that clone is not visible
+          MeshRenderer[] arry_mr = invisibleCpy.GetComponentsInChildren<MeshRenderer> ();
+          foreach (MeshRenderer mr in arry_mr)
+          {
+              Destroy(mr);
+          }
+
+          Collider[] cs = invisibleCpy.GetComponentsInChildren<Collider> ();
+          foreach (Collider c in cs)
+          {
+              Destroy(c);
+          }
+          InteractionObject io = invisibleCpy.GetComponent<InteractionObject> ();
+          
+          // io.positionOffsetSpace = invisibleCpy.transform;
+          
+          io.events[0].pickUp = false; // We don't need pickup for clone
+          // Adjust Poser weight curve so that hand poses as grabbing pose
+          // and finishes as free hand.
+          Keyframe kf_1 = new Keyframe(0.0f, 1.0f);
+          Keyframe kf_2 = new Keyframe(0.5f, 1.0f);
+          Keyframe kf_3 = new Keyframe(1.0f, 0.0f);
+          io.weightCurves[IDX_IO_WEIGHTCURVE_POSER_WEIGHT].curve.MoveKey(0, kf_1);
+          io.weightCurves[IDX_IO_WEIGHTCURVE_POSER_WEIGHT].curve.MoveKey(1, kf_2);
+          io.weightCurves[IDX_IO_WEIGHTCURVE_POSER_WEIGHT].curve.AddKey(kf_3);
+
+          // Interaction with the copy will trigger OnPickup of original
+          io.events[0].messages[0].recipient = gameObject;
+          //io.other_copy = gameObject;
+          io.Initiate();
+
+        }
         public InteractionObject Get_IO_grab(Transform charTsfm, FullBodyBipedEffector fbbe)
         {
             // Save character transform and hand to be used so that we can update SceneState
@@ -894,47 +929,19 @@ namespace StoryGenerator.CharInteraction
                 // // On the first call, create the invisible copy. This will be reused through out the scene
                 if (invisibleCpy == null)
                 {
-                    const int IDX_IO_WEIGHTCURVE_POSER_WEIGHT = 1;
-                    
-                    invisibleCpy = Instantiate(gameObject) as GameObject;
 
-                    // Delete Mesh Renderer so that clone is not visible
-                    MeshRenderer[] arry_mr = invisibleCpy.GetComponentsInChildren<MeshRenderer> ();
-                    foreach (MeshRenderer mr in arry_mr)
-                    {
-                        Destroy(mr); 
-                    }
+                    CreateInvisibleCpy();
 
-                    Collider[] cs = invisibleCpy.GetComponentsInChildren<Collider> ();
-                    foreach (Collider c in cs)
-                    {
-                        Destroy(c);
-                    }
 
-                    InteractionObject io = invisibleCpy.GetComponent<InteractionObject> ();
-                    io.positionOffsetSpace = invisibleCpy.transform;
-                    io.events[0].pickUp = false; // We don't need pickup for clone
-                    // Adjust Poser weight curve so that hand poses as grabbing pose
-                    // and finishes as free hand.
-                    Keyframe kf_1 = new Keyframe(0.0f, 1.0f);
-                    Keyframe kf_2 = new Keyframe(0.5f, 1.0f);
-                    Keyframe kf_3 = new Keyframe(1.0f, 0.0f);
-                    io.weightCurves[IDX_IO_WEIGHTCURVE_POSER_WEIGHT].curve.MoveKey(0, kf_1);
-                    io.weightCurves[IDX_IO_WEIGHTCURVE_POSER_WEIGHT].curve.MoveKey(1, kf_2);
-                    io.weightCurves[IDX_IO_WEIGHTCURVE_POSER_WEIGHT].curve.AddKey(kf_3);
-
-                    // Interaction with the copy will trigger OnPickup of original
-                    io.events[0].messages[0].recipient = gameObject;
-                    io.Initiate();
                 }
 
-                yComp = transform.localRotation.eulerAngles.y - charRot.eulerAngles.y;
-                invisibleCpy.transform.localRotation = Quaternion.Euler( new Vector3(0.0f, yComp, 0.0f) );
+                //yComp = transform.localRotation.eulerAngles.y - charRot.eulerAngles.y;
+                //invisibleCpy.transform.localRotation = Quaternion.Euler( new Vector3(0.0f, yComp, 0.0f) );
                 return m_io_grab;
             }
             // Statements below are reached if invisible copy.
-            yComp = transform.localRotation.eulerAngles.y + charRot.eulerAngles.y;
-            transform.localRotation = Quaternion.Euler( new Vector3(0.0f, yComp, 0.0f) );
+            //yComp = transform.localRotation.eulerAngles.y + charRot.eulerAngles.y;
+            //transform.localRotation = Quaternion.Euler( new Vector3(0.0f, yComp, 0.0f) );
             return GetComponent<InteractionObject> ();
         }
 
@@ -948,7 +955,7 @@ namespace StoryGenerator.CharInteraction
             int gid = CHAR_NAME_2_GID[charName];
             return switches[switchIdx].GID_2_effector_2_IO[gid][effectorType];
         }
-      
+
         public void SetInstantTransition()
         {
             if (switches != null)
@@ -971,7 +978,7 @@ namespace StoryGenerator.CharInteraction
         {
             const string FUNC_NAME_ON_PICKUP = "OnPickup";
             const string PREFIX_SWITCH_GAMEOBJECT = "Switch_";
-                    
+
             Vector3 adjustedScale = new Vector3(1 / transform.localScale.x, 1 / transform.localScale.y, 1 / transform.localScale.z);
             isThisOriginal = true;
 
@@ -1017,14 +1024,14 @@ namespace StoryGenerator.CharInteraction
 
                 for (int i = 0; i < HAND_POSE_PATHS.Length; i++)
                 {
-                    GameObject prefab_handPose_left = Resources.Load( HAND_POSE_PATHS[i] + 
+                    GameObject prefab_handPose_left = Resources.Load( HAND_POSE_PATHS[i] +
                         grabHandPose.ToString() + "Left") as GameObject;
-                    GameObject prefab_handPose_right = Resources.Load( HAND_POSE_PATHS[i] + 
+                    GameObject prefab_handPose_right = Resources.Load( HAND_POSE_PATHS[i] +
                         grabHandPose.ToString() + "Right" ) as GameObject;
                     GameObject go_handPose_left = Instantiate(prefab_handPose_left, handPoseParentWorldPos,
                         Quaternion.identity, go_to_add_io_comp.transform) as GameObject;
                     GameObject go_handPose_right = Instantiate(prefab_handPose_right, handPoseParentWorldPos,
-                        Quaternion.identity, go_to_add_io_comp.transform) as GameObject;                    
+                        Quaternion.identity, go_to_add_io_comp.transform) as GameObject;
                     // Adjust local scale so that hand pose is correct regardless of this GO's scale.
                     go_handPose_left.transform.localScale = adjustedScale;
                     go_handPose_right.transform.localScale = adjustedScale;
@@ -1082,7 +1089,7 @@ namespace StoryGenerator.CharInteraction
                         Debug.Assert(msg_left != null && msg_right != null, "Prefab Hand Poses must have at leat one event and at least one messags!");
                         msg_left.recipient = gameObject;
                         msg_right.recipient = gameObject;
-                        
+
                         effector2IO.Add(FullBodyBipedEffector.LeftHand, io_left);
                         effector2IO.Add(FullBodyBipedEffector.RightHand, io_right);
                     }
@@ -1174,7 +1181,7 @@ namespace StoryGenerator.CharInteraction
                 transform.position = tsfm.position;
                 transform.localRotation = tsfm.localRotation;
             }
-            
+
             // Update SceneStates if necessary
             State_object so = GetComponent<State_object> ();
             if (so != null)
@@ -1270,7 +1277,7 @@ namespace StoryGenerator.CharInteraction
         void DrawSphere(Vector3 worldPos, Transform tsfm, Color c)
         {
             const float GIZMO_SPHERE_RAD = 0.025f;
-            
+
             Matrix4x4 cubeTransform = Matrix4x4.TRS(worldPos, tsfm.rotation, tsfm.localScale);
             Matrix4x4 origGizmosMatrix = Gizmos.matrix;
             Gizmos.matrix *= cubeTransform;

@@ -3061,12 +3061,7 @@ namespace StoryGenerator.Utilities
             }
             goi.transform.position = putPosition;
             // set rotation
-            //goi.transform.rotation.Set(putRotation.x, putRotation.y, putRotation.z, 1);
-            //goi.transform.localEulerAngles = putRotation;
-            goi.transform.Rotate(new Vector3(0, 1, 0), 45);
-            //go.transform.localEulerAngles = putRotation;
-            //goi.transform.rotation = Quaternion.Euler(10, 10, 0);
-            //go.transform.rotation = Quaternion.Euler(10, 10, 0);
+            goi.transform.localEulerAngles = putRotation;
             recorder.MarkActionStart(InteractionType.PUTBACK, ga.ScriptLine);
 
             if (cameraControls != null)
