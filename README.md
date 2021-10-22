@@ -119,4 +119,5 @@ The VirtualHome API and code has been developed by the following people.
 - Xavier Puig
 - Kevin Ra
 - Andrew Liao
+- Kabir Swain
 
