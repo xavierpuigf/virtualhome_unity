@@ -67,6 +67,7 @@ namespace StoryGenerator.HomeAnnotation
             var allChildren = h.GetComponentsInChildren<Transform>();
             foreach (Transform child in allChildren)
             {
+                
                 ObjectAnnotator.AnnotateObj(child);
             }
 

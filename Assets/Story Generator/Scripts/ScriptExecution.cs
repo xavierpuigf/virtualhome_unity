@@ -20,6 +20,7 @@ using StoryGenerator.DoorProperties;
 using System.Threading;
 using System.Globalization;
 
+
 namespace StoryGenerator.Utilities
 {
     public class ActionObjectData
@@ -364,6 +365,7 @@ namespace StoryGenerator.Utilities
 
 
         public PutAction(int scriptLine, IObjectSelector selector, string name, int instance, string destName, int destInstance, bool putInside, Vector3? destPos)
+
         {
             ScriptLine = scriptLine;
             Name = new ScriptObjectName(name, instance);
@@ -1116,6 +1118,7 @@ namespace StoryGenerator.Utilities
         {
             bool canSelect = false;
             string errormessage = "Unknown";
+
             List<ObjectData> gods = SelectObjects(a.Name, a.Selector, current).ToList();
             foreach (ObjectData god in gods)
             {
@@ -1161,38 +1164,46 @@ namespace StoryGenerator.Utilities
                     if (path.status == NavMeshPathStatus.PathComplete)
                     {
                         Debug.Log("Path complete");
+                        canSelect = true;
                     }
                     else if (path.status == NavMeshPathStatus.PathInvalid)
                     {
                         Debug.Log("Path invalid");
                         errormessage = "Path invalid";
+                        canSelect = false;
                     }
                     else if (path.status == NavMeshPathStatus.PathPartial)
                     {
                         Debug.Log("Path partial");
-                        errormessage = "Path partial";
+                        errormessage = "Path partially completed";
+                        canSelect = false;
                     }
 
 
-                    IList<DoorAction> doors = characterControl.DoorControl.SelectDoorsOnPath(path.corners, false);
+                    // IList<DoorAction> doors = characterControl.DoorControl.SelectDoorsOnPath(path.corners, false);
                     State s;
-                    if (doors.Count > 0)
-                    {
-                        s = new State(current, a, doors[doors.Count - 1].posOne, ExecuteGoto);
-                        s.AddScriptGameObject(a.Name, go, goPos, doors[doors.Count - 1].posOne);
-                    }
-                    else
+                    // if (doors.Count > 0)
+                    // {
+                    //     s = new State(current, a, doors[doors.Count - 1].posOne, ExecuteGoto);
+                    //     s.AddScriptGameObject(a.Name, go, goPos, doors[doors.Count - 1].posOne);
+                    // }
+                    // else
+                    // {
+                    //     s = new State(current, a, goPos, ExecuteGoto);
+                    // }
+
+                    if (canSelect)
                     {
                         s = new State(current, a, goPos, ExecuteGoto);
+                        s.AddActionFlag("GOTO_TURN");
+
+                        if (this.find_solution)
+                            s.AddObject("ROOM_CONSTRAINT", roomSelector.ExtractRoomName(go.name));
+
+
+                        yield return s;
                     }
-                    s.AddActionFlag("GOTO_TURN");
 
-                    if (this.find_solution)
-                        s.AddObject("ROOM_CONSTRAINT", roomSelector.ExtractRoomName(go.name));
-
-                    canSelect = true;
-
-                    yield return s;
                 }
                 else if (a.Intention == InteractionType.SIT)
                 {
@@ -1319,6 +1330,9 @@ namespace StoryGenerator.Utilities
                     Vector3 tpos;
                     if (FindInteractionPoint(current.InteractionPosition, go, InteractionType.UNSPECIFIED, out pos, out tpos, intPos, minIPDelta))
                     {
+                        //GameObject capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                        //capsule.transform.position = pos;
+                        //capsule.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
                         State s = new State(current, a, pos, ExecuteGoto);
 
                         s.AddScriptGameObject(a.Name, go, goPos, pos);
@@ -2503,6 +2517,7 @@ namespace StoryGenerator.Utilities
                     //prim.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
 
                     foreach (Vector3 pos in GameObjectUtils.CalculatePutPositions(current.InteractionPosition, sod.GameObject, sodDest.GameObject, a.PutInside, false, a.DestPos)) //TODO: clickPos
+
                     {
                         State s = new State(current, a, current.InteractionPosition, ExecutePut);
                         s.AddScriptGameObject(a.Name, sod.GameObject, pos, current.InteractionPosition, false);
@@ -2814,6 +2829,11 @@ namespace StoryGenerator.Utilities
             }
             else
             {
+
+                //GameObject capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                //capsule.transform.position = s.InteractionPosition;
+                //capsule.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
+
                 yield return characterControl.StartCoroutine(characterControl.walkOrRunTo(!run,
                     s.GetTempEnumerable("ALTERNATIVE_IPS", s.InteractionPosition), lookAt));
             }
@@ -2831,6 +2851,8 @@ namespace StoryGenerator.Utilities
                 //nma.autoBraking = true;
                 nma.autoRepath = true;
                 nma.stoppingDistance = 0.3f;
+
+
                 yield return characterControl.StartCoroutine(characterControl.walkOrRunTo(!run, s.InteractionPosition, next_look));
             }
             else
@@ -3501,7 +3523,7 @@ namespace StoryGenerator.Utilities
             return front_vec;
         }
 
-        private static HandInteraction.HandPose? GetGrabPose(GameObject go)
+        public static HandInteraction.HandPose? GetGrabPose(GameObject go)
         {
             if (go == null)
                 return null;
@@ -3548,28 +3570,31 @@ namespace StoryGenerator.Utilities
                     Vector3 cEnd = new Vector3(center.x, nma.height - nma.radius + ObstructionHeight, center.z);
 
                     // Check for space
-                    if (!Physics.CheckCapsule(cStart, cEnd, nma.radius*0.75f))
+                    //if (go.name.ToLower().Contains("wine_glass"))
+                    //{
+                    //    GameObject capsulegoal = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                    //    capsulegoal.transform.position = (Vector3)center;
+                    //    capsulegoal.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+                    //    capsulegoal.GetComponent<MeshRenderer>().material.color = Color.blue;
+                    //    capsulegoal.GetComponent<CapsuleCollider>().enabled = false;
+                    //}
+                    if (!Physics.CheckCapsule(cStart, cEnd, nma.radius * 0.75f))
                     {
-                        //GameObject capsulegoal = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                        //capsulegoal.transform.position = (Vector3)center;
-                        //capsulegoal.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
-                        //capsulegoal.GetComponent<MeshRenderer>().material.color = Color.green;
-                        //capsulegoal.GetComponent<CapsuleCollider>().enabled = false;
-
+                        //if (go.name.ToLower().Contains("wine_glass"))
+                        //{
+                        //    GameObject capsulegoal = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                        //    capsulegoal.transform.position = (Vector3)center;
+                        //    capsulegoal.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+                        //    capsulegoal.GetComponent<MeshRenderer>().material.color = Color.green;
+                        //    capsulegoal.GetComponent<CapsuleCollider>().enabled = false;
+                        //}
                         if (go == null || ignore_visibility || IsVisibleFromSegment(go, center, 0.2f, 2.5f, 0.2f, true))
                         {
                             result.Add(center);
                             break; // for each angle, take the closest radius
                         }
                     }
-                    else
-                    {
-                        //GameObject capsulegoal = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-                        //capsulegoal.transform.position = (Vector3)center;
-                        //capsulegoal.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
-                        //capsulegoal.GetComponent<MeshRenderer>().material.color = Color.red;
-                        //capsulegoal.GetComponent<CapsuleCollider>().enabled = false;
-                    }
+                    
                 }
                 if (rMin < 0.0f) // if radius is approx. zero, take only one angle
                     rMin += rStep;
@@ -3620,7 +3645,7 @@ namespace StoryGenerator.Utilities
         // Checks if GameObject go is visible from position v
         // Checks randomly selected nRays from collider of go
         // If there is no colider attached to go or to go's children, IsVisible is returned
-        public static float VisiblityFactor(GameObject go, Vector3 v, int nRays = 10)
+        public static float VisiblityFactor(GameObject go, Vector3 v, int nRays = 10, bool show_rays = false)
         {
             Bounds bounds = GameObjectUtils.GetBounds(go);
 
@@ -3641,8 +3666,21 @@ namespace StoryGenerator.Utilities
                     float rz = UnityEngine.Random.Range(-bounds.extents.z, bounds.extents.z);
 
                     Vector3 direction = bounds.center + new Vector3(rx, ry, rz) - v;
-                    bool rcResult = Physics.Raycast(v, direction, out hit, direction.magnitude);
 
+                    //if (show_rays && direction.magnitude < 2.0f)
+                    //{
+                    //    Debug.DrawRay(v, direction, Color.red, 10.0f);
+                    //}
+
+                    bool rcResult = Physics.Raycast(v, direction, out hit, direction.magnitude);
+                    //if (show_rays && !hit.transform.parent.parent.gameObject.name.ToLower().Contains("cabinet"))
+                    //{
+                    //    GameObject capsule = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                    //    capsule.transform.position = hit.point;
+                    //    capsule.transform.localScale = new Vector3(0.01f, 0.01f, 0.01f);
+                    //    capsule.GetComponent<CapsuleCollider>().enabled = false;
+                    //    Debug.Log(hit.transform.parent.parent.gameObject.name);
+                    //}
                     if (!rcResult || GameObjectUtils.IsInPath(go, hit.transform))
                         hitCount++;
                 }
@@ -3719,9 +3757,14 @@ namespace StoryGenerator.Utilities
             maxy += delta / 2.0f;
             for (float y = miny; y <= maxy; y += delta)
             {
+                bool show_rays = false;
+                if (go.name.ToLower().Contains("wine_glass"))
+                {
+                    show_rays = true;
+                }
                 if (sampleGo)
                 {
-                    if (VisiblityFactor(go, new Vector3(v.x, y, v.z)) > 0.0f)
+                    if (VisiblityFactor(go, new Vector3(v.x, y, v.z), 10, show_rays) > 0.0f)
                         return true;
                 }
                 else
@@ -3901,7 +3944,7 @@ namespace StoryGenerator.Utilities
 
         internal IObjectSelector GetRoomOrObjectSelector(string name, int instance)
         {
-            if (roomSelector.IsRoomName(name))
+            if (roomSelector.IsRoomName(name) && this.find_solution)
             {
                 return roomSelector.GetRoomSelector(name);
             }
@@ -3961,7 +4004,7 @@ namespace StoryGenerator.Utilities
                 ParseScriptForChar(sExecutors[i], scriptLines, i, actionEquivProvider);
             }
         }
-
+            
         private static void ParseScriptForChar(ScriptExecutor sExecutor, IList<string> scriptLines, int charIndex,
             ActionEquivalenceProvider actionEquivProvider)
         {
@@ -4111,6 +4154,7 @@ namespace StoryGenerator.Utilities
                     else
                     {
                         sExecutor.AddAction(new PutAction(sl.LineNumber, sExecutor.GetObjectSelector(name1, instance1), name0, instance0, name1, instance1, sl.Interaction == InteractionType.PUTIN, null));
+
                     }
                     
                     break;
@@ -4245,7 +4289,6 @@ namespace StoryGenerator.Utilities
                 //				Debug.Log (lineNo + ',' + sentence);
 
 
-
                 // Parse action
                 r = new Regex(pattAction);
                 m = r.Match(sentence);
@@ -4271,7 +4314,7 @@ namespace StoryGenerator.Utilities
                     }
                     m = m.NextMatch();
                 }
-                
+
                 if (paramList.Count == 1)
                 {
                     string newActionStr;
@@ -4295,6 +4338,7 @@ namespace StoryGenerator.Utilities
                 }*/
 
                 // Parse position
+
                 r = new Regex(pattPos);
                 m = r.Match(sentence);
 
@@ -4303,6 +4347,7 @@ namespace StoryGenerator.Utilities
                     // 2.5,3.4,1.5
                     paramList.Add(Tuple.Create(m.Groups[0].Value, 0));
                 }
+
 
 
                 InteractionType action = (InteractionType)Enum.Parse(typeof(InteractionType), actionStr, true);

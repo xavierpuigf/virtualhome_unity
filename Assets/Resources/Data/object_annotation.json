@@ -972,8 +972,8 @@
                 ],
                 "sizes":
                 [
-                    0.04, 2.5, 0.77,
-                    0.04, 2.5, 0.77
+                    0.02, 2.5, 0.77,
+                    0.02, 2.5, 0.77
                 ]
             },
             "colliders":
@@ -985,8 +985,8 @@
                 ],
                 "sizes":
                 [
-                    0.04, 2.5, 0.77,
-                    0.04, 2.5, 0.77
+                    0.02, 2.5, 0.77,
+                    0.02, 2.5, 0.77
                 ]
             }
         }
@@ -1219,9 +1219,9 @@
                 ],
                 "sizes":
                 [
-                    0.7, 2.5, 0.04,
-                    0.72, 2.5, 0.04,
-                    0.05, 2.5, 2.5
+                    0.7, 2.5, 0.02,
+                    0.72, 2.5, 0.02,
+                    0.02, 2.5, 2.5
                 ]
             },
             "colliders":
@@ -2498,7 +2498,7 @@
                     "hand_pose": "GrabVerticalSmall",
                     "target_property": "Rotation",
                     "sp": [0.248, -0.037, 0.03],
-                    "delta": [0.0, -70.0, 0.0]
+                    "delta": [0.0, -110.0, 0.0]
  
                 },
                 {
@@ -2506,7 +2506,7 @@
                     "hand_pose": "GrabVerticalSmall",
                     "target_property": "Rotation",
                     "sp": [-0.248, -0.037, 0.03],
-                    "delta": [0.0, 70.0, 0.0]
+                    "delta": [0.0, 110.0, 0.0]
  
                 }
             ],
@@ -2692,7 +2692,17 @@
                 "areas":[
                     0.35, 0.0, 0.4
                 ]
-            }
+            },
+            "container_doors": [
+                {
+                    "objName": "MOD_FUR_Toilet_lid_01",
+                    "hand_pose": "GrabHorizontalSmall",
+                    "target_property": "Rotation",
+                    "sp": [0.248, 0.037, 0.03],
+                    "delta": [0.0, 0.0, -90]
+ 
+                }
+            ],
         }
     },
     {
@@ -2868,8 +2878,7 @@
                     "objName": "Door",
                     "hand_pose": "GrabVerticalSmall",
                     "target_property": "Rotation",
-                    "sp": [0.0, 0.31, 0.03],
-                    "delta": [0,0,70]
+                    "sp": [-0.03, -0.39, -0.05]
 
                 }
             ]

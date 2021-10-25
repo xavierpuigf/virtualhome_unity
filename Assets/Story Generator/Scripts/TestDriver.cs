@@ -30,6 +30,7 @@ using Unity.RenderStreaming.Signaling;
 using StoryGenerator.Helpers;
 using TMPro;
 
+
 namespace StoryGenerator
 {
     public class ButtonClicks
@@ -306,6 +307,7 @@ namespace StoryGenerator
         void ProcessHome(bool randomizeExecution)
         {
             UtilsAnnotator.ProcessHome(transform, randomizeExecution);
+
             ColorEncoding.EncodeCurrentScene(transform);
             // Disable must come after color encoding. Otherwise, GetComponent<Renderer> failes to get
             // Renderer for the disabled objects.
@@ -726,6 +728,7 @@ namespace StoryGenerator
                     {
                         
                         if (m_keyboard.wKey.isPressed)
+
                         {
                             if (!first_press[kboard_id])
                             {
@@ -781,10 +784,10 @@ namespace StoryGenerator
                             if (!first_press[kboard_id])
                             {
                                 episodeDone = true;
-
                                 saveEpisode = true;
                                 first_press[kboard_id] = true;
                             }
+
                         }
                         //TODO: add going backwards and clean up Input code
 
@@ -859,7 +862,6 @@ namespace StoryGenerator
                                         string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
                                         licr[kboard_id].SendData(current_image);
                                     }
-
                                 }
                             }
                         }
@@ -1014,6 +1016,7 @@ namespace StoryGenerator
 
                                 rend = t.GetComponent<Renderer>();
 
+
                                 //TODO: add Halo around objects, activating and disactivating
                                 /*GameObject haloPrefab = Resources.Load("Halo") as GameObject;
                                 GameObject halo = (GameObject)Instantiate(haloPrefab);
@@ -1046,7 +1049,6 @@ namespace StoryGenerator
                                     lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
                                 }
                                 EnvironmentObject obj1, obj2, obj3;
-
                                 currentGraphCreator.objectNodeMap.TryGetValue(characters[kboard_id].gameObject, out obj1);
                                 Character character_graph;
                                 currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
@@ -1155,6 +1157,7 @@ namespace StoryGenerator
 
                                         button_created[kboard_id] = true;
 
+
                                     }
                                 }
 
@@ -1165,7 +1168,6 @@ namespace StoryGenerator
                                 {
                                     action_button[kboard_id].Add(buttons_show[it].button_action);
                                 }
-
                                 licr[kboard_id].SendData(button_click_info);
                             }
                         }
@@ -1496,7 +1498,7 @@ namespace StoryGenerator
 
         private FrontCameraControl CreateFrontCameraControls(GameObject character)
         {
-            List<Camera> charCameras = CameraExpander.AddCharacterCameras(character, transform, CameraExpander.FORWARD_VIEW_CAMERA_NAME);
+            List<Camera> charCameras = CameraExpander.AddCharacterCameras(character, transform, CameraExpander.INT_FORWARD_VIEW_CAMERA_NAME);
             CameraUtils.DeactivateCameras(charCameras);
             Camera camera = charCameras.First(c => c.name == CameraExpander.FORWARD_VIEW_CAMERA_NAME);
             return new FrontCameraControl(camera);
@@ -1549,57 +1551,58 @@ namespace StoryGenerator
 
                         CharacterControl chc = characters[rec.charIdx];
                         int index_cam = 0;
+                        bool cam_ctrl = false;
                         if (int.TryParse(config.camera_mode[cam_id], out index_cam))
                         {
                             //Camera cam = new Camera();
                             //cam.CopyFrom(sceneCameras[index_cam]);
                             Camera cam = cameras[index_cam];
                             cameraControl = new FixedCameraControl(cam);
+                            cam_ctrl = true;
                         }
                         else
                         {
-                            switch (config.camera_mode[cam_id])
+                            if (config.camera_mode[cam_id] == "PERSON_FRONT")
                             {
-                                case "FIRST_PERSON":
-                                    cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.FORWARD_VIEW_CAMERA_NAME, false);
-                                    break;
-                                case "PERSON_TOP":
-                                    cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.TOP_CHARACTER_CAMERA_NAME, false);
-                                    break;
-                                case "PERSON_FROM_BACK":
-                                    cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.FROM_BACK_CAMERA_NAME, false);
-                                    break;
-                                case "PERSON_FROM_LEFT":
-                                    cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.FROM_LEFT_CAMERA_NAME, false);
-                                    break;
-                                case "PERSON_FRONT":
-                                    cameraControl = CreateFrontCameraControls(chc.gameObject);
-                                    break;
-                                // case "TOP_VIEW":
-                                //     // every character has 6 cameras
-                                //     Camera top_cam = new Camera();
-                                //     top_cam.CopyFrom(cameras[cameras.Count - 6 * numCharacters - 1]);
-                                //     cameraControl = new FixedCameraControl(top_cam);
-                                //     break;
-                                default:
+                                cameraControl = CreateFrontCameraControls(chc.gameObject);
+                                cam_ctrl = true;
+                            }
+                            else
+                            {
+                                if (config.camera_mode[cam_id] == "AUTO")
+                                {
                                     AutoCameraControl autoCameraControl = new AutoCameraControl(sceneCameras, chc.transform, new Vector3(0, 1.0f, 0));
                                     autoCameraControl.RandomizeCameras = config.randomize_execution;
                                     autoCameraControl.CameraChangeEvent += rec.UpdateCameraData;
                                     cameraControl = autoCameraControl;
-                                    break;
+                                    cam_ctrl = true;
+                                }
+                                else
+                                {
+
+                                    if (CameraExpander.HasCam(config.camera_mode[cam_id]))
+                                    {
+                                        cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.char_cams[config.camera_mode[cam_id]].name, false);
+                                        cam_ctrl = true;
+                                    }
+                                }
                             }
 
+
+                        }
+                        if (cam_ctrl)
+                        {
+                            cameraControl.Activate(true);
+                            rec.CamCtrls[cam_id] = cameraControl;
                         }
 
-                        cameraControl.Activate(true);
-                        rec.CamCtrls[cam_id] = cameraControl;
                     }
                 }
             }
             //Debug.Log($"config.recording : {config.recording}");
             //Debug.Log($"cameraCtrl is not null2? : {cameraControl != null}");
             rec.Recording = config.recording;
-
+            rec.currentframeNum = 0;
             rec.currentCameraMode = config.camera_mode;
             rec.FrameRate = config.frame_rate;
             rec.imageSynthesis = config.image_synthesis;
@@ -1983,6 +1986,7 @@ namespace StoryGenerator
         public Vector3 rotation = new Vector3(0.0f, 0.0f, 0.0f);
         public Vector3 position = new Vector3(0.0f, 0.0f, 0.0f);
         public float focal_length = 0.0f;
+        public string camera_name = "default";
 
     }
 
@@ -1993,6 +1997,7 @@ namespace StoryGenerator
         public bool ignore_obstacles = false;
         public bool animate_character = false;
         public bool transfer_transform = true;
+        public bool exact_expand = true;
     }
 
     public class CharacterConfig
@@ -2024,6 +2029,7 @@ namespace StoryGenerator
         public ObjectSelectionProvider ObjectSelectorProvider { get; private set; }
         public RoomSelector RoomSelector { get; private set; }
         public ObjectPropertiesProvider ObjectPropertiesProvider { get; private set; }
+        public Dictionary<string, string> AssetPathMap;
 
         public DataProviders()
         {
@@ -2035,9 +2041,29 @@ namespace StoryGenerator
             NameEquivalenceProvider = new NameEquivalenceProvider("Data/class_name_equivalence");
             ActionEquivalenceProvider = new ActionEquivalenceProvider("Data/action_mapping");
             AssetsProvider = new AssetsProvider("Data/object_prefabs");
+            AssetPathMap = BuildPathMap("Data/object_prefabs");
             ObjectSelectorProvider = new ObjectSelectionProvider(NameEquivalenceProvider);
             RoomSelector = new RoomSelector(NameEquivalenceProvider);
             ObjectPropertiesProvider = new ObjectPropertiesProvider(NameEquivalenceProvider);
+        }
+
+        private Dictionary<string, string> BuildPathMap(string resourceName)
+        {
+            Dictionary<string, string> result = new Dictionary<string, string> ();
+            List<string> all_prefabs = new List<string>();
+            TextAsset txtAsset = Resources.Load<TextAsset>(resourceName);
+            var tmpAssetsMap = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(txtAsset.text);
+
+            foreach (var e in tmpAssetsMap)
+            {
+                foreach (var str_prefab in e.Value)
+                {
+                    string prefab_name = Path.GetFileNameWithoutExtension(str_prefab);
+                    result[prefab_name] = str_prefab;
+                }
+
+            }
+            return result;
         }
     }
 
