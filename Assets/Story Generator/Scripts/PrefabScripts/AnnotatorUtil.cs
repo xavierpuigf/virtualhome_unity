@@ -284,6 +284,7 @@ namespace StoryGenerator.HomeAnnotation
               new Vector3(0.0f, 0.02f, 0.0f), new List_TS() { ts_light });
 
             HandInteraction hi = lamp.AddComponent<HandInteraction>();
+            hi.allowPickUp = true;
             if (hi.switches == null)
             {
                 hi.switches = new List<ActivationSwitch>();

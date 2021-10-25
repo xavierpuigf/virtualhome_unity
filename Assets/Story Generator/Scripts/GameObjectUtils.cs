@@ -2,12 +2,31 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
+using UnityEngine.UI;
 using UnityEngine.AI;
 
 namespace StoryGenerator.Utilities
 {
     public static class GameObjectUtils
     {
+        public static void PositionButton(Vector2 mousePos, GameObject button, string position)
+        {
+
+            float width = button.GetComponentInChildren<TextMeshProUGUI>().preferredWidth + 50;
+            float height = 80;
+
+            float pheight = mousePos.y - 120;
+            float pwidth = mousePos.x - width / 2;
+            if (position == "left")
+                pwidth = mousePos.x - width / 2 - 150;
+            if (position == "right")
+                pwidth = mousePos.x - width / 2 + 150;
+            if (position == "bottom")
+                pheight = mousePos.y + 50;
+            button.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, pwidth, width);
+            button.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Top, pheight, height);
+        }
         public static Transform GetRoomTransform(Transform t)
         {
             while (t != null) {
@@ -207,16 +226,19 @@ namespace StoryGenerator.Utilities
         }
 
         public static List<Vector3> CalculatePutPositions(Vector3 intPos, GameObject go, GameObject goDest, bool putInside,
-            bool ignoreObstacles, Vector2? destPos = null, float yPos = -1)
+
+            bool ignoreObstacles, Vector3? clickPos = null)
         {
 
-            return CalculatePutPositions(intPos, GetBounds(go), go.transform.position, goDest, putInside, ignoreObstacles, destPos, yPos);
+            return CalculatePutPositions(intPos, GetBounds(go), go.transform.position, goDest, putInside, ignoreObstacles, clickPos);
         }
 
         // Put object go to goDest, character is at interaction position
-        public static List<Vector3> CalculatePutPositions(Vector3 intPos, Bounds srcBounds, Vector3 srcPos, GameObject goDest, 
-            bool putInside, bool ignoreObstacles, Vector2? destPos = null, float yPos = -1)
+        public static List<Vector3> CalculatePutPositions(Vector3 intPos, Bounds srcBounds, Vector3 srcPos, GameObject goDest,
+            bool putInside, bool ignoreObstacles, Vector3? clickPos = null)
+
         {
+
 
             // "Optimal" distance from character to search for space (0.5 meters)
             Bounds destBounds = GetBounds(goDest);
@@ -275,6 +297,18 @@ namespace StoryGenerator.Utilities
                         float z = center.z + r * Mathf.Sin(phi);
                         Vector3 srcDelta;
 
+            if (clickPos == null)
+            {
+                for (float r = min_center_distance; r <= putCenterDistance; r += 0.1f)
+                {  // advance radii by 10 cm
+                    for (int i = 0; i < 20; i++)
+                    {                      // angle quantization is 360/20 = 18 degrees
+                        float phi = 2 * Mathf.PI * i / 20;
+                        float x = center.x + r * Mathf.Cos(phi);
+                        float z = center.z + r * Mathf.Sin(phi);
+                        Vector3 srcDelta;
+
+
                         if (putInside)
                             srcDelta = new Vector3(x - srcCenter.x, destMax.y - srcBounds.size.y - 0.03f - srcBounds.min.y, z - srcCenter.z);
                         else
@@ -288,29 +322,33 @@ namespace StoryGenerator.Utilities
 
                         float hity;
 
-                        if (HitFlatSurface(srcBounds, srcDelta, goDest, out hity)) {
+                        if (HitFlatSurface(srcBounds, srcDelta, goDest, out hity))
+                        {
 
                             float yDelta = hity - (srcBounds.min.y + srcDelta.y);
                             Vector3 delta = srcDelta + new Vector3(0, yDelta, 0);
 
-                            if (putInside || ignoreObstacles || !CheckBox(srcBounds, delta, 0.01f, goDest)) {
+                            if (putInside || ignoreObstacles || !CheckBox(srcBounds, delta, 0.01f, goDest))
+                            {
                                 result.Add(srcPos + delta);
                             }
                         }
                     }
                 }
-            else
+            }
+            else // clickPos specified
             {
-                // obtain x and z values from the destination
-                float x = destPos.Value.x;
-                float z = destPos.Value.y;
-
+                // obtain x and z values from the click position
+                result.Add(clickPos.Value);
+                /*
+                float x = clickPos.Value.x;
+                float z = clickPos.Value.z;
+                //GameObject prim = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                //prim.transform.position = new Vector3(x, 0.0f, z);
+                //prim.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
                 Vector3 srcDelta;
 
-                if (yPos != -1) {
-                    srcDelta = new Vector3(x - srcCenter.x, yPos, z - srcCenter.z);
-                }
-                else if (putInside)
+                if (putInside)
                     srcDelta = new Vector3(x - srcCenter.x, destMax.y - srcBounds.size.y - 0.03f - srcBounds.min.y, z - srcCenter.z);
                 else
                     srcDelta = new Vector3(x - srcCenter.x, destMax.y - srcBounds.min.y, z - srcCenter.z);
@@ -327,8 +365,10 @@ namespace StoryGenerator.Utilities
                     {
                         result.Add(srcPos + delta);
                     }
-                }
+                }*/
             }
+
+
             return result;
         }
 

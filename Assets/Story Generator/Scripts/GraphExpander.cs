@@ -528,12 +528,12 @@ namespace StoryGenerator.Utilities
                 }
 
                 if (obj.transform == null) {
-                    if (!obj.states.SetEquals(alignment[obj.id].states)) {
+                    if (!obj.states_set.SetEquals(alignment[obj.id].states_set)) {
                         expanderResult.AddItem(MISSING_INT, obj.class_name + "." + obj.id.ToString());
                     }
                     continue;
                 }
-                ApplyState(obj, alignment[obj.id].states);
+                ApplyState(obj, alignment[obj.id].states_set);
             }
 
         }
@@ -547,7 +547,7 @@ namespace StoryGenerator.Utilities
                     result[obj.id] = new List<EnvironmentObject>();
             }
             foreach (EnvironmentRelation e in graph.edges) {
-                if (e.relation_type == ObjectRelation.INSIDE && result.ContainsKey(e.to_id)) {
+                if (e.relation == ObjectRelation.INSIDE && result.ContainsKey(e.to_id)) {
                     result[e.to_id].Add(id2ObjectMap[e.from_id]);
                 }
             }
@@ -647,7 +647,7 @@ namespace StoryGenerator.Utilities
         private void HandleCharacterInsidePlacing(EnvironmentObject obj, List<EnvironmentObject> objsInRelation, List<EnvironmentObject> sceneObjsInRelation,
             List<EnvironmentObject> objsClose, List<EnvironmentObject> sceneObjsClose)
         {
-            if (obj.states.Contains(ObjectState.SITTING))
+            if (obj.states_set.Contains(ObjectState.SITTING))
                 return;
 
             EnvironmentObject roomObj = objsInRelation.Find(o => o.category == "Rooms");
@@ -744,9 +744,9 @@ namespace StoryGenerator.Utilities
             foreach (EnvironmentRelation rel in graph.edges) {
                 List<EnvironmentObject> objectsTo;
 
-                if (!edgeMap.TryGetValue(Tuple.Create(rel.from_id, rel.relation_type), out objectsTo)) {
+                if (!edgeMap.TryGetValue(Tuple.Create(rel.from_id, rel.relation), out objectsTo)) {
                     objectsTo = new List<EnvironmentObject>();
-                    edgeMap[Tuple.Create(rel.from_id, rel.relation_type)] = objectsTo;
+                    edgeMap[Tuple.Create(rel.from_id, rel.relation)] = objectsTo;
                 }
                 objectsTo.Add(id2ObjectMap[rel.to_id]);
             }
@@ -759,9 +759,9 @@ namespace StoryGenerator.Utilities
 
             if (pd != null) {
                 // Doors (between rooms). Open by default, act only if states explicitly contains CLOSED
-                if (obj.states.Contains(ObjectState.OPEN) && sceneStates.Contains(ObjectState.CLOSED)) {
+                if (obj.states_set.Contains(ObjectState.OPEN) && sceneStates.Contains(ObjectState.CLOSED)) {
                     pd.SetDoorToOpen();
-                } else if (obj.states.Contains(ObjectState.CLOSED) && sceneStates.Contains(ObjectState.OPEN)) {
+                } else if (obj.states_set.Contains(ObjectState.CLOSED) && sceneStates.Contains(ObjectState.OPEN)) {
                     pd.SetDoorToClose();
                 }
                 // Return, doors can't have other states
@@ -776,8 +776,8 @@ namespace StoryGenerator.Utilities
                 // Make this conditional if some class/instance or has other default state
                 // ObjectState oppositeInitialOpenableState = ObjectState.OPEN;
 
-                if (obj.states.Contains(ObjectState.OPEN) && sceneStates.Contains(ObjectState.CLOSED) ||
-                        obj.states.Contains(ObjectState.CLOSED) && sceneStates.Contains(ObjectState.OPEN))
+                if (obj.states_set.Contains(ObjectState.OPEN) && sceneStates.Contains(ObjectState.CLOSED) ||
+                        obj.states_set.Contains(ObjectState.CLOSED) && sceneStates.Contains(ObjectState.OPEN))
                 {
                     foreach (HandInteraction.ActivationSwitch asw in hi.switches)
                     {
@@ -788,17 +788,17 @@ namespace StoryGenerator.Utilities
                                 //
                                 //asw.transitionSequences
                                 //asw.UpdateStateObject();
-                                if (obj.states.Contains(ObjectState.OPEN))
+                                if (obj.states_set.Contains(ObjectState.OPEN))
                                 {
-                                    alignment[obj.id].states.Remove(Utilities.ObjectState.CLOSED);
-                                    alignment[obj.id].states.Add(Utilities.ObjectState.OPEN);
+                                    alignment[obj.id].states_set.Remove(Utilities.ObjectState.CLOSED);
+                                    alignment[obj.id].states_set.Add(Utilities.ObjectState.OPEN);
                                     asw.transitionSequences[0].transitions[0].Flip();
                                 }
 
                                 else
                                 {
-                                    alignment[obj.id].states.Remove(Utilities.ObjectState.OPEN);
-                                    alignment[obj.id].states.Add(Utilities.ObjectState.CLOSED);
+                                    alignment[obj.id].states_set.Remove(Utilities.ObjectState.OPEN);
+                                    alignment[obj.id].states_set.Add(Utilities.ObjectState.CLOSED);
                                     asw.transitionSequences[0].transitions[1].Flip();
                                 }
 
@@ -811,20 +811,20 @@ namespace StoryGenerator.Utilities
                 // All switchable objects are off by default, except of lights
                 // ObjectState opositeInitialSwitchedState = EnvironmentGraphCreator.DEFAULT_ON_OBJECTS.Contains(obj.class_name) ? ObjectState.OFF : ObjectState.ON;
 
-                if (obj.states.Contains(ObjectState.ON) && sceneStates.Contains(ObjectState.OFF) ||
-                        obj.states.Contains(ObjectState.OFF) && sceneStates.Contains(ObjectState.ON))
+                if (obj.states_set.Contains(ObjectState.ON) && sceneStates.Contains(ObjectState.OFF) ||
+                        obj.states_set.Contains(ObjectState.OFF) && sceneStates.Contains(ObjectState.ON))
                 {
 
-                    if (obj.states.Contains(ObjectState.OFF))
+                    if (obj.states_set.Contains(ObjectState.OFF))
                     {
 
-                        alignment[obj.id].states.Remove(Utilities.ObjectState.ON);
-                        alignment[obj.id].states.Add(Utilities.ObjectState.OFF);
+                        alignment[obj.id].states_set.Remove(Utilities.ObjectState.ON);
+                        alignment[obj.id].states_set.Add(Utilities.ObjectState.OFF);
                     }
                     else
                     {
-                        alignment[obj.id].states.Remove(Utilities.ObjectState.OFF);
-                        alignment[obj.id].states.Add(Utilities.ObjectState.ON);
+                        alignment[obj.id].states_set.Remove(Utilities.ObjectState.OFF);
+                        alignment[obj.id].states_set.Add(Utilities.ObjectState.ON);
                     }
 
                     foreach (HandInteraction.ActivationSwitch asw in hi.switches)
@@ -844,9 +844,9 @@ namespace StoryGenerator.Utilities
                 }
             }
 
-            if (obj.states.Contains(ObjectState.SITTING) && !sceneStates.Contains(ObjectState.SITTING)) {
+            if (obj.states_set.Contains(ObjectState.SITTING) && !sceneStates.Contains(ObjectState.SITTING)) {
                 ExecuteInstantSit(obj);
-            } else if (!obj.states.Contains(ObjectState.SITTING) && sceneStates.Contains(ObjectState.SITTING)) {
+            } else if (!obj.states_set.Contains(ObjectState.SITTING) && sceneStates.Contains(ObjectState.SITTING)) {
                 ExecuteInstantStandup(obj);
             }
         }
@@ -995,7 +995,7 @@ namespace StoryGenerator.Utilities
                 src.bounding_box = ObjectBounds.FromGameObject(newGo);
 
                 EnvironmentObject srcCopy = src.Copy();
-                srcCopy.states = EnvironmentGraphCreator.GetDefaultObjectStates(newGo, srcCopy.class_name, srcCopy.properties);
+                srcCopy.states_set = EnvironmentGraphCreator.GetDefaultObjectStates(newGo, srcCopy.class_name, srcCopy.properties);
 
                 alignment[src.id] = srcCopy;
                 

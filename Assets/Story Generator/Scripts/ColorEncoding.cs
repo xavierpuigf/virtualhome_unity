@@ -257,16 +257,14 @@ namespace StoryGenerator.Recording
             Color clr_class_self = Color.white;
 
             Renderer[] arry_rdr = tsfm.GetComponents<Renderer>();
+
             if (list_gsi.Count == 0)
             {
                 GameObject dummy_go = new GameObject();
                 list_gsi.Add(new GameObjectSgmtInfo(dummy_go, -1, clr_class_self));
                 index_gsi_parent = list_gsi.Count - 1;
             }
-            if (tsfm.name.Contains("StoveCoil"))
-            {
-                Debug.Log("HEre");
-            }
+
             if (m_instanceGroup_prefab.ContainsKey(tsfm.name)) {
                 id_inst_self = ColorEncoding.GetInstID();
                 id_inst_parent = id_inst_self;

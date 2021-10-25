@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace StoryGenerator.Utilities
 {
-
+    [Serializable]
     public enum ObjectRelation
     {
         ON,
@@ -26,6 +26,7 @@ namespace StoryGenerator.Utilities
         SITTING
     }
 
+    [Serializable]
     public enum ObjectState
     {
         CLOSED,
@@ -45,7 +46,7 @@ namespace StoryGenerator.Utilities
     //    OPENABLE,
     //    SITTABLE,
     //}
-
+    [Serializable]
     public class ObjectBounds
     {
         private Bounds unityBounds;
@@ -64,8 +65,8 @@ namespace StoryGenerator.Utilities
             bounds = b;
         }
 
-        public float[] center { get; set; }
-        public float[] size { get; set; }
+        public float[] center;
+        public float[] size;
 
         [JsonIgnore]
         public Bounds bounds
@@ -109,6 +110,8 @@ namespace StoryGenerator.Utilities
             this.character = character;
         }
     }
+
+    [Serializable]
     public class ObjectTransform
     {
         public float[] position;
@@ -143,9 +146,10 @@ namespace StoryGenerator.Utilities
     }
 
     // Represents scene objects; nodes of the environment graph
+    [System.Serializable]
     public class EnvironmentObject : IEquatable<EnvironmentObject>
     {
-        public int id { get; set; }  // Unique id
+        public int id;  // Unique id
 
         [JsonIgnore]
         private Transform ts;
@@ -160,20 +164,22 @@ namespace StoryGenerator.Utilities
             }
         }
 
-        public String category { get; set; }  // Category of this object (Character, Room, ...)
+        public String category;  // Category of this object (Character, Room, ...)
 
-        public string class_name { get; set; }  // Object class name (className from PrefabClass.json, "unknown" in not present)
+        public string class_name;  // Object class name (className from PrefabClass.json, "unknown" in not present)
 
-        public string prefab_name { get; set; }  // GameObject name
+        public string prefab_name;  // GameObject name
 
-        public ObjectTransform obj_transform { get; set; }
+        public ObjectTransform obj_transform;
 
-        public ObjectBounds bounding_box { get; set; }  // Axis aligned bounding box
+        public ObjectBounds bounding_box;  // Axis aligned bounding box
 
-        public ICollection<string> properties { get; set; } = new List<string>();  // List of properties ("SITTABLE", ...), from PropertiesData.json
+        public List<string> properties = new List<string>();  // List of properties ("SITTABLE", ...), from PropertiesData.json
 
         [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
-        public ISet<ObjectState> states { get; set; } = new HashSet<ObjectState>();  // List of states (CLOSED, OPEN, ON, OFF, ...) 
+        public List<string> states = new List<string>();  // List of states (CLOSED, OPEN, ON, OFF, ...) 
+
+        public ISet<ObjectState> states_set = new HashSet<ObjectState>();
 
         public bool Equals(EnvironmentObject other)
         {
@@ -203,24 +209,28 @@ namespace StoryGenerator.Utilities
                 prefab_name = prefab_name,
                 bounding_box = bounding_box,
                 properties = new List<string>(properties),
-                states = new HashSet<ObjectState>(states)
+                states_set = new HashSet<ObjectState>(states_set)
             };
         }
     }
 
     // Represents edges of the environment graph
     // Eg, for Milk (from) in (relation) Fridge (to)
+    [System.Serializable]
     public class EnvironmentRelation
     {
-        public int from_id { get; set; }  // First node (object id)
+        public int from_id;  // First node (object id)
 
-        public int to_id { get; set; }  // Second node (object id)
+        public int to_id;  // Second node (object id)
 
         [JsonConverter(typeof(StringEnumConverter))]
-        public ObjectRelation relation_type { get; set; }  // Relation type
+        public string relation_type;  // Relation type
+
+        public ObjectRelation relation;
 
     }
 
+    [System.Serializable]
     public class EnvironmentGraph
     {
         // We assign 1-10 as the id range reserved only for characters Object> characters = new List<EnvironmentObject>();
@@ -242,7 +252,7 @@ namespace StoryGenerator.Utilities
                 edges.Add(new EnvironmentRelation() {
                     from_id = node1.id,
                     to_id = node2.id,
-                    relation_type = relation
+                    relation = relation
                 });
             }
         }
@@ -315,6 +325,13 @@ namespace StoryGenerator.Utilities
                 }
             }
             return graph;
+        }
+
+        public bool HasEdge(int from_id, int to_id, ObjectRelation relation)
+        {
+            Tuple<int, int, ObjectRelation> tuple = new Tuple<int, int, ObjectRelation>(from_id, to_id, relation);
+
+            return edgeSet.Contains(tuple);
         }
 
         public EnvironmentGraph GetGraph()
@@ -466,6 +483,7 @@ namespace StoryGenerator.Utilities
                         bounds = ObjectBounds.FromGameObject(gameObject);
                     }
                     currentObject.bounding_box = bounds;
+                    currentObject.obj_transform = new ObjectTransform(transform);
                 }
 
                 // update the inside room edges if the object it self is not a room
@@ -513,14 +531,14 @@ namespace StoryGenerator.Utilities
                     {
                         if (((OpenAction)action_script.Action).Close)
                         {
-                            objectNodeMap[gameObject].states.Remove(Utilities.ObjectState.OPEN);
-                            objectNodeMap[gameObject].states.Add(Utilities.ObjectState.CLOSED);
+                            objectNodeMap[gameObject].states_set.Remove(Utilities.ObjectState.OPEN);
+                            objectNodeMap[gameObject].states_set.Add(Utilities.ObjectState.CLOSED);
 
                         }
                         else
                         {
-                            objectNodeMap[gameObject].states.Remove(Utilities.ObjectState.CLOSED);
-                            objectNodeMap[gameObject].states.Add(Utilities.ObjectState.OPEN);
+                            objectNodeMap[gameObject].states_set.Remove(Utilities.ObjectState.CLOSED);
+                            objectNodeMap[gameObject].states_set.Add(Utilities.ObjectState.OPEN);
                         }
 
                     }
@@ -528,14 +546,14 @@ namespace StoryGenerator.Utilities
                     {
                         if (((SwitchOnAction)action_script.Action).Off)
                         {
-                            objectNodeMap[gameObject].states.Remove(Utilities.ObjectState.ON);
-                            objectNodeMap[gameObject].states.Add(Utilities.ObjectState.OFF);
+                            objectNodeMap[gameObject].states_set.Remove(Utilities.ObjectState.ON);
+                            objectNodeMap[gameObject].states_set.Add(Utilities.ObjectState.OFF);
 
                         }
                         else
                         {
-                            objectNodeMap[gameObject].states.Remove(Utilities.ObjectState.OFF);
-                            objectNodeMap[gameObject].states.Add(Utilities.ObjectState.ON);
+                            objectNodeMap[gameObject].states_set.Remove(Utilities.ObjectState.OFF);
+                            objectNodeMap[gameObject].states_set.Add(Utilities.ObjectState.ON);
                         }
                     }
 
@@ -580,9 +598,9 @@ namespace StoryGenerator.Utilities
             {
                 foreach (EnvironmentRelation rel in graph.edges)
                 {
-                    if (rel.relation_type.Equals(ObjectRelation.CLOSE) && rel.from_id == c.id)
+                    if (rel.relation.Equals(ObjectRelation.CLOSE) && rel.from_id == c.id)
                     {
-                        if (!edgeSet.Contains(Tuple.Create(rel.to_id, rel.from_id, rel.relation_type)))
+                        if (!edgeSet.Contains(Tuple.Create(rel.to_id, rel.from_id, rel.relation)))
                         {
                             return false;
                         }
@@ -661,7 +679,7 @@ namespace StoryGenerator.Utilities
             if (bounds == null)
                 return null;
 
-            ICollection<string> properties = ObjectProperties(className);
+            List<string> properties = ObjectProperties(className).ToList();
 
             EnvironmentObject node = new EnvironmentObject() {
                 transform = transform,
@@ -669,7 +687,7 @@ namespace StoryGenerator.Utilities
                 class_name = className,
                 prefab_name = prefabName,
                 bounding_box = bounds,
-                states = GetDefaultObjectStates(gameObject, className, properties),
+                states_set = GetDefaultObjectStates(gameObject, className, properties),
                 properties = properties
             };
 
@@ -984,7 +1002,7 @@ namespace StoryGenerator.Utilities
             if (or.HasValue)
             {
                 edgeSet.RemoveWhere(e => (o.id == e.Item1 || o.id == e.Item2) && e.Item3 == or);
-                graph.edges.RemoveAll(e => (o.id == e.from_id || o.id == e.to_id) && e.relation_type == or);
+                graph.edges.RemoveAll(e => (o.id == e.from_id || o.id == e.to_id) && e.relation == or);
             }
             else
             {
@@ -1053,7 +1071,7 @@ namespace StoryGenerator.Utilities
             if (!close) {
                 Vector3 o1Too2 = o2.bounding_box.bounds.ClosestPoint(o1.bounding_box.bounds.center);
                 Vector3 o1center = o1.bounding_box.bounds.center;
-                if (o1.class_name == "characer" || o2.class_name == "character")
+                if (o1.class_name == "character" || o2.class_name == "character")
                 {
 
                     o1center.y = 0.0f;
@@ -1257,33 +1275,33 @@ namespace StoryGenerator.Utilities
 
         public static ISet<ObjectState> GetDefaultObjectStates(GameObject go, string className, ICollection<string> properties)
         {
-            ISet<ObjectState> states = new HashSet<ObjectState>();
+            ISet<ObjectState> states_set = new HashSet<ObjectState>();
 
             Properties_door pd = go.GetComponent<Properties_door>();
             if (pd != null) {
-                states.Add(ObjectState.OPEN);  // Assume that all doors are open by default
-                return states;
+                states_set.Add(ObjectState.OPEN);  // Assume that all doors are open by default
+                return states_set;
             }
 
             HandInteraction hi = go.GetComponent<HandInteraction>();
             if (hi != null && hi.switches != null) {
                 foreach (HandInteraction.ActivationSwitch s in hi.switches) {
-                    if (s.action == HandInteraction.ActivationAction.Open) states.Add(ObjectState.CLOSED);  // Assume that all objects are closed by default
+                    if (s.action == HandInteraction.ActivationAction.Open) states_set.Add(ObjectState.CLOSED);  // Assume that all objects are closed by default
                     else if (s.action == HandInteraction.ActivationAction.SwitchOn) {
-                        if (DEFAULT_ON_OBJECTS.Contains(className)) states.Add(ObjectState.ON);
-                        else states.Add(ObjectState.OFF);
+                        if (DEFAULT_ON_OBJECTS.Contains(className)) states_set.Add(ObjectState.ON);
+                        else states_set.Add(ObjectState.OFF);
                     }
                 }
-                return states;
+                return states_set;
             }
 
             if (properties.Contains("CAN_OPEN")) {
-                states.Add(ObjectState.CLOSED);
+                states_set.Add(ObjectState.CLOSED);
             }
             if (properties.Contains("HAS_SWITCH")) {
-                states.Add(ObjectState.OFF);
+                states_set.Add(ObjectState.OFF);
             }
-            return states;
+            return states_set;
         }
 
         public static Func<float[], float[], double> L2NormSquaredFloat = (u, v) => {
