@@ -81,7 +81,6 @@ namespace StoryGenerator.Utilities
 
         public static ObjectBounds FromGameObject(GameObject gameObject)
         {
-
             Bounds bounds = GameObjectUtils.GetBounds(gameObject);
             return bounds.size == Vector3.zero ? null : new ObjectBounds(bounds);
         }
@@ -116,7 +115,6 @@ namespace StoryGenerator.Utilities
     {
         public float[] position;
         public float[] rotation;
-        public float[] scale;
 
         public ObjectTransform(Transform t)
         {
@@ -125,7 +123,6 @@ namespace StoryGenerator.Utilities
 
                 this.rotation = new float[4] { t.rotation.x, t.rotation.y, t.rotation.z, t.rotation.w };
                 this.position = new float[3] { t.position.x, t.position.y, t.position.z };
-                this.scale = new float[3] { t.localScale.x, t.localScale.y, t.localScale.z };
             }
         }
         public Quaternion GetRotation()
@@ -136,12 +133,6 @@ namespace StoryGenerator.Utilities
         public Vector3 GetPosition()
         {
             return new Vector3(position[0], position[1], position[2]);
-        }
-        public Vector3? GetScale()
-        {
-            if (scale == null)
-                return null;
-            return new Vector3(scale[0], scale[1], scale[2]);
         }
     }
 
@@ -278,7 +269,6 @@ namespace StoryGenerator.Utilities
         public const string DoorClassName = "door";
         public const string DoorjambClassName = "doorjamb";
         public const string DoorsCategory = "Doors";
-        public static int ids_char = 10;
 
         private DataProviders dataProviders;
 
@@ -290,7 +280,7 @@ namespace StoryGenerator.Utilities
         private IList<EnvironmentObject> doors;
 
         public IDictionary<EnvironmentObject, Character> characters;
-        private int nodeCounter = ids_char + 1;
+        private int nodeCounter = 11;
         public double EdgeRadius2 { get; set; } = 25.0;
 
         public EnvironmentGraphCreator(DataProviders dataProviders)
@@ -393,19 +383,13 @@ namespace StoryGenerator.Utilities
             return graph;
         }
 
-        public EnvironmentObject AddChar(Transform transform)
-        {
-            EnvironmentObject o = AddCharacterObject(transform);
-            characters[o] = new Character(o);
-            AddRoomRelation(o, FindRoomLocation(o)); // Add IN relation to room
-            return o;
-        }
+
         // Adds nodes and edges to the environment graph, recursively from transform
         // - parentTransform is immediate parent of this transform
         // - category is name of transform which is immediately "below" the room
         // - roomObject is room this object belongs to
         // Should only be called by CreateGraph
-        public void UpdateGraphNodes(Transform transform, Transform parentTransform, String category, EnvironmentObject roomObject)
+        private void UpdateGraphNodes(Transform transform, Transform parentTransform, String category, EnvironmentObject roomObject)
         {
             GameObject gameObject = transform.gameObject;
             string prefabName = gameObject.name;
@@ -436,7 +420,9 @@ namespace StoryGenerator.Utilities
                 else if (transform.CompareTag(Tags.TYPE_CHARACTER))
                 {
                     // Object is a character
-                    AddChar(transform);
+                    EnvironmentObject o = AddCharacterObject(transform);
+                    characters[o] = new Character(o);
+                    AddRoomRelation(o, FindRoomLocation(o)); // Add IN relation to room
                     return;
                 }
                 else
@@ -450,10 +436,8 @@ namespace StoryGenerator.Utilities
                     if (o != null && roomObject != null)
                     {
                         AddRoomRelation(o, roomObject);  // Add IN relation to room
-
-                        // TODO: Include a checker here, this should never happen
-                        //if (roomObject.bounding_box == null) roomObject.bounding_box = new ObjectBounds(o.bounding_box);  // Set initial room bounds
-                        //else roomObject.bounding_box.UnionWith(o.bounding_box);  // Grow room bounds
+                        if (roomObject.bounding_box == null) roomObject.bounding_box = new ObjectBounds(o.bounding_box);  // Set initial room bounds
+                        else roomObject.bounding_box.UnionWith(o.bounding_box);  // Grow room bounds
                     }
                     if (o?.class_name == DoorClassName)
                     {
@@ -559,7 +543,7 @@ namespace StoryGenerator.Utilities
 
                     ObjectBounds bounds = ObjectBounds.FromGameObject(gameObject);
                     objectNodeMap[gameObject].bounding_box = bounds;
-                    objectNodeMap[gameObject].obj_transform = new ObjectTransform(gameObject.transform); 
+
                 }
             }
             // Update bounds of character
@@ -577,16 +561,12 @@ namespace StoryGenerator.Utilities
                     bounds = ObjectBounds.FromGameObject(gameObjectGrabbed);
                     objectNodeMap[gameObjectGrabbed].bounding_box = bounds;
 
-                    objectNodeMap[gameObjectGrabbed].obj_transform = new ObjectTransform(gameObjectGrabbed.transform); 
-
                 }
                 if (character.grabbed_right != null)
                 {
                     GameObject gameObjectGrabbed = character.grabbed_right.transform.gameObject;
                     bounds = ObjectBounds.FromGameObject(gameObjectGrabbed);
                     objectNodeMap[gameObjectGrabbed].bounding_box = bounds;
-
-                    objectNodeMap[gameObjectGrabbed].obj_transform = new ObjectTransform(gameObjectGrabbed.transform); 
 
                 }
             }
@@ -610,7 +590,7 @@ namespace StoryGenerator.Utilities
             return true;
         }
 
-        public EnvironmentObject FindRoomLocation(EnvironmentObject currentObject)
+        private EnvironmentObject FindRoomLocation(EnvironmentObject currentObject)
         {
             List<EnvironmentObject> candidates = new List<EnvironmentObject>();
             Vector3 objectCenter = currentObject.bounding_box.bounds.center;
@@ -630,13 +610,11 @@ namespace StoryGenerator.Utilities
             }
             else
             {
-                
                 EnvironmentObject roomCandidate = candidates[0];
                 float maxDistanceToBound = 0;
 
                 foreach (EnvironmentObject room in candidates)
                 {
-                    
                     float distX = room.bounding_box.bounds.extents.x - Math.Abs(room.bounding_box.bounds.center.x - objectCenter.x);
                     float distZ = room.bounding_box.bounds.extents.z - Math.Abs(room.bounding_box.bounds.center.z - objectCenter.z);
 
@@ -652,7 +630,7 @@ namespace StoryGenerator.Utilities
 
         }
 
-        public Boolean IsInGraph(GameObject go)
+        private Boolean IsInGraph(GameObject go)
         {
             return objectNodeMap.Keys.Contains(go) && graph.nodes.Contains(objectNodeMap[go]);
         }
@@ -734,19 +712,6 @@ namespace StoryGenerator.Utilities
             string prefabName = gameObject.name;
             string roomName = dataProviders.RoomSelector.ExtractRoomName(prefabName);
             ObjectBounds bounds = new ObjectBounds(gameObject.GetComponent<RoomProperties.Properties_room>().bounds);
-
-            //GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            //sphere.transform.position = bounds.bounds.center - bounds.bounds.extents;
-            //sphere.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
-
-
-            //GameObject sphere2 = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            //sphere2.transform.position = bounds.bounds.center + bounds.bounds.extents;
-            //sphere2.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
-
-            //GameObject sphere3 = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            //sphere3.transform.position = bounds.bounds.center;
-            //sphere3.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
 
             EnvironmentObject roomNode = new EnvironmentObject() {
                 category = RoomsCategory,
@@ -872,14 +837,12 @@ namespace StoryGenerator.Utilities
                 AddRoomRelation(char_o1, room_char);
                 if (char_action.grabbed_left != null)
                 {
-
                     RemoveGraphEdgesWithObject(char_action.grabbed_left, ObjectRelation.INSIDE);
                     AddRoomRelation(char_action.grabbed_left, room_char);
 
                 }
                 if (char_action.grabbed_right != null)
                 {
-
                     RemoveGraphEdgesWithObject(char_action.grabbed_right, ObjectRelation.INSIDE);
                     AddRoomRelation(char_action.grabbed_right, room_char);
 
@@ -918,7 +881,7 @@ namespace StoryGenerator.Utilities
 
                 float[] center = o1.bounding_box.center;
                 Tuple<float[], EnvironmentObject>[] searchResult = tree.RadialSearch(center, EdgeRadius2);
-                
+
                 foreach (var t in searchResult)
                 {
                     if (t.Item2 != o1)
@@ -964,10 +927,7 @@ namespace StoryGenerator.Utilities
         {
             if (o1.id == o2.id)
                 return;
-            if (o1.id  == 193 && o2.id == 139)
-            {
-                Debug.Log("Here");
-            }
+
             if (!Inside(o1, o2))
                 if (!Inside(o2, o1))
                     if (!On(o1, o2))
@@ -978,7 +938,7 @@ namespace StoryGenerator.Utilities
             Facing(o1, o2);
         }
 
-        public void AddGraphEdge(EnvironmentObject n1, EnvironmentObject n2, ObjectRelation or)
+        private void AddGraphEdge(EnvironmentObject n1, EnvironmentObject n2, ObjectRelation or)
         {
             if (n1 == n2)
                 return;
@@ -997,7 +957,7 @@ namespace StoryGenerator.Utilities
             graph.nodes.Remove(o);
         }
 
-        public void RemoveGraphEdgesWithObject(EnvironmentObject o, ObjectRelation? or = null)
+        private void RemoveGraphEdgesWithObject(EnvironmentObject o, ObjectRelation? or = null)
         {
             if (or.HasValue)
             {
@@ -1047,7 +1007,6 @@ namespace StoryGenerator.Utilities
         // Adds CLOSE relation if distance from center of o1 to bounds of o2 (or vice-versa) is <= MAX_CLOSE_DISTANCE
         public bool Close(EnvironmentObject o1, EnvironmentObject o2)
         {
-            
             if (o1.id == o2.id)
             {
                 return false;
@@ -1080,7 +1039,6 @@ namespace StoryGenerator.Utilities
                 }
                 close = Vector3.Distance(o1center, o1Too2) <= MAX_CLOSE_DISTANCE;
             }
-
             if (close) {
                 AddGraphEdge(o1, o2, ObjectRelation.CLOSE);
                 AddGraphEdge(o2, o1, ObjectRelation.CLOSE);
@@ -1149,22 +1107,12 @@ namespace StoryGenerator.Utilities
         // Adds ON relation if o1 is on o2 using bounding box-on-bounding box method
         public bool On(EnvironmentObject o1, EnvironmentObject o2)
         {
-            float Delta = 0.01f; 
+            const float Delta = 0.01f; 
 
             float o2MaxY = o2.bounding_box.bounds.max.y;
-            var pc = o2.transform.GetComponent<Properties_chair>();
-            bool is_chair = false;
-
-            if (pc != null)
-            {
-                List<Properties_chair.SittableUnit> suList = pc.GetSittableUnits();
-                if (suList.Count() > 0)
-                    o2MaxY = suList[0].tsfm_group.position.y;
-                is_chair = true;
-            }
-            Delta = Math.Min(Math.Max(Delta, o1.bounding_box.size[1]*0.3f), 0.2f);
             Interval<float> yInt = new Interval<float>(o2MaxY - Delta, o2MaxY + Delta);
-            if (yInt.Contains(o1.bounding_box.bounds.min.y) && CheckOnCondition(o1, o2, !is_chair)) {
+
+            if (yInt.Contains(o1.bounding_box.bounds.min.y) && CheckOnCondition(o1, o2)) {
                 AddGraphEdge(o1, o2, ObjectRelation.ON);
                 return true;
             }
@@ -1255,9 +1203,9 @@ namespace StoryGenerator.Utilities
                 new Vector3(dwSize, 1.0f, dwSize)));
         }
 
-        private static bool CheckOnCondition(EnvironmentObject o1, EnvironmentObject o2, bool y_check=true)
+        private static bool CheckOnCondition(EnvironmentObject o1, EnvironmentObject o2)
         {
-            if (y_check && o2.bounding_box.bounds.center.y > o1.bounding_box.bounds.min.y)
+            if (o2.bounding_box.bounds.center.y > o1.bounding_box.bounds.min.y)
                 return false;
 
             Rect o1XZRect = BoundsUtils.XZRect(o1.bounding_box.bounds);

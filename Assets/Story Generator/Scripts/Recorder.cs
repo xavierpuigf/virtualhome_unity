@@ -44,7 +44,6 @@ namespace StoryGenerator.Recording
         List<PoseData> poseData = new List<PoseData>();
         int frameRate = 20;
         int frameNum = 0;
-        public int currentframeNum = 0;
         bool recording = false;
         // Used to skip optic flow frame generation upon camera transition
         // Initial value is true since the first frame has bad optical flow
@@ -258,7 +257,7 @@ namespace StoryGenerator.Recording
             }
 
             // Need to check since recording can be disabled due to error such as stuck error.
-            while (recording && currentframeNum <= MaxFrameNumber) {
+            while (recording && frameNum <= MaxFrameNumber) {
                 yield return new WaitForEndOfFrame();
 
                 if (recording) {
@@ -291,7 +290,6 @@ namespace StoryGenerator.Recording
                         CamCtrls[cam_id].Update();
                 }
                 frameNum++;
-                currentframeNum++;
             }
             // If code reaches here, it means either recording is set to false or
             // frameNum exceeded max frame number. If recording is still true,

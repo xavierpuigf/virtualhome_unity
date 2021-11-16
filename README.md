@@ -1,4 +1,6 @@
 # VirtualHome Unity Source Code
+Note - This is a beta release
+
 This repository contains the source code of the VirtualHome environment, a platform to simulate complex household activities via programs. If you just want to run the simulator you can go to the main [VirtualHome repository](https://github.com/xavierpuigf/virtualhome), containing the VirtualHome API and executables of the simulator for multiple platforms. You can check more information about the project in [virtual-home.org](https://www.virtual-home.org)
 
 <p align="center">
@@ -119,5 +121,4 @@ The VirtualHome API and code has been developed by the following people.
 - Xavier Puig
 - Kevin Ra
 - Andrew Liao
-- Kabir Swain
 

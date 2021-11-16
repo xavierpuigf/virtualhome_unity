@@ -70,7 +70,6 @@ namespace StoryGenerator.CharInteraction
         {
             {"Female1", 0},
             {"Male1", 0},
-            {"Male1_invisible", 0},
             {"Male1_red", 0},
             {"Male1_blue", 0},
             {"Female2", 1},

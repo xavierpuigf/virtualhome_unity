@@ -226,7 +226,6 @@ namespace StoryGenerator.Utilities
         }
 
         public static List<Vector3> CalculatePutPositions(Vector3 intPos, GameObject go, GameObject goDest, bool putInside,
-
             bool ignoreObstacles, Vector3? clickPos = null)
         {
 
@@ -236,7 +235,6 @@ namespace StoryGenerator.Utilities
         // Put object go to goDest, character is at interaction position
         public static List<Vector3> CalculatePutPositions(Vector3 intPos, Bounds srcBounds, Vector3 srcPos, GameObject goDest,
             bool putInside, bool ignoreObstacles, Vector3? clickPos = null)
-
         {
 
 
@@ -288,8 +286,6 @@ namespace StoryGenerator.Utilities
             }
 
             Vector3 center = new Vector3(intPos.x + dir.x, 0, intPos.z + dir.z);
-            // If position specified
-
 
             if (clickPos == null)
             {
@@ -301,7 +297,6 @@ namespace StoryGenerator.Utilities
                         float x = center.x + r * Mathf.Cos(phi);
                         float z = center.z + r * Mathf.Sin(phi);
                         Vector3 srcDelta;
-
 
                         if (putInside)
                             srcDelta = new Vector3(x - srcCenter.x, destMax.y - srcBounds.size.y - 0.03f - srcBounds.min.y, z - srcCenter.z);

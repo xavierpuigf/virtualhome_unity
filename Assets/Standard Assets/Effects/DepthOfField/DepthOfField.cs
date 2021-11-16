@@ -596,7 +596,7 @@ namespace UnityStandardAssets.CinematicEffects
                 textureBokehMaterial.SetTexture("_MainTex", bokehTexture.texture);
                 textureBokehMaterial.SetVector("_Screen", new Vector3(1f / (1f * source.width), 1f / (1f * source.height), textureBokehMaxRadius));
                 textureBokehMaterial.SetPass((int)BokehTexturesPasses.Apply);
-                Graphics.DrawProceduralIndirectNow(MeshTopology.Points, computeBufferDrawArgs, 0);
+                Graphics.DrawProceduralIndirect(MeshTopology.Points, computeBufferDrawArgs, 0);
                 Graphics.Blit(tmp, destination); // Hackaround for DX11 flipfun (OPTIMIZEME)
             }
             else

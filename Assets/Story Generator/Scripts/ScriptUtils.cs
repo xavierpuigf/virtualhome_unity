@@ -874,13 +874,9 @@ namespace StoryGenerator.Scripts
                 string catName = item.Key;
                 ISet<string> objNames = new HashSet<string>();
 
-                ISet<string> names;
-                if (classObjectNamesMapTmp.TryGetValue(catName, out names))
-                {
-                    objNames.UnionWith(names);
-                }
                 foreach (string s in item.Value)
                 {
+                    ISet<string> names;
 
                     if (classObjectNamesMapTmp.TryGetValue(s, out names))
                     {
