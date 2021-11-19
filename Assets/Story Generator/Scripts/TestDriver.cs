@@ -56,9 +56,13 @@ namespace StoryGenerator
         public string task_name;
         public string task_content;
 
-        public ServerMessage(string task_name, string task_content)
+        public ServerMessage(string task_name, string task_content, int state = 0)
         {
             this.task_name = task_name;
+            if(state!=0){
+                task_content = task_content.Remove(task_content.Length-2);
+                task_content += ",\"tutFlag\":\"" + state + "\"}]";
+            }
             this.task_content = task_content;
         }
     }
@@ -746,7 +750,7 @@ namespace StoryGenerator
                                 first_press[kboard_id] = true;
                             }
                         }
-                        else if (m_keyboard.fKey.isPressed)
+                        else if (m_keyboard.dKey.isPressed)
                         {
                             if (!first_press[kboard_id])
                             {
@@ -1350,7 +1354,20 @@ namespace StoryGenerator
 
 
                 string task = JsonConvert.SerializeObject(currentEpisode.UpdateTasksString());
-                string task_info = JsonConvert.SerializeObject(new ServerMessage("UpdateTask", task));
+                Debug.Log(task);
+                int tutState = 0;
+                if (currentEpisode.task_id == 1){
+                    if (character_graph.grabbed_left != null && character_graph.grabbed_left.class_name == "plate" || character_graph.grabbed_right != null && character_graph.grabbed_right.class_name == "plate"){
+                        tutState = 2;
+                    }
+                    else if(currentEpisode.IsCompleted){
+                        tutState = 3;
+                    }
+                    else{
+                        tutState = 1;
+                    }
+                }
+                string task_info = JsonConvert.SerializeObject(new ServerMessage("UpdateTask", task, tutState));
                 for (int itt = 0; itt < licr.Count; itt++)
                 {
                     if (licr[itt] != null)
@@ -1360,7 +1377,6 @@ namespace StoryGenerator
                     }
                         
                 }
-
                 currentEpisode.StoreGraph(currentGraph, currTime, action_str, currentEpisode.posAndRotation.Count);
             }
 
@@ -2298,7 +2314,6 @@ namespace StoryGenerator
 
                 if (g.repetitions != g.count)
                 {
-
                     moreTasks = true;
                 }
             }
