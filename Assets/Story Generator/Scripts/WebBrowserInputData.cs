@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 public class WebBrowserInputData : WebBrowserInputChannelReceiver {
     RTCDataChannel channel;
-    private TestDriver td;
+    private StoryGenerator.TestDriver td;
     private int char_id;
     public override void SetChannel(string connectionId, RTCDataChannel channel)
     {
@@ -17,7 +17,7 @@ public class WebBrowserInputData : WebBrowserInputChannelReceiver {
         if (channel != null)
             channel.Send(msg);
     }
-    public void SetDriver(TestDriver td, int char_id)
+    public void SetDriver(StoryGenerator.TestDriver td, int char_id)
     {
         this.td = td;
         this.char_id = char_id;
