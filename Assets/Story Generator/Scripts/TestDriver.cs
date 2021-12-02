@@ -5,6 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.EventSystems;
+using UnityEngine.Events;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using StoryGenerator.HomeAnnotation;
 using StoryGenerator.Recording;
@@ -15,16 +18,51 @@ using StoryGenerator.Scripts;
 using StoryGenerator.Utilities;
 using StoryGenerator.Communication;
 using Newtonsoft.Json;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using StoryGenerator.CharInteraction;
 using Unity.Profiling;
-using RootMotion.FinalIK;
-
+using UnityEngine.InputSystem;
+using Unity.RenderStreaming;
+using Unity.RenderStreaming.Signaling;
+using StoryGenerator.Helpers;
+using TMPro;
 
 namespace StoryGenerator
 {
+    public class ButtonClicks
+    {
+        public string button_str;
+        public string button_action;
+        public float [] button_pos;
+
+        public ButtonClicks(string button_str, string button_action, Vector2 pos)
+        {
+            
+            
+            this.button_str = button_str;
+            this.button_action = button_action;
+            button_pos = new float[2]{pos.x, pos.y};
+
+        }
+
+
+    }
+
+    public class ServerMessage
+    {
+        public string task_name;
+        public string task_content;
+
+        public ServerMessage(string task_name, string task_content)
+        {
+            this.task_name = task_name;
+            this.task_content = task_content;
+        }
+    }
+
     [RequireComponent(typeof(Recorder))]
     public class TestDriver : MonoBehaviour
     {
@@ -33,10 +71,16 @@ namespace StoryGenerator
         static ProfilerMarker s_GetMessageMarker = new ProfilerMarker("MySystem.GetMessage");
         static ProfilerMarker s_UpdateGraph = new ProfilerMarker("MySystem.UpdateGraph");
         static ProfilerMarker s_SimulatePerfMarker = new ProfilerMarker("MySystem.Simulate");
+        static ProfilerMarker s_GetImageMarker = new ProfilerMarker("MySystem.GetImageMark");
 
+        public static ManualResetEvent mre = new ManualResetEvent(false);
+        public static bool t_lock = false;
+        public static bool use_video_stream = false;
 
         private const int DefaultPort = 8080;
+        private const int DefaultChars = 2;
         private const int DefaultTimeout = 500000;
+        private const string DefaultFileName = "default";
 
 
         //static ProcessingController processingController;
@@ -62,9 +106,46 @@ namespace StoryGenerator
         private List<ScriptExecutor> sExecutors = new List<ScriptExecutor>();
         private List<GameObject> rooms = new List<GameObject>();
 
-
-
         WaitForSeconds WAIT_AFTER_END_OF_SCENE = new WaitForSeconds(3.0f);
+
+        private Color startcolor;
+        Renderer rend;
+
+        private bool episodeDone;
+        private int episodeNum = 2;
+
+        private List<GameObject> highlightedObj = new List<GameObject> ();
+
+
+
+        static int port_websocket = 80;
+        static int num_chars = DefaultChars;
+        static string file_name = "default";
+
+        bool click = false;
+
+        public List<bool> keyPressed;
+        List<bool> first_press;
+        List<bool> first_click;
+        List<bool> mouse_clicked;
+        public List<bool> executing_action;
+        private List<Keyboard> m_keyboard_l;
+        private List<Mouse> m_mouse_l;
+
+
+        public List<string> scriptLines;
+        EnvironmentGraphCreator currentGraphCreator = null;
+        EnvironmentGraph currentGraph = null;
+        List<WebBrowserInputData> licr;
+        List<Camera> currentCameras;
+        Episode currentEpisode;
+        float currTime;
+        public List<List<string>> action_button;
+        List<GameObject> pointer;
+
+        ICollection<string> openableContainers = new HashSet<string>{"bathroomcabinet", "kitchencabinet", "cabinet", "fridge", "stove", "dishwasher", "microwave"};
+        ICollection<string> switchableContainers = new HashSet<string> { "tv", "faucet", "toaster"};
+        ICollection<string> sittableContainers = new HashSet<string> { "couch", "bed", "chair", "bench", "loveseat", "sofa", "toilet", "pianobench"};
 
         [Serializable]
         class SceneData
@@ -74,18 +155,19 @@ namespace StoryGenerator
             public int frameRate;
         }
 
-        void Start()
+        IEnumerator Start()
         {
             recorder = GetComponent<Recorder>();
 
             // Initialize data from files to static variable to speed-up the execution process
-            if (dataProviders == null) {
+            if (dataProviders == null)
+            {
                 dataProviders = new DataProviders();
             }
 
             List<string> list_assets = dataProviders.AssetsProvider.GetAssetsPaths();
 
-            
+
 
             // Check all the assets exist
             //foreach (string asset_name in list_assets)
@@ -101,38 +183,109 @@ namespace StoryGenerator
             //    }
             //}
 
-            if (commServer == null) {
+            if (commServer == null)
+            {
                 InitServer();
             }
             commServer.Driver = this;
 
             ProcessHome(false);
             DeleteChar();
-
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
 
-            if (networkRequest == null) {
+            yield return null;
+            if (networkRequest == null)
+            {
                 commServer.UnlockProcessing(); // Allow to proceed with requests
             }
-            StartCoroutine(ProcessNetworkRequest());
+            //StartCoroutine(ProcessNetworkRequest());
+            if (EpisodeNumber.episodeNum == -1)
+            {
+                EpisodeNumber.episodeNum = 5;
+                episodeNum = EpisodeNumber.episodeNum;
+                Debug.Log($"init episode number {episodeNum}");
+                // Load correct scene (episodeNum is just for testing rn)
+                string episodePath = $"Episodes/pilot_task_id_{episodeNum}_bounds.json";
+
+                string episodeFileContent = File.ReadAllText(episodePath);
+                //TextAsset episodeFile = Resources.Load<TextAsset>(episodePath);
+                Episode currentEpisode = JsonUtility.FromJson<Episode>(episodeFileContent);
+                currentEpisode.file_name = file_name;
+                SceneManager.LoadScene(currentEpisode.env_id);
+                yield return null;
+            }
+            else
+            {
+                Debug.Log($"next episode number {EpisodeNumber.episodeNum}");
+                episodeNum = EpisodeNumber.episodeNum;
+                StartCoroutine(ProcessInputRequest(episodeNum));
+            }
         }
-        
+
         private void InitServer()
         {
             string[] args = Environment.GetCommandLineArgs();
             var argDict = DriverUtils.GetParameterValues(args);
+            //Debug.Log(argDict);
             string portString = null;
-            int port = DefaultPort;
-
+            string chString = null;
+            string vString = null;
+            int port;
+            int nchars;
+            
             if (!argDict.TryGetValue("http-port", out portString) || !Int32.TryParse(portString, out port))
                 port = DefaultPort;
 
-            commServer = new HttpCommunicationServer(port) { Timeout = DefaultTimeout };
+            if (!argDict.TryGetValue("numchars", out chString) || !Int32.TryParse(chString, out nchars))
+                nchars = DefaultChars;
+
+            if (!argDict.TryGetValue("staticstream", out vString))
+                vString = "0";
+
+            if (!argDict.TryGetValue("filename", out file_name))
+                file_name = DefaultFileName;
+
+            num_chars = nchars;
+            port_websocket = port;
+            if (vString == "0")
+            {
+                use_video_stream = true;
+            }
+            else
+            {
+                use_video_stream = false;
+            }
+            Debug.Log(this.GetInstanceID());
+
+            Debug.Log("Setting port " + port_websocket.ToString());
+
+            commServer = new HttpCommunicationServer(port+1) { Timeout = DefaultTimeout };
         }
 
         private void OnApplicationQuit()
         {
             commServer?.Stop();
+        }
+
+        void OnMouseEnter()
+        {
+            if (GetComponent<Renderer>() != null)
+            {
+                Debug.Log("HIGHLIGHT");
+                rend = GetComponent<Renderer>();
+                startcolor = rend.material.color;
+                rend.material.color = Color.yellow;
+            }
+            
+        }
+
+        void OnMouseExit()
+        {
+            if (rend != null)
+            {
+                Debug.Log("UNHIGHLIGHT");
+                rend.material.color = startcolor;
+            }
         }
 
         void DeleteChar()
@@ -155,7 +308,6 @@ namespace StoryGenerator
         void ProcessHome(bool randomizeExecution)
         {
             UtilsAnnotator.ProcessHome(transform, randomizeExecution);
-
             ColorEncoding.EncodeCurrentScene(transform);
             // Disable must come after color encoding. Otherwise, GetComponent<Renderer> failes to get
             // Renderer for the disabled objects.
@@ -167,9 +319,12 @@ namespace StoryGenerator
             Debug.Log(string.Format("Processing request {0}", request));
 
             NetworkRequest newRequest = null;
-            try {
+            try
+            {
                 newRequest = JsonConvert.DeserializeObject<NetworkRequest>(request);
-            } catch (JsonException) {
+            }
+            catch (JsonException)
+            {
                 return;
             }
 
@@ -189,11 +344,107 @@ namespace StoryGenerator
             while (enumerator.MoveNext() && !recorder.BreakExecution())
                 yield return enumerator.Current;
         }
-
-        IEnumerator ProcessNetworkRequest()
+        void OnDeviceChange(InputDevice device, InputDeviceChange change)
         {
-            // There is not always a character
-            // StopCharacterAnimation(character);
+            switch (change)
+            {
+                case InputDeviceChange.Added:
+                    SetDevice(device);
+                    return;
+                case InputDeviceChange.Removed:
+                    SetDevice(device, false);
+                    return;
+            }
+        }
+
+        void SetDevice(InputDevice device, bool add = true)
+        {
+
+
+            switch (device)
+            {
+                case Mouse mouse:
+                    if (add)
+                    {
+                        for (int i = 0; i < m_mouse_l.Count; i++)
+                        {
+                            if (m_mouse_l[i] == null)
+                            {
+                                m_mouse_l[i] = mouse;
+                                break;
+                            }
+
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < m_mouse_l.Count; i++)
+                        {
+                            if (m_mouse_l[i] == mouse)
+                            {
+                                m_mouse_l[i] = null;
+                            }
+                        }
+                        
+                    }
+                    //m_mouse = add ? mouse : null;
+                    return;
+                case Keyboard keyboard:
+                    if (add)
+                    {
+                        for (int i = 0; i < m_keyboard_l.Count; i++)
+                        {
+                            if (m_keyboard_l[i] == null)
+                            {
+                                m_keyboard_l[i] = keyboard;
+
+                                string task_info = JsonConvert.SerializeObject(new ServerMessage("PlayerInfo", "Player "+i.ToString()));
+                                string task = JsonConvert.SerializeObject(currentEpisode.UpdateTasksString());
+                                string task_info2 = JsonConvert.SerializeObject(new ServerMessage("UpdateTask", task));
+
+                                if (licr[i] != null)
+                                {
+                                    if (!use_video_stream)
+                                    {
+                                        
+                                        byte[] bytes = CameraUtils.RenderImage(currentCameras[i], 384, 256, 0);
+                                        string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
+                                        licr[i].SendData(current_image);
+                                        
+                                    }
+                                    licr[i].SendData(task_info2);
+                                    licr[i].SendData(task_info);
+                                }
+                                break;
+                            }
+                                
+                        }
+                        //m_keyboard = add ? keyboard : null;
+                    }
+                    else
+                    {
+                        for (int i = 0; i < m_keyboard_l.Count; i++)
+                        {
+                            if (m_keyboard_l[i] == keyboard)
+                            {
+                                m_keyboard_l[i] = null;
+                            }
+                        }
+                    }
+                    return;
+
+
+            }
+        }
+
+        IEnumerator ProcessInputRequest(int episode)
+        {
+            yield return null;
+            string episodePath = $"Episodes/pilot_task_id_{episode}_bounds.json";
+            string episodeFile = File.ReadAllText(episodePath);
+            currentEpisode = JsonUtility.FromJson<Episode>(episodeFile);
+            currentEpisode.ClearDataFile();
+            currentEpisode.file_name = file_name;
 
             sceneCameras = ScriptUtils.FindAllCameras(transform);
             numSceneCameras = sceneCameras.Count;
@@ -202,960 +453,1119 @@ namespace StoryGenerator
             CameraUtils.DeactivateCameras(cameras);
             OneTimeInitializer cameraInitializer = new OneTimeInitializer();
             OneTimeInitializer homeInitializer = new OneTimeInitializer();
-            EnvironmentGraphCreator currentGraphCreator = null;
-            EnvironmentGraph currentGraph = null;
-            int expandSceneCount = 0;
+
+            keyPressed = new List<bool>();
+            first_press = new List<bool>();
+            first_click = new List<bool>();
+            mouse_clicked = new List<bool>();
+            executing_action = new List<bool>();
+            m_keyboard_l = new List<Keyboard>();
+            m_mouse_l = new List<Mouse>();
+            pointer = new List<GameObject>();
+
 
             InitRooms();
+            action_button = new List<List<string>>();
+            cameraInitializer.initialized = false;
+            if (currentGraph == null)
+            {
+                currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
+                currentGraph = currentGraphCreator.CreateGraph(transform);
+            }
 
-            CameraExpander.ResetCameraExpander();
+            //EXPAND SCENE
+            cameraInitializer.initialized = false;
+            List<IEnumerator> animationEnumerators = new List<IEnumerator>();
+            int expandSceneCount = 0;
+            UtilsAnnotator.SetSkipAnimation(transform);
 
-            while (true) {
-                Debug.Log("Waiting for request");
-
-                yield return new WaitUntil(() => networkRequest != null);
-
-                Debug.Log("Processing");
-
-                NetworkResponse response = new NetworkResponse() { id = networkRequest.id };
-
-                if (networkRequest.action == "camera_count"){
-                    response.success = true;
-                    response.value = cameras.Count;
-                } else if (networkRequest.action == "character_cameras")
+            try
+            {
+                if (currentGraph == null)
                 {
-                    response.success = true;
-                    response.message = JsonConvert.SerializeObject(CameraExpander.GetCamNames());
-                } else if (networkRequest.action == "camera_data") {
-                    cameraInitializer.Initialize(() => CameraUtils.InitCameras(cameras));
-
-                    IList<int> indexes = networkRequest.intParams;
-
-                    if (!CheckCameraIndexes(indexes, cameras.Count)) {
-                        response.success = false;
-                        response.message = "Invalid parameters";
-                    } else {
-                        IList<CameraInfo> cameraData = CameraUtils.CreateCameraData(cameras, indexes);
-
-                        response.success = true;
-                        response.message = JsonConvert.SerializeObject(cameraData);
-                    }
-                } else if (networkRequest.action == "add_camera") {
-                    CameraConfig camera_config = JsonConvert.DeserializeObject<CameraConfig>(networkRequest.stringParams[0]);
-                    String camera_name = cameras.Count().ToString();
-                    GameObject go = new GameObject("new_camera" + camera_name, typeof(Camera));
-                    Camera new_camera = go.GetComponent<Camera>();
-
-                    // new_camera.usePhysicalProperties = true;
-                    // new_camera.focalLength = 30.0f;
-
-                    new_camera.renderingPath = RenderingPath.UsePlayerSettings;
-
-                    Vector3 position_vec = camera_config.position;
-                    Vector3 rotation_vec = camera_config.rotation;
-                    go.transform.localPosition = position_vec;
-                    go.transform.localEulerAngles = rotation_vec;
-
-                    cameras.Add(new_camera);
-                    response.message = "New camera created. Id:" + camera_name;
-                    response.success = true;;
-                    cameraInitializer.initialized = false;
-                    CameraUtils.DeactivateCameras(cameras);
-
+                    currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
+                    currentGraph = currentGraphCreator.CreateGraph(transform);
                 }
-                else if (networkRequest.action == "add_character_camera")
+
+                ExpanderConfig graph_config = new ExpanderConfig();
+                Debug.Log("Successfully de-serialized object");
+                EnvironmentGraph graph = currentEpisode.init_graph;
+                Debug.Log("got graph");
+
+
+                if (graph_config.randomize_execution)
                 {
-                    CameraConfig camera_config = JsonConvert.DeserializeObject<CameraConfig>(networkRequest.stringParams[0]);
-                    String camera_name = camera_config.camera_name;
-                    Quaternion rotation = new Quaternion();
-                    rotation.eulerAngles = camera_config.rotation;
-
-                    bool cam_added = CameraExpander.AddNewCamera(camera_name, camera_config.position, rotation);
-                    if (characters.Count > 0)
-                    {
-                        response.success = false;
-                        response.message = "Error: you should add these cameras before defining the characters";
-                    }
-                    else
-                    {
-                        if (cam_added)
-                        {
-                            response.success = true;
-                            response.message = "New camera defined with name: " + camera_name;
-                        }
-                        else
-                        {
-                            response.success = false;
-                            response.message = "Error: a camera with this name already exists";
-                        }
-                    }
-                    
-
+                    InitRandom(graph_config.random_seed);
                 }
-                else if (networkRequest.action == "camera_image") {
-                    
-                    cameraInitializer.Initialize(() => CameraUtils.InitCameras(cameras));
 
-                    IList<int> indexes = networkRequest.intParams;
-
-                    if (!CheckCameraIndexes(indexes, cameras.Count)) {
-                        response.success = false;
-                        response.message = "Invalid parameters";
-                    } else {
-                        ImageConfig config = JsonConvert.DeserializeObject<ImageConfig>(networkRequest.stringParams[0]);
-                        int cameraPass = ParseCameraPass(config.mode);
-                        if (cameraPass == -1)
-                        {
-                            response.success = false;
-                            response.message = "The current camera mode does not exist";
-                        }
-                        else
-                        {
-
-                            foreach (int i in indexes)
-                            {
-                                CameraExpander.AdjustCamera(cameras[i]);
-                                cameras[i].gameObject.SetActive(true);
-                            }
-                            yield return new WaitForEndOfFrame();
-
-                            List<string> imgs = new List<string>();
-
-                            foreach (int i in indexes)
-                            {
-                                byte[] bytes = CameraUtils.RenderImage(cameras[i], config.image_width, config.image_height, cameraPass);
-                                cameras[i].gameObject.SetActive(false);
-                                imgs.Add(Convert.ToBase64String(bytes));
-                            }
-                            response.success = true;
-                            response.message_list = imgs;
-                        }
-
-                    }
-                } else if (networkRequest.action == "environment_graph") {
-                    if (currentGraph == null)
-                    {
-                        currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                        var graph = currentGraphCreator.CreateGraph(transform);
-                        response.success = true;
-                        response.message = JsonConvert.SerializeObject(graph);
-                        currentGraph = graph;
-                    }
-                    else
-                    {
-                        //s_GetGraphMarker.Begin();
-                        using (s_GetGraphMarker.Auto())
-                            currentGraph = currentGraphCreator.GetGraph();
-                        //s_GetGraphMarker.End();
-                        response.success = true;
-                    }
-                        
-                        
-                    using (s_GetMessageMarker.Auto())
-                    {
-                        response.message = JsonConvert.SerializeObject(currentGraph);
-                    }
-                } else if (networkRequest.action == "expand_scene") {
-                    cameraInitializer.initialized = false;
-                    List<IEnumerator> animationEnumerators = new List<IEnumerator>();
-
-                    Dictionary<GameObject, int> char_ind = new Dictionary<GameObject, int>();
-                    Dictionary<GameObject, List<Tuple<GameObject, ObjectRelation>>> grabbed_objs = new Dictionary<GameObject, List<Tuple<GameObject, ObjectRelation>>>();
-                    try {
-                        if (currentGraph == null) {
-                            currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                            currentGraph = currentGraphCreator.CreateGraph(transform);
-                        }
-
-                        ExpanderConfig config = JsonConvert.DeserializeObject<ExpanderConfig>(networkRequest.stringParams[0]);
-                        Debug.Log("Successfully de-serialized object");
-                        EnvironmentGraph graph = EnvironmentGraphCreator.FromJson(networkRequest.stringParams[1]);
-
-
-                        if (config.randomize_execution) {
-                            InitRandom(config.random_seed);
-                        }
-
-                        // Maybe we do not need this
-                        if (config.animate_character)
-                        {
-                            foreach (CharacterControl c in characters)
-                            {
-                                c.GetComponent<Animator>().speed = 1;
-                            }
-                        }
-
-                        SceneExpander graphExpander = new SceneExpander(dataProviders) {
-                            Randomize = config.randomize_execution,
-                            IgnoreObstacles = config.ignore_obstacles,
-                            AnimateCharacter = config.animate_character,
-                            TransferTransform = config.transfer_transform
-                        };
-
-                        if (networkRequest.stringParams.Count > 2 && !string.IsNullOrEmpty(networkRequest.stringParams[2])) {
-                            graphExpander.AssetsMap = JsonConvert.DeserializeObject<IDictionary<string, List<string>>>(networkRequest.stringParams[2]);
-                        }
-                        // TODO: set this with a flag
-                        bool exact_expand = config.exact_expand;
-
-
-
-                        // This should go somewhere else...
-                        List<GameObject> added_chars = new List<GameObject>();
-
-                        graphExpander.ExpandScene(transform, graph, currentGraph, expandSceneCount, added_chars, grabbed_objs, exact_expand);
-                        int chid = 0;
-                        foreach(GameObject added_char in added_chars)
-                        {
-                            Debug.Assert(!currentGraphCreator.IsInGraph(added_char));
-
-                            CharacterControl cc = added_char.GetComponent<CharacterControl>();
-                            added_char.SetActive(true);
-                            var nma = added_char.GetComponent<NavMeshAgent>();
-                            nma.Warp(added_char.transform.position);
-
-                            characters.Add(cc);
-                            
-                            cc.SetSpeed(150.0f);
-
-                            CurrentStateList.Add(null);
-                            numCharacters++;
-                            List<Camera> charCameras = CameraExpander.AddCharacterCameras(added_char.gameObject, transform, "");
-                            CameraUtils.DeactivateCameras(charCameras);
-                            cameras.AddRange(charCameras);
-                            cameraInitializer.initialized = false;
-
-                            EnvironmentObject char_obj = currentGraphCreator.AddChar(added_char.transform);
-                            char_ind[added_char] = chid;
-                            chid += 1;
-
-                        }
-                        SceneExpanderResult result = graphExpander.GetResult();
-
-                        response.success = result.Success;
-                        response.message = JsonConvert.SerializeObject(result.Messages);
-                    }
-                    catch (JsonException e)
-                    {
-                        response.success = false;
-                        response.message = "Error deserializing params: " + e.Message;
-                    }
-                    catch (Exception e)
-                    {
-                        response.success = false;
-                        response.message = "Error processing input graph: " + e.Message;
-                        Debug.Log(e);
-                    }
-                    yield return null;
-                    currentGraph = currentGraphCreator.UpdateGraph(transform);
-
-                    // Update grabbed stuff. This is a hack because it is difficult to get
-                    // from the transforms the grabbing relationships. Could be much improved
-                    foreach (GameObject character_grabbing in grabbed_objs.Keys)
-                    {
-                        EnvironmentObject char_obj = currentGraphCreator.objectNodeMap[character_grabbing];
-                        Character char_char = currentGraphCreator.characters[char_obj];
-                        State new_state = new State(character_grabbing.transform.position);
-
-                        foreach (Tuple<GameObject, ObjectRelation> grabbed_obj in grabbed_objs[character_grabbing])
-                        {
-                            EnvironmentObject obj_grabbed = currentGraphCreator.objectNodeMap[grabbed_obj.Item1];
-                            GameObject obj_grabbedgo = grabbed_obj.Item1;
-                            HandInteraction hi;
-                            if (obj_grabbedgo.GetComponent<HandInteraction>() == null)
-                            {
-                                hi = obj_grabbedgo.AddComponent<HandInteraction>();
-                                hi.added_runtime = true;
-                                hi.allowPickUp = true;
-                                hi.grabHandPose = ScriptExecutor.GetGrabPose(obj_grabbedgo).Value; // HandInteraction.HandPose.GrabVertical;
-                                hi.Initialize();
-                                    
-                            }
-                            else
-                            {
-                                hi = obj_grabbedgo.GetComponent<HandInteraction>();
-                            }
-                            if (grabbed_obj.Item2 == ObjectRelation.HOLDS_LH)
-                            {
-                                char_char.grabbed_left = obj_grabbed;
-                                new_state.AddScriptGameObject(obj_grabbed.class_name, obj_grabbed.id, obj_grabbedgo, Vector3.one, Vector3.one, true);
-                                new_state.AddGameObject("LEFT_HAND_OBJECT", grabbed_obj.Item1);
-
-                                new_state.AddObject("INTERACTION_HAND", FullBodyBipedEffector.LeftHand);
-                                // hi.Get_IO_grab(character_grabbing.transform, FullBodyBipedEffector.LeftHand);
-
-                            }
-                            if (grabbed_obj.Item2 == ObjectRelation.HOLDS_RH)
-                            {
-
-                                char_char.grabbed_right = obj_grabbed;
-                                new_state.AddScriptGameObject(obj_grabbed.class_name, obj_grabbed.id, obj_grabbedgo, Vector3.one, Vector3.one, true);
-                                new_state.AddGameObject("RIGHT_HAND_OBJECT", grabbed_obj.Item1);
-                                new_state.AddObject("INTERACTION_HAND", FullBodyBipedEffector.RightHand);
-                                // hi.Get_IO_grab(character_grabbing.transform, FullBodyBipedEffector.RightHand);
-
-                            }
-
-                            yield return characters[char_ind[character_grabbing]].GrabObject(obj_grabbedgo, (FullBodyBipedEffector)new_state.GetObject("INTERACTION_HAND"));
-                            EnvironmentObject roomobj2 = currentGraphCreator.FindRoomLocation(obj_grabbed);
-                            currentGraphCreator.RemoveGraphEdgesWithObject(obj_grabbed);
-                            currentGraphCreator.AddGraphEdge(char_obj, obj_grabbed, grabbed_obj.Item2);
-                            currentGraphCreator.AddGraphEdge(obj_grabbed, roomobj2, ObjectRelation.INSIDE);
-
-
-                        }
-
-                            
-                        CurrentStateList[char_ind[character_grabbing]] = new_state;
-                    }
-
-                        //animationEnumerators.AddRange(result.enumerators);
-                        expandSceneCount++;
-                    
-
-                    foreach (IEnumerator e in animationEnumerators) {
-                        yield return e;
-                    }
+                // Maybe we do not need this
+                if (graph_config.animate_character)
+                {
                     foreach (CharacterControl c in characters)
                     {
-                        c.GetComponent<Animator>().speed = 0;
+                        c.GetComponent<Animator>().speed = 1;
                     }
-
-                    
-
-                } else if (networkRequest.action == "point_cloud") {
-                    if (currentGraph == null) {
-                        currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                        currentGraph = currentGraphCreator.CreateGraph(transform);
-                    }
-                    PointCloudExporter exporter = new PointCloudExporter(0.01f);
-                    List<ObjectPointCloud> result = exporter.ExportObjects(currentGraph.nodes);
-                    response.success = true;
-                    response.message = JsonConvert.SerializeObject(result);
-                } else if (networkRequest.action == "instance_colors") {
-                    if (currentGraph == null) {
-                        EnvironmentGraphCreator graphCreator = new EnvironmentGraphCreator(dataProviders);
-                        currentGraph = graphCreator.CreateGraph(transform);
-                    }
-                    response.success = true;
-                    response.message = JsonConvert.SerializeObject(GetInstanceColoring(currentGraph.nodes));
-                //} else if (networkRequest.action == "start_recorder") {
-                //    RecorderConfig config = JsonConvert.DeserializeObject<RecorderConfig>(networkRequest.stringParams[0]);
-
-                //    string outDir = Path.Combine(config.output_folder, config.file_name_prefix);
-                //    Directory.CreateDirectory(outDir);
-
-                //    InitRecorder(config, outDir);
-
-                //    CharacterControl cc = character.GetComponent<CharacterControl>();
-                //    cc.rcdr = recorder;
-
-                //    if (recorder.saveSceneStates) {
-                //        List<GameObject> rooms = ScriptUtils.FindAllRooms(transform);
-                //        State_char sc = character.AddComponent<State_char>();
-                //        sc.Initialize(rooms, recorder.sceneStateSequence);
-                //        cc.stateChar = sc;
-                //    }
-
-                //    foreach (Camera camera in sceneCameras) {
-                //        camera.gameObject.SetActive(true);
-                //    }
-
-                //    recorder.Animator = cc.GetComponent<Animator>();
-                //    recorder.Animator.speed = 1;
-
-                //    CameraControl cameraControl = new CameraControl(sceneCameras, cc.transform, new Vector3(0, 1.0f, 0));
-                //    cameraControl.RandomizeCameras = config.randomize_recording;
-                //    cameraControl.CameraChangeEvent += recorder.UpdateCameraData;
-
-                //    recorder.CamCtrl = cameraControl;
-                //    recorder.MaxFrameNumber = 1000;
-                //    recorder.Recording = true;
-                //} else if (networkRequest.action == "stop_recorder") {
-                //    recorder.MarkTermination();
-                //    yield return WAIT_AFTER_END_OF_SCENE;
-                //    recorder.Recording = false;
-                //    recorder.Animator.speed = 0;
-                //    foreach (Camera camera in sceneCameras) {
-                //        camera.gameObject.SetActive(false);
-                //    }
                 }
-                else if (networkRequest.action == "add_character")
+
+                SceneExpander graphExpander = new SceneExpander(dataProviders)
                 {
-                    CharacterConfig config = JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
-                    CharacterControl newchar;
-                    newchar = AddCharacter(config.character_resource, false, config.mode, config.character_position, config.initial_room);
+                    Randomize = graph_config.randomize_execution,
+                    IgnoreObstacles = graph_config.ignore_obstacles,
+                    AnimateCharacter = graph_config.animate_character,
+                    TransferTransform = graph_config.transfer_transform
+                };
 
-                    if (newchar != null)
-                    {
-                        characters.Add(newchar);
-                        CurrentStateList.Add(null);
-                        numCharacters++;
-                        List<Camera> charCameras = CameraExpander.AddCharacterCameras(newchar.gameObject, transform, "");
-                        CameraUtils.DeactivateCameras(charCameras);
-                        cameras.AddRange(charCameras);
-                        cameraInitializer.initialized = false;
+                // TODO: set this with a flag
+                bool exact_expand = false;
+                graphExpander.ExpandScene(transform, graph, currentGraph, expandSceneCount, exact_expand);
 
-                        if (currentGraph == null)
-                        {
-                            currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                            currentGraph = currentGraphCreator.CreateGraph(transform);
-                        }
-                        else
-                        {
-                            currentGraph = currentGraphCreator.UpdateGraph(transform);
-                        }
-                        // add camera
-                        // cameras.AddRange(CameraExpander.AddCharacterCameras(newchar.gameObject, transform, ""));
+                SceneExpanderResult result = graphExpander.GetResult();
 
-
-                        response.success = true;
-                    }
-                    else
-                    {
-                        response.success = false;
-                    }
-
-                }
-
-                else if (networkRequest.action == "move_character")
+                // TODO: Do we need this?
+                //currentGraphCreator.SetGraph(graph);
+                if (!result.Success)
                 {
-                    CharacterConfig config = JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
-                    Vector3 position = config.character_position;
-                    int char_index = config.char_index;
-                    Debug.Log($"move_char to : {position}");
-
-
-                    List<GameObject> rooms = ScriptUtils.FindAllRooms(transform);
-                    foreach (GameObject r in rooms)
-                    {
-                        if (r.GetComponent<Properties_room>() != null)
-                            r.AddComponent<Properties_room>();
-                    }
-
-                    bool contained_somewhere = false;
-                    for (int i = 0; i < rooms.Count; i++)
-                    {
-                        if (GameObjectUtils.GetRoomBounds(rooms[i]).Contains(position))
-                        {
-                            contained_somewhere = true;
-                        }
-                    }
-                    if (!contained_somewhere)
-                    {
-                        response.success = false;
-                    }
-                    else
-                    {
-                        response.success = true;
-                        var nma = characters[char_index].gameObject.GetComponent<NavMeshAgent>();
-                        nma.Warp(position);
-                    }
-
+                    Tuple<EnvironmentGraph, string> currentGraph_list = new Tuple<EnvironmentGraph, string> (currentGraph, JsonConvert.SerializeObject(result.Messages));
+                    string cgraph_str = JsonConvert.SerializeObject(currentGraph_list);
+                    File.WriteAllText(String.Format("ErrorGraph_{0}.json", currentEpisode.task_id), cgraph_str);
                 }
-                // TODO: remove character as well
 
-                else if (networkRequest.action == "render_script") {
-                    if (numCharacters == 0)
-                    {
-                        networkRequest = null;
+                currentGraph = currentGraphCreator.UpdateGraph(transform);
+                animationEnumerators.AddRange(result.enumerators);
+                expandSceneCount++;
+            }
+            catch (Exception e)
+            {
+                Debug.Log("Graph expansion did not work");
+                Debug.Log(e);
+            }
 
-                        response.message = "No character added yet!";
-                        response.success = false;
+            foreach (IEnumerator e in animationEnumerators)
+            {
+                yield return e;
+            }
+            foreach (CharacterControl c in characters)
+            {
+                c.SetSpeed(20.0f);
+                c.GetComponent<Animator>().speed = 0;
+                
+            }  
+            
 
-                        commServer.UnlockProcessing(response);
+            //add one character by default
+            CharacterConfig configchar = new CharacterConfig();//JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
+            CharacterControl newchar;
+
+            GameObject newRenderStream = new GameObject("RenderStreaming");
+            //RenderStreaming.Create
+            RenderStreaming rs = newRenderStream.AddComponent<RenderStreaming>();
+            rs.runOnAwake = false;
+            MultiPlayerBroadcast bc = newRenderStream.AddComponent<MultiPlayerBroadcast>();
+            //Broadcast bc = newRenderStream.AddComponent<Broadcast>();
+
+            currentCameras = new List<Camera>();
+            licr = new List<WebBrowserInputData>();
+            //List<CharacterControl>  characters = new List<CharacterControl>();
+            //List <ScriptExecutor> sExecutors = new List<ScriptExecutor>();
+
+
+            scriptLines = new List<string>();
+            for (int itt = 0; itt < num_chars; itt++)
+            {
+                
+                scriptLines.Add("");
+                m_keyboard_l.Add(null);
+                m_mouse_l.Add(null);
+                highlightedObj.Add(null);
+                action_button.Add(new List<string> ());
+                newchar = AddCharacter(configchar.character_resource, false, "fix_room", configchar.character_position, currentEpisode.init_rooms[0]);
+                newchar.SetSpeed(20.0f);
+                StopCharacterAnimation(newchar.gameObject);
+
+                characters.Add(newchar);
+                CurrentStateList.Add(null);
+                numCharacters++;
+                List<Camera> charCameras = CameraExpander.AddCharacterCameras(newchar.gameObject, transform, "");
+                CameraUtils.DeactivateCameras(charCameras);
+                cameras.AddRange(charCameras);
+
+                
+
+                keyPressed.Add(false);
+                mouse_clicked.Add(false);
+                first_press.Add(false);
+                first_click.Add(false);
+                executing_action.Add(false);
+                
+
+                Camera currentCameraChar = charCameras.Find(c => c.name.Equals("Character_Camera_Fwd"));
+
+                WebBrowserInputData icr = currentCameraChar.gameObject.AddComponent<WebBrowserInputData>();
+                icr.SetDriver(this, itt);
+                licr.Add(icr);
+                icr.onDeviceChange += OnDeviceChange;
+
+                CameraUtils.InitCamera(currentCameraChar);
+                currentCameraChar.gameObject.SetActive(true);
+                //recorders[0].CamCtrls[cameras.IndexOf(currentCamera)].Activate(true);
+                currentCameraChar.transform.localPosition = currentCameraChar.transform.localPosition + new Vector3(0, -0.15f, 0.1f);
+
+
+                if (use_video_stream)
+                {
+                    CameraStreamer cs = currentCameraChar.gameObject.AddComponent<CameraStreamer>();
+                    bc.AddComponent(cs);
+                }
+                bc.AddComponent(icr);
+                
+                currentCameras.Add(currentCameraChar);
+            }
+            yield return null;
+            currentGraph = currentGraphCreator.UpdateGraph(transform);
+            ExecutionConfig config = new ExecutionConfig();
+            config.walk_before_interaction = false;
+            IObjectSelectorProvider objectSelectorProvider = new InstanceSelectorProvider(currentGraph);
+            IList<GameObject> objectList = ScriptUtils.FindAllObjects(transform);
+            createRecorders(config);
+            sExecutors = InitScriptExecutors(config, objectSelectorProvider, sceneCameras, objectList);
+
+            
+            string connection_type = typeof(WebSocketSignaling).FullName;
+            float interval = 5.0f;
+            Debug.Log("GETTING " + port_websocket.ToString());
+            string url = "ws://127.0.0.1:"+port_websocket.ToString(); //"ws://10.0.0.243:83";
+            Debug.Log(this.GetInstanceID());
+            SignalingHandlerBase[] handlers = { bc };
+            //object[] args = { url, interval, SynchronizationContext.Current };
+            ISignaling signal = (ISignaling) new WebSocketSignaling(url, interval, SynchronizationContext.Current);
+            //Activator.CreateInstance(Type.GetType(connection_type), args);
+            rs.Stop();
+            rs.Run(null, null, signal, handlers);
+            //rs.Run(null, null, signal, null);
+
+            // Buttons: grab, open, putleft, putright, close
+
+            // Create canvas and event system
+            GameObject newCanvas = new GameObject("Canvas");
+            Canvas canv = newCanvas.AddComponent<Canvas>();
+            canv.renderMode = RenderMode.ScreenSpaceOverlay;
+            newCanvas.AddComponent<CanvasScaler>();
+            newCanvas.AddComponent<GraphicRaycaster>();
+            GameObject eventSystem = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+
+            Rect canvasrect = canv.GetComponent<RectTransform>().rect;
+            
+            GameObject panel = new GameObject("Panel");
+            panel.AddComponent<CanvasRenderer>();
+
+            float sizew = canvasrect.width * 0.25f;
+            float sizeh = sizew * 0.5f;
+            float margin = sizew * 0.05f;
+            float posx = -canvasrect.width / 2.0f + sizew * 0.5f + margin;
+            panel.transform.position = new Vector3(posx, +canvasrect.height * 0.5f - sizeh/2.0f - margin);
+            Image i = panel.AddComponent<Image>();
+            i.rectTransform.sizeDelta = new Vector2(sizew, sizeh);
+            i.color = Color.white;
+            var tempColor = i.color;
+            tempColor.a = .6f;
+            i.color = tempColor;
+
+            panel.transform.SetParent(newCanvas.transform, false);
+           
+            GameObject tasksText = new GameObject("tasksText");
+            tasksText.AddComponent<TextMeshProUGUI>();
+            TextMeshProUGUI tasksUI = tasksText.GetComponent<TextMeshProUGUI>();
+            tasksUI.raycastTarget = false;
+            List<string> goals = new List<string>();
+            tasksUI.fontSize = 12 * sizew / 250;
+            //tasksUI.font
+            tasksUI.rectTransform.position = new Vector3(posx, +canvasrect.height * 0.5f - sizeh/2.0f - margin);
+            tasksUI.rectTransform.sizeDelta = new Vector2(sizew, sizeh);
+            currentEpisode.GenerateTasksAndGoals();
+
+
+            List<Goal> text_task = currentEpisode.UpdateTasksString();
+
+            string task = JsonConvert.SerializeObject(currentEpisode.UpdateTasksString());
+            string task_info = JsonConvert.SerializeObject(new ServerMessage("UpdateTask", task));
+            //for (int itt = 0; itt < num_chars; itt++)
+            //{
+
+            //    licr[itt].SendData(task_info);
+            //}
+
+
+
+            List<bool> button_created = new List<bool>();
+            for (int itt = 0; itt < num_chars; itt++)
+            {
+                GameObject cpointer = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                cpointer.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
+                cpointer.GetComponent<MeshRenderer>().material.color = Color.magenta;
+                pointer.Add(cpointer);
+                button_created.Add(false);
+            }
+
+            currentEpisode.StoreGraph(currentGraph, 0, "", -1);
+
+            while (!episodeDone)
+            {
+                bool saveEpisode = false;
+                
+                currTime = Time.time;
+                string move = "";
+                for (int kboard_id = 0; kboard_id < m_keyboard_l.Count(); kboard_id++)
+                {
+                    if (keyPressed[kboard_id])
                         continue;
-                    }
+                    keyPressed[kboard_id] = false;
+                    if (executing_action[kboard_id])
+                        continue;
+                    int char_id = kboard_id;
+                    Keyboard m_keyboard = m_keyboard_l[kboard_id];
 
-                    ExecutionConfig config = JsonConvert.DeserializeObject<ExecutionConfig>(networkRequest.stringParams[0]);
-
-
-                    if (config.randomize_execution) {
-                        InitRandom(config.random_seed);
-                    }
-
-                    if (currentGraph == null)
+                    if (m_keyboard != null)
                     {
-                        currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                        currentGraph = currentGraphCreator.CreateGraph(transform);
-                    }
-
-                    string outDir = Path.Combine(config.output_folder, config.file_name_prefix);
-                    if (!config.skip_execution) {
-                        Directory.CreateDirectory(outDir);
-                    }
-                    IObjectSelectorProvider objectSelectorProvider;
-                    if (config.find_solution)
-                        objectSelectorProvider = new ObjectSelectionProvider(dataProviders.NameEquivalenceProvider);
-                    else
-                        objectSelectorProvider = new InstanceSelectorProvider(currentGraph);
-                    IList<GameObject> objectList = ScriptUtils.FindAllObjects(transform);
-                    // TODO: check if we need this
-                    if (recorders.Count != numCharacters)
-                    {
-                        createRecorders(config);
-                    }
-                    else
-                    {
-                        updateRecorders(config);
-                    }
-
-                    if (!config.skip_execution)
-                    {
-                        for (int i = 0; i < numCharacters; i++)
+                        
+                        if (m_keyboard.wKey.isPressed)
                         {
-                            if (config.skip_animation)
-                                characters[i].SetSpeed(150.0f);
-                            else
-                                characters[i].SetSpeed(1.0f);
-                        }
-                    }
-                    if (config.skip_animation)
-                    {
-                        UtilsAnnotator.SetSkipAnimation(transform);
-                    }
-                    // initialize the recorders
-                    if (config.recording)
-                    {
-                        for (int i = 0; i < numCharacters; i++)
-                        {
-                            // Debug.Log($"cameraCtrl is not null? : {recorders[i].CamCtrl != null}");
-                            recorders[i].Initialize();
-                            recorders[i].Animator = characters[i].GetComponent<Animator>();
-                            
-                            //recorders[i].Animator.speed = 1;
-                        }
-
-                    }
-
-                    if (sExecutors.Count != numCharacters)
-                    {
-                        sExecutors = InitScriptExecutors(config, objectSelectorProvider, sceneCameras, objectList);
-                    }
-
-                    bool parseSuccess;
-                    try
-                    {
-                        List<string> scriptLines = networkRequest.stringParams.ToList();
-                        scriptLines.RemoveAt(0);
-                        // not ok, has video
-                        for (int i = 0; i < numCharacters; i++)
-                        {
-                            sExecutors[i].ClearScript();
-                            sExecutors[i].smooth_walk = !config.skip_animation;
-                        }
-
-                        ScriptReader.ParseScript(sExecutors, scriptLines, dataProviders.ActionEquivalenceProvider);
-                        parseSuccess = true;
-                    }
-                    catch (Exception e)
-                    {
-                        parseSuccess = false;
-                        response.success = false;
-                        response.message = $"Error parsing script: {e.Message}";
-                        //continue;
-                    }
-
-                    //s_SimulatePerfMarker.Begin();
-
-
-                    if (parseSuccess)
-                    {
-                        List<Tuple<int, Tuple<String, String>>> error_messages = new List<Tuple<int, Tuple<String, String>>>();
-                        if (!config.find_solution)
-                            error_messages = ScriptChecker.SolveConflicts(sExecutors);
-                        for (int i = 0; i < numCharacters; i++)
-                        {
-                            StartCoroutine(sExecutors[i].ProcessAndExecute(config.recording, this));
-                        }
-
-                        while (finishedChars != numCharacters)
-                        {
-                            yield return new WaitForSeconds(0.01f);
-                        }
-
-                        // Add back errors from concurrent actions
-
-                        for (int error_index = 0; error_index < error_messages.Count; error_index++)
-                        {
-                            sExecutors[error_messages[error_index].Item1].report.AddItem(error_messages[error_index].Item2.Item1, error_messages[error_index].Item2.Item2);
-                        }
-
-                    
-                        //s_SimulatePerfMarker.End();
-
-                        finishedChars = 0;
-                        ScriptExecutor.actionsPerLine = new Hashtable();
-                        ScriptExecutor.currRunlineNo = 0;
-                        ScriptExecutor.currActionsFinished = 0;
-
-                        response.message = "";
-                        response.success = false;
-                        bool[] success_per_agent = new bool[numCharacters];
-
-                        bool agent_failed_action = false;
-                        Dictionary<int, Dictionary<String, String>> messages = new Dictionary<int, Dictionary<String, String>>();
-
-
-                        if (!config.recording)
-                        {
-                            for (int i = 0; i < numCharacters; i++)
+                            if (!first_press[kboard_id])
                             {
-                                Dictionary<String, String> current_message = new Dictionary<String, String>();
 
-                                if (!sExecutors[i].Success)
-                                {
-                                    String message = "";
-                                    message += $"ScriptExcutor {i}: ";
-                                    message += sExecutors[i].CreateReportString();
-                                    message += "\n";
-                                    current_message["message"] = message;
+                                move = String.Format("<char{0}> [walkforward]", char_id);
+                                Debug.Log("move forward");
+                                keyPressed[kboard_id] = true;
+                                first_press[kboard_id] = true;
+                            }
+                        }
+                        else if (m_keyboard.sKey.isPressed)
+                        {
+                            if (!first_press[kboard_id])
+                            {
+                                move = String.Format("<char{0}> [walkbackward]", char_id);
+                                Debug.Log("move backward");
+                                keyPressed[kboard_id] = true;
+                                first_press[kboard_id] = true;
+                            }
+                        }
+                        else if (m_keyboard.fKey.isPressed)
+                        {
+                            if (!first_press[kboard_id])
+                            {
+                                move = String.Format("<char{0}> [turnright]", char_id);
+                                Debug.Log("move right");
+                                keyPressed[kboard_id] = true;
+                                first_press[kboard_id] = true;
+                            }
 
-                                    success_per_agent[i] = false;
-                                    agent_failed_action = true;
-                                }
-                                else
+                        }
+                        else if (m_keyboard.aKey.isPressed)
+                        {
+                            if (!first_press[kboard_id])
+                            {
+                                move = String.Format("<char{0}> [turnleft]", char_id);
+                                Debug.Log("move left");
+                                keyPressed[kboard_id] = true;
+                                first_press[kboard_id] = true;
+                            }
+
+                        }
+                        else if (m_keyboard.vKey.isPressed)
+                        {
+                            if (!first_press[kboard_id])
+                            {
+                                saveEpisode = true;
+                                first_press[kboard_id] = true;
+                            }
+                        }
+                        else if (m_keyboard.gKey.isPressed)
+                        {
+                            if (!first_press[kboard_id])
+                            {
+                                episodeDone = true;
+
+                                saveEpisode = true;
+                                first_press[kboard_id] = true;
+                            }
+                        }
+                        //TODO: add going backwards and clean up Input code
+
+
+                        //TODO: add camera movement
+                        else if (m_keyboard.upArrowKey.isPressed)
+                        {
+                            if (!first_press[kboard_id])
+                            {
+                                Debug.Log("move cam up");
+                                currentEpisode.AddAction("move cam up", currTime);
+                                currentCameras[kboard_id].transform.Rotate(-3, 0, 0);
+                                first_press[kboard_id] = true;
+                                if (!use_video_stream)
                                 {
-                                    current_message["message"] = "Success";
-                                    response.success = true;
-                                    success_per_agent[i] = true;
+                                    byte[] bytes = CameraUtils.RenderImage(currentCameras[kboard_id], 384, 256, 0);
+                                    string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
+                                    licr[kboard_id].SendData(current_image);
+
                                 }
-                                messages[i] = current_message;
+                            }
+                        }
+                        else if (m_keyboard.downArrowKey.isPressed)
+                        {
+                            if (!first_press[kboard_id])
+                            {
+                                Debug.Log("move cam down");
+                                currentEpisode.AddAction("move cam down", currTime);
+                                currentCameras[kboard_id].transform.Rotate(3, 0, 0);
+                                first_press[kboard_id] = true;
+                                if (!use_video_stream)
+                                {
+                                    byte[] bytes = CameraUtils.RenderImage(currentCameras[kboard_id], 384, 256, 0);
+                                    string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
+                                    licr[kboard_id].SendData(current_image);
+
+                                }
+                            }
+
+                        }
+                        else if (m_keyboard.eKey.isPressed)
+                        {
+                            if (highlightedObj[kboard_id] != null & !first_press[kboard_id])
+                            {
+                                highlightedObj[kboard_id].transform.Rotate(new Vector3(0, 1, 0), 15);
+                                first_press[kboard_id] = true;
+                                if (!use_video_stream)
+                                {
+                                    for (int ii = 0; ii < currentCameras.Count(); ii++)
+                                    {
+
+                                        byte[] bytes = CameraUtils.RenderImage(currentCameras[kboard_id], 384, 256, 0);
+                                        string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
+                                        licr[kboard_id].SendData(current_image);
+                                    }
+
+                                }
+                            }
+                        }
+                        else if (m_keyboard.qKey.isPressed)
+                        {
+                            if (highlightedObj[kboard_id] != null & !first_press[kboard_id])
+                            {
+                                highlightedObj[kboard_id].transform.Rotate(new Vector3(0, 1, 0), -15);
+                                first_press[kboard_id] = true;
+                                if (!use_video_stream)
+                                {
+                                    for (int ii = 0; ii < currentCameras.Count(); ii++)
+                                    {
+
+                                        byte[] bytes = CameraUtils.RenderImage(currentCameras[kboard_id], 384, 256, 0);
+                                        string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
+                                        licr[kboard_id].SendData(current_image);
+                                    }
+
+                                }
                             }
                         }
                         else
                         {
-                            for (int i = 0; i < numCharacters; i++)
-                            {
-                                Dictionary<String, String> current_message = new Dictionary<String, String>();
-                                Recorder rec = recorders[i];
-                                if (!sExecutors[i].Success)
-                                {
-                                    //response.success = false;
-                                    String message = "";
-                                    message += $"ScriptExcutor {i}: ";
-                                    message += sExecutors[i].CreateReportString();
-                                    message += "\n";
-                                    current_message["message"] = message;
-                                }
-                                else if (rec.Error != null)
-                                {
-                                    //Directory.Delete(rec.OutputDirectory);
-                                    //response.success = false;
-                                    agent_failed_action = true;
-                                    String message = "";
-                                    message += $"Recorder {i}: ";
-                                    message += recorder.Error.Message;
-                                    message += "\n";
-                                    rec.Recording = false;
-                                    current_message["message"] = message;
-                                }
-                                else
-                                {
-                                    current_message["message"] = "Success";
-                                    response.success = true;
-                                    success_per_agent[i] = true;
-                                    rec.MarkTermination();
-                                    rec.Recording = false;
-                                    rec.Animator.speed = 0;
-                                    CreateSceneInfoFile(rec.OutputDirectory, new SceneData()
-                                    {
-                                        frameRate = config.frame_rate,
-                                        sceneName = SceneManager.GetActiveScene().name
-                                    });
-                                    rec.CreateTextualGTs();
-                                }
-
-
-                                messages[i] = current_message;
-                            }
+                            //Debug.Log("no key pressed");
+                            keyPressed[kboard_id] = false;
+                            first_press[kboard_id] = false;
                         }
-                        response.message = JsonConvert.SerializeObject(messages);
 
-                        // If any of the agent fails an action, report failure
-
-                        if (agent_failed_action)
-                            response.success = false;
-                        ISet<GameObject> changedObjs = new HashSet<GameObject>();
-                        IDictionary<Tuple<string, int>, ScriptObjectData> script_object_changed = new Dictionary<Tuple<string, int>, ScriptObjectData>();
-                        List<ActionObjectData> last_action = new List<ActionObjectData>();
-                        bool single_action = true;
-                        for (int char_index = 0; char_index < numCharacters; char_index++)
+                        if (keyPressed[kboard_id])
                         {
-                            if (success_per_agent[char_index])
+                            if (move != "")
                             {
-                                State currentState = this.CurrentStateList[char_index];
-                                GameObject rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
-                                GameObject lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
-                                EnvironmentObject obj1;
-                                EnvironmentObject obj2;
-                                currentGraphCreator.objectNodeMap.TryGetValue(characters[char_index].gameObject, out obj1);
-                                Character character_graph;
-                                currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
-
-                                if (sExecutors[char_index].script.Count > 1)
-                                {
-                                    single_action = false;
-                                }
-                                if (sExecutors[char_index].script.Count == 1)
-                                {
-                                    // If only one action was executed, we will use that action to update the environment
-                                    // Otherwise, we will update using coordinates
-                                    ScriptPair script = sExecutors[char_index].script[0];
-                                    ActionObjectData object_script = new ActionObjectData(character_graph, script, currentState.scriptObjects);
-                                    last_action.Add(object_script);
-
-                                }
-                                Debug.Assert(character_graph != null);
-                                if (lh != null)
-                                {
-                                    currentGraphCreator.objectNodeMap.TryGetValue(lh, out obj2);
-                                    character_graph.grabbed_left = obj2;
-
-                                }
-                                else
-                                {
-                                    character_graph.grabbed_left = null;
-                                }
-                                if (rh != null)
-                                {
-                                    currentGraphCreator.objectNodeMap.TryGetValue(rh, out obj2);
-                                    character_graph.grabbed_right = obj2;
-                                }
-                                else
-                                {
-
-                                    character_graph.grabbed_right = null;
-                                }
-
-                                IDictionary<Tuple<string, int>, ScriptObjectData> script_objects_state = currentState.scriptObjects;
-                                foreach (KeyValuePair<Tuple<string, int>, ScriptObjectData> entry in script_objects_state)
-                                {
-                                    if (!entry.Value.GameObject.IsRoom())
-                                    {
-                                        //if (entry.Key.Item1 == "cutleryknife")
-                                        //{
-
-                                        //    //int instance_id = entry.Value.GameObject.GetInstanceID();
-                                        //}
-                                        changedObjs.Add(entry.Value.GameObject);
-                                    }
-
-                                    if (entry.Value.OpenStatus != OpenStatus.UNKNOWN)
-                                    {
-                                        //if (script_object_changed.ContainsKey(entry.Key))
-                                        //{
-                                        //    Debug.Log("Error, 2 agents trying to interact at the same time");
-                                        if (sExecutors[char_index].script.Count > 0 && sExecutors[char_index].script[0].Action.Name.Instance == entry.Key.Item2)
-                                        {
-                                            script_object_changed[entry.Key] = entry.Value;
-                                        }
-
-                                        //}
-                                        //else
-                                        //{
-
-                                        //}
-                                    }
-
-                                }
-                                foreach (KeyValuePair<Tuple<string, int>, ScriptObjectData> entry in script_object_changed)
-                                {
-                                    if (entry.Value.OpenStatus == OpenStatus.OPEN)
-                                    {
-                                        currentGraphCreator.objectNodeMap[entry.Value.GameObject].states.Remove(Utilities.ObjectState.CLOSED);
-                                        currentGraphCreator.objectNodeMap[entry.Value.GameObject].states.Add(Utilities.ObjectState.OPEN);
-                                    }
-                                    else if (entry.Value.OpenStatus == OpenStatus.CLOSED)
-                                    {
-                                        currentGraphCreator.objectNodeMap[entry.Value.GameObject].states.Remove(Utilities.ObjectState.OPEN);
-                                        currentGraphCreator.objectNodeMap[entry.Value.GameObject].states.Add(Utilities.ObjectState.CLOSED);
-                                    }
-                                }
+                                scriptLines[kboard_id] = move;
+                                currentEpisode.AddAction(move, currTime);
                             }
 
-                            using (s_UpdateGraph.Auto())
-                            {
-                                if (single_action)
-                                    currentGraph = currentGraphCreator.UpdateGraph(transform, null, last_action);
-                                else
-                                    currentGraph = currentGraphCreator.UpdateGraph(transform, changedObjs);
-                            }
+
                         }
-                    }
 
-                } else if (networkRequest.action == "reset") {
-                    cameraInitializer.initialized = false;
-                    networkRequest.action = "environment_graph"; // return result after scene reload
-                    currentGraph = null;
-                    currentGraphCreator = null;
-                    CurrentStateList = new List<State>();
-                    //cc = null;
-                    numCharacters = 0;
-                    characters = new List<CharacterControl>();
-                    sExecutors = new List<ScriptExecutor>();
-                    cameras = cameras.GetRange(0, numSceneCameras);
-                    CameraExpander.ResetCameraExpander();
-
-                    if (networkRequest.intParams?.Count > 0)
-                    {
-                        int sceneIndex = networkRequest.intParams[0];
-
-                        if (sceneIndex >= 0 && sceneIndex < SceneManager.sceneCountInBuildSettings)
-                        {
-
-                            SceneManager.LoadScene(sceneIndex);
-
-                            yield break;
-                        }
-                        else
-                        {
-                            response.success = false;
-                            response.message = "Invalid scene index";
-                        }
+                        //if (m_keyboard.GetKe)
                     }
                     else
                     {
-
-                        Debug.Log("Reloading");
-                        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-                        DeleteChar();
-                        Debug.Log("Reloaded");
-                        yield break;
+                        first_press[kboard_id] = false;
+                        keyPressed[kboard_id] = false;
                     }
-                }
-                else if (networkRequest.action == "observation")
-                {
 
-                    if (currentGraph == null)
+
+
+
+                    mouse_clicked[kboard_id] = false;
+                    if (m_mouse_l[kboard_id] != null)
                     {
-                        response.success = false;
-                        response.message = "Envrionment graph is not yet initialized";
-                    }
-                    else
-                    {
-                        IList<int> indices = networkRequest.intParams;
-                        if (!CheckCameraIndexes(indices, cameras.Count))
+                        if (m_mouse_l[kboard_id].leftButton.isPressed)
                         {
-                            response.success = false;
-                            response.message = "Invalid parameters";
+                            //click = true;
+                            if (!first_click[kboard_id])
+                            {
+                                first_click[kboard_id] = true;
+                                mouse_clicked[kboard_id] = true;
+                            }
+
+
+
                         }
                         else
                         {
-                            int index = indices[0];
-                            Camera cam = cameras[index];
-                            CameraExpander.AdjustCamera(cam);
-                            cameras[index].gameObject.SetActive(true);
-                            cam.enabled = true;
-                            yield return new WaitForEndOfFrame();
+                            first_click[kboard_id] = false;
+                        }
+                    }
+                    // rotate highlighted object
+                    if (keyPressed[kboard_id])
+                    {
+                        highlightedObj[kboard_id] = null;
+                    }
+                
 
-                            Plane[] frustum = GeometryUtility.CalculateFrustumPlanes(cam);
 
-                            Dictionary<int, String> visibleObjs = new Dictionary<int, String>();
-                            foreach (EnvironmentObject node in currentGraph.nodes)
+                    //if (Input.GetMouseButtonDown(0))
+                    if (mouse_clicked[kboard_id] && first_click[kboard_id])
+                    {
+                        highlightedObj[kboard_id] = null;
+                        
+                        if (button_created[kboard_id])
+                        {
+
+                            button_created[kboard_id] = false;
+                            pointer[kboard_id].SetActive(false);
+                            licr[kboard_id].SendData("DeleteButtons");
+                            //break;
+                            //continue;
+                        }
+                        if (!click)
+                        {
+                            RaycastHit rayHit;
+                            float x = m_mouse_l[kboard_id].position.x.ReadValue();
+                            float y = m_mouse_l[kboard_id].position.y.ReadValue();
+                            if (!use_video_stream)
                             {
-                                if (EnvironmentGraphCreator.IGNORE_IN_EDGE_OBJECTS.Contains(node.class_name))
+                                float ratio1 = 384.0f / 256.0f;
+                                float ratio2 = (1.0f*currentCameras[kboard_id].pixelWidth) / (currentCameras[kboard_id].pixelHeight*1.0f);
+                                Debug.Log(String.Format("{0} {1} {2} {3} {4} {5}", x, y, ratio1, ratio2, currentCameras[kboard_id].pixelHeight, currentCameras[kboard_id].pixelWidth));
+
+                                if (ratio1 > ratio2)
+                                {
+                                    // clip in y
+                                    x = (x / 384.0f) * currentCameras[kboard_id].pixelWidth;
+                                }
+                                else
+                                {
+                                    // clip in x
+                                    float clipped_width = currentCameras[kboard_id].pixelHeight * ratio1;
+                                    float pad = (currentCameras[kboard_id].pixelWidth - clipped_width) / 2.0f;
+                                    x = ((x / 384.0f) * clipped_width) + pad;
+                                    y = (y / 256.0f) * currentCameras[kboard_id].pixelHeight;
+                                }
+                            }
+                            Vector2 mouseClickPosition = new Vector2(x, y);
+                            Ray ray = currentCameras[kboard_id].ScreenPointToRay(mouseClickPosition);
+                            bool hit = Physics.Raycast(ray, out rayHit);
+                            //Debug.DrawRay(ray.origin, ray.direction, Color.green, 20, true);
+                            List<ButtonClicks> buttons_show = new List<ButtonClicks>();
+                            if (hit)
+                            {
+
+
+
+                                //click = true;
+                                Transform t = rayHit.transform;
+                                pointer[kboard_id].SetActive(true);
+
+                                pointer[kboard_id].transform.position = rayHit.point;
+                                licr[kboard_id].SendData("DeleteButtons");
+                                if (!use_video_stream)
+                                {
+                                    
+
+                                    byte[] bytes = CameraUtils.RenderImage(currentCameras[kboard_id], 384, 256, 0);
+                                    string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
+                                    licr[kboard_id].SendData(current_image);
+                                    
+                                }
+
+                                InstanceSelectorProvider objectInstanceSelectorProvider = (InstanceSelectorProvider)objectSelectorProvider;
+
+                                while (t != null && !objectInstanceSelectorProvider.objectIdMap.ContainsKey(t.gameObject))
+                                {
+                                    t = t.parent;
+                                }
+
+                                EnvironmentObject obj;
+                                try
+                                {
+                                    currentGraphCreator.objectNodeMap.TryGetValue(t.gameObject, out obj);
+                                }
+                                catch
+                                {
+                                    obj = null;
+                                    Debug.Log("ERROR GETTING OBJECT");
+                                    Debug.Log(t);
+                                }
+
+                                if (obj == null)
                                 {
                                     continue;
                                 }
+                                string objectName = obj.class_name;
+                                int objectId = obj.id;
+                                Debug.Log("object name " + objectName);
 
-                                // check if the object bounding box is in the camera frustum
-                                if (GeometryUtility.TestPlanesAABB(frustum, node.bounding_box.bounds))
+                                rend = t.GetComponent<Renderer>();
+
+                                //TODO: add Halo around objects, activating and disactivating
+                                /*GameObject haloPrefab = Resources.Load("Halo") as GameObject;
+                                GameObject halo = (GameObject)Instantiate(haloPrefab);
+                                halo.transform.SetParent(t, false);
+                                */
+
+                                ICollection<string> objProperties = obj.properties;
+                                ISet<Utilities.ObjectState> objStates = obj.states_set;
+
+                                // coordinate of click
+                                Vector2 mousePos = new Vector2();
+                                mousePos.x = Input.mousePosition.x;
+                                mousePos.y = currentCameras[kboard_id].pixelHeight - Input.mousePosition.y;
+                                Vector3 point = currentCameras[kboard_id].ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, currentCameras[kboard_id].nearClipPlane));
+                                Debug.Log("point " + point);
+
+                                //TODO: grabbing/putting with right and left hands
+                                State currentState = this.CurrentStateList[kboard_id];
+
+                                GameObject rh, lh;
+                                if (currentState == null)
                                 {
-                                    // check is camera can actually see the object by raycasting
-                                    if (SeenByCamera(cam, node.transform))
+                                    Debug.Log("HEre");
+                                    rh = lh = null;
+                                }
+                                else
+                                {
+
+                                    rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
+                                    lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
+                                }
+                                EnvironmentObject obj1, obj2, obj3;
+
+                                currentGraphCreator.objectNodeMap.TryGetValue(characters[kboard_id].gameObject, out obj1);
+                                Character character_graph;
+                                currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
+
+                                float distance = Vector3.Distance(characters[kboard_id].transform.position, obj.transform.position);
+                                //distance = 0.0f;
+                                Debug.Log("MY POSITION " + characters[0].transform.position);
+                                Debug.Log("OBJECT POSITION " + obj.transform.position);
+                                Debug.Log("DISTANCE " + distance);
+
+                                if (objProperties.Contains("GRABBABLE") && (lh == null || rh == null) && distance < 2.8)
+                                {
+                                    highlightedObj[kboard_id] = t.gameObject;
+
+ 
+                                    buttons_show.Add(new ButtonClicks("Grab " + objectName, String.Format("<char{2}> [grab] <{0}> ({1})",
+                                        objectName, objectId, kboard_id),
+                                        new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
+
+                                    button_created[kboard_id] = true;
+
+                                }
+
+                                //put on/in surfaces
+                                else if ((objProperties.Contains("SURFACES") || (openableContainers.Contains(objectName) && objStates.Contains(Utilities.ObjectState.OPEN)) ||
+                                    (objProperties.Contains("CONTAINERS") && !openableContainers.Contains(objectName))) && (rh != null || lh != null)
+                                    // && (!goPutLeft.activeSelf || !goPutRight.activeSelf)
+                                    && distance < 2)
+                                {
+                                    Debug.Log("put");
+
+                                    if (lh != null)
                                     {
-                                        visibleObjs.Add(node.id, node.class_name);
+                                        currentGraphCreator.objectNodeMap.TryGetValue(lh, out obj2);
+                                        Debug.Log("Put " + obj2.class_name + " on " + objectName);
+
+                                        string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
+
+                                        string action = String.Format("<char{5}> [put] <{2}> ({3}) <{0}> ({1}) {4}",
+                                            objectName, objectId, obj2.class_name, obj2.id, putPos, kboard_id);
+
+                                        buttons_show.Add(new ButtonClicks("Put " + obj2.class_name + " on " + objectName, String.Format(action, objectName, objectId),
+                                        new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
+
+
+
+                                        button_created[kboard_id] = true;
+
+
+                                    }
+                                    if (rh != null)
+                                    {
+                                        currentGraphCreator.objectNodeMap.TryGetValue(rh, out obj3);
+                                        Debug.Log("Put " + obj3.class_name + " on " + objectName);
+                                        //goPutRight.GetComponentInChildren<TextMeshProUGUI>().text = "Put " + obj3.class_name + "\n on " + objectName;
+                                        //goPutRight.SetActive(true);
+                                        //Button buttonPutRight = goPutRight.GetComponent<Button>();
+
+
+                                        string putPos = String.Format("{0},{1},{2}", rayHit.point.x.ToString(), rayHit.point.y.ToString(), rayHit.point.z.ToString());
+
+                                        string action = String.Format("<char{5}> [put] <{2}> ({3}) <{0}> ({1}) {4}",
+                                            objectName, objectId, obj3.class_name, obj3.id, putPos, kboard_id);
+
+                                        buttons_show.Add(new ButtonClicks("Put " + obj3.class_name + " on " + objectName, String.Format(action, objectName, objectId),
+                                        new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
+
+                                        button_created[kboard_id] = true;
+
+
+
+                                    }
+
+
+                                }
+                                //open/close
+                                if (openableContainers.Contains(objectName) && distance < 2.8)
+                                {
+                                    //TODO: fix highlight
+                                    /*if (rend != null)
+                                    {
+                                        startcolor = rend.material.color;
+                                        Debug.Log("rend not null! " + rend.material.color);
+                                        rend.material.color = Color.yellow;
+                                    }
+                                    */
+                                    if (objStates.Contains(Utilities.ObjectState.CLOSED))
+                                    {
+                                        Debug.Log("open");
+                                        buttons_show.Add(new ButtonClicks("Open " + objectName, String.Format("<char{2}> [open] <{0}> ({1})", objectName, objectId, kboard_id),
+                                        new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
+
+                                        button_created[kboard_id] = true;
+
+                                    }
+                                    else if (objStates.Contains(Utilities.ObjectState.OPEN))
+                                    {
+                                        Debug.Log("close");
+                                        Debug.Log("open");
+                                        buttons_show.Add(new ButtonClicks("Close " + objectName, String.Format("<char{2}> [close] <{0}> ({1})", objectName, objectId, kboard_id),
+                                        new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
+                                        button_created[kboard_id] = true;
+
+
+
+
+                                        button_created[kboard_id] = true;
+
                                     }
                                 }
+
+
+
+                                //turn switch on / off
+                                if (switchableContainers.Contains(objectName) && distance < 2.8)
+                                {
+                                    //TODO: fix highlight
+                                    /*if (rend != null)
+                                    {
+                                        startcolor = rend.material.color;
+                                        Debug.Log("rend not null! " + rend.material.color);
+                                        rend.material.color = Color.yellow;
+                                    }
+                                    */
+                                    if (objStates.Contains(Utilities.ObjectState.OFF))
+                                    {
+                                        Debug.Log("on");
+                                        buttons_show.Add(new ButtonClicks("SwitchOn " + objectName, String.Format("<char{2}> [switchon] <{0}> ({1})", objectName, objectId, kboard_id),
+                                        new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
+
+                                        button_created[kboard_id] = true;
+
+                                    }
+                                    else if (objStates.Contains(Utilities.ObjectState.ON))
+                                    {
+                                        Debug.Log("off");
+                                        Debug.Log("on");
+                                        buttons_show.Add(new ButtonClicks("SwitchOff " + objectName, String.Format("<char{2}> [switchoff] <{0}> ({1})", objectName, objectId, kboard_id),
+                                        new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
+                                        button_created[kboard_id] = true;
+
+
+
+
+                                        button_created[kboard_id] = true;
+
+                                    }
+                                }
+
+
+                                //sit/unsit
+                                //if (sittableContainers.Contains(objectName) && distance < 1.8)
+                                //{
+                                //    //TODO: fix highlight
+                                //    /*if (rend != null)
+                                //    {
+                                //        startcolor = rend.material.color;
+                                //        Debug.Log("rend not null! " + rend.material.color);
+                                //        rend.material.color = Color.yellow;
+                                //    }
+                                //    */
+
+                                // String characterState = (String)currentState.GetObject("CHARACTER_STATE");
+                                // Debug.Log("characterState is " + characterState);
+                                // Debug.Log("objectName is " + objectName);
+                                // Debug.Log("objState is " + objStates.ToString());
+                                // Debug.Log("objStates is sitting = " + objStates.Contains(Utilities.ObjectState.SITTING));
+                                    
+                                //    //if (!characterState.Equals("SITTING"))
+                                //    //{
+                                //    Debug.Log("--------- sitting on");
+                                //    buttons_show.Add(new ButtonClicks("Sit " + objectName, String.Format("<char{2}> [sit] <{0}> ({1})", objectName, objectId, kboard_id),
+                                //    new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
+
+                                //    button_created[kboard_id] = true;
+                                //    Debug.Log("--------- button created ...");
+                                //    //}
+                                //    if (characterState.Equals("SITTING"))
+                                //    {
+                                //        Debug.Log("######### standing up");
+                                //        buttons_show.Add(new ButtonClicks("StandUp " + objectName, String.Format("<char{2}> [standup] <{0}> ({1})", objectName, objectId, kboard_id),
+                                //        new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
+                                //        button_created[kboard_id] = true;
+                                //    }
+
+                                //}
+
+                                if (sittableContainers.Contains(objectName) && distance < 2.8)
+                                {
+                                    //TODO: fix highlight
+                                    /*if (rend != null)
+                                    {
+                                        startcolor = rend.material.color;
+                                        Debug.Log("rend not null! " + rend.material.color);
+                                        rend.material.color = Color.yellow;
+                                    }
+                                    */
+                                    if (currentGraphCreator.HasEdge(char_id, objectId, ObjectRelation.ON))
+                                    {
+                                        Debug.Log("need to stand");
+                                        buttons_show.Add(new ButtonClicks("StandUp " + objectName,
+                                        String.Format("<char{2}> [standup]", objectName, objectId, kboard_id),
+                                        new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
+
+                                        button_created[kboard_id] = true;
+
+                                    }
+                                    else
+                                    {
+                                        Debug.Log("need to sit");
+                                        buttons_show.Add(new ButtonClicks("sit " + objectName, String.Format("<char{2}> [sit] <{0}> ({1})", objectName, objectId, kboard_id),
+                                        new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
+                                        button_created[kboard_id] = true;
+
+
+                                    }
+                                }
+
+                                Debug.Log("now what?");
+                                string button_click_info = JsonConvert.SerializeObject(buttons_show);
+                                button_click_info = JsonConvert.SerializeObject(new ServerMessage("ButtonInfo", button_click_info));
+                                action_button[kboard_id].Clear();
+                                for (int it = 0; it < buttons_show.Count; it++)
+                                {
+                                    action_button[kboard_id].Add(buttons_show[it].button_action);
+                                }
+
+                                licr[kboard_id].SendData(button_click_info);
                             }
-                            cam.enabled = false;
-                            Debug.Log(visibleObjs);
-
-                            response.success = true;
-                            response.message = JsonConvert.SerializeObject(visibleObjs);
-
                         }
                     }
-
-
                 }
-
-                else if (networkRequest.action == "fast_reset")
+                if (saveEpisode)
                 {
-                    System.Diagnostics.Stopwatch resetStopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-                    // Reset without reloading scene
-                    cameraInitializer.initialized = false;
-                    networkRequest.action = "environment_graph"; // return result after scene reload
-                    //currentGraph = null;
-                    //currentGraphCreator = null;
-                    var graph = currentGraph;
-                    CurrentStateList = new List<State>();
-
-                    foreach (GameObject go in currentGraphCreator.objectNodeMap.Keys)
+                    Debug.Log("Saving data...");
+                    currentEpisode.RecordData();
+                    for (int itt = 0; itt < licr.Count(); itt++)
                     {
-                        if (go == null)
-                        {
-                            continue;
-                        }
-                        HandInteraction higo = go.GetComponent<HandInteraction>();
-                        if (higo != null && higo.invisibleCpy != null)
-                        {
-                            bool added_rt = higo.added_runtime;
-                            Destroy(higo);
-                            if (!added_rt)
-                            {
-                                go.AddComponent<HandInteraction>();
-                            }
-                            // Do we need to specify that the invisible copy is not null?
-                        }
+                        licr[itt].SendData("SaveTime");
                     }
-                    // Remove characters and objects they may have
-                    for (int i = 0; i < characters.Count; i++)
+                }
+                for (int char_id = 0; char_id < keyPressed.Count(); char_id++) {
+                    if (keyPressed[char_id])
                     {
-                        EnvironmentObject character_env_obj = currentGraphCreator.objectNodeMap[characters[i].gameObject];
-                        if (currentGraphCreator.characters[character_env_obj].grabbed_left != null)
+                        //un-highlight TODO 
+                        /*if (rend != null)
                         {
-                            currentGraphCreator.RemoveObject(currentGraphCreator.characters[character_env_obj].grabbed_left);
-                        }
-                        if (currentGraphCreator.characters[character_env_obj].grabbed_right != null)
-                        {
-                            currentGraphCreator.RemoveObject(currentGraphCreator.characters[character_env_obj].grabbed_right);
-                        }
-                        currentGraphCreator.RemoveObject(character_env_obj);
-                        Destroy(characters[i].gameObject);
+                            rend.material.color = startcolor;
+                            rend = null;
+                        }*/
+                        //Debug.Log(first_press);
+
+
+
+                        Debug.Log(first_press);
+                        pointer[char_id].SetActive(false);
+                        keyPressed[char_id] = false;
+                        yield return ExecuteScript(char_id);
+
                     }
-                    currentGraphCreator.characters.Clear();
-
-                    characters = new List<CharacterControl>();
-                    numCharacters = 0;
-                    sExecutors = new List<ScriptExecutor>();
-                    cameras = cameras.GetRange(0, numSceneCameras);
-
-
-                    //Start();
-                    response.success = true;
-                    response.message = "";
-
-                    resetStopwatch.Stop();
-                    Debug.Log(String.Format("fast reset time: {0}", resetStopwatch.ElapsedMilliseconds));
-
                 }
-                else if (networkRequest.action == "idle") {
-                    response.success = true;
-                    response.message = "";
-                } else {
-                    response.success = false;
-                    response.message = "Unknown action " + networkRequest.action;
-                }
-                
-                // Ready for next request
-                networkRequest = null;
 
-                commServer.UnlockProcessing(response);
+                yield return null;
+
             }
+            Debug.Log("done");
+            EpisodeNumber.episodeNum++;
+            string nextEpisodePath = $"Episodes/pilot_task_id_{EpisodeNumber.episodeNum}_bounds.json";
+            string nextEpisodeFile =  File.ReadAllText(nextEpisodePath);
+            Episode nextEpisode = JsonUtility.FromJson<Episode>(nextEpisodeFile);
+            int nextSceneIndex = nextEpisode.env_id;
+            if (nextSceneIndex >= 0 && nextSceneIndex < SceneManager.sceneCountInBuildSettings)
+            {
+                Debug.Log($"loading episode: {nextSceneIndex}");
+                SceneManager.LoadScene(nextSceneIndex);
+                yield break;
+            }
+            Debug.Log($"Scene Loaded {SceneManager.GetActiveScene().buildIndex}");
+            yield return null;
+
         }
+
+        private string GetObj(string instr)
+        {
+            string obj_name = "";
+            string pattParams = @"<([\w\s]+)>\s*\((\d+)\)\s*(:\d+:)?";
+            Regex r = new Regex(pattParams);
+            Match m = r.Match(instr);
+            while (m.Success)
+            {
+                obj_name = m.Groups[1].Value + m.Groups[2].Value;
+
+                m = m.NextMatch();
+            }
+            return obj_name;
+
+
+        }
+        public IEnumerator ExecuteScript(int char_id)
+        {
+            executing_action[char_id] = true;
+            if (t_lock)
+            {
+                mre.WaitOne();
+
+            }
+
+            t_lock = true;
+            if (action_button[char_id].Count > 0)
+                for (int it = 0; it < action_button.Count; it++)
+                {
+                    // Delete action if an agent just did it
+                    if (it != char_id && action_button[it].Count() > 0) {
+                        string obj1 = GetObj(action_button[it][0]);
+                        string obj2 = GetObj(action_button[char_id][0]);
+                        if (obj1 == obj2 && obj1 != "")
+                            action_button[it].Clear();
+
+                    }
+                }
+            sExecutors[char_id].ClearScript();
+            sExecutors[char_id].smooth_walk = false;
+            if (scriptLines[char_id] == "")
+            {
+                yield return null;
+            }
+            string action_str = scriptLines[char_id];
+            Debug.Log("deleting");
+            Debug.Log("Scriptlines " + scriptLines[char_id]);
+            Debug.Log("Scriptlines count " + scriptLines.Count);
+            List<string> nscriptLines = new List<string>();
+            nscriptLines.Add(scriptLines[char_id]);
+            ScriptReader.ParseScript(sExecutors, nscriptLines, dataProviders.ActionEquivalenceProvider);
+            finishedChars = 0;
+
+            StartCoroutine(sExecutors[char_id].ProcessAndExecute(false, this));
+            //while (finishedChars == 0)
+            //    yield return new WaitForSeconds(0.01f);
+            yield return new WaitUntil(() => finishedChars > 0);
+
+            if (!use_video_stream) {
+                for (int cam_id = 0; cam_id < currentCameras.Count; cam_id++)
+                {
+
+                    byte[] bytes = CameraUtils.RenderImage(currentCameras[cam_id], 384, 256, 0);
+                    string current_image = JsonConvert.SerializeObject(new ServerMessage("Image", Convert.ToBase64String(bytes)));
+                    licr[cam_id].SendData(current_image);
+                }
+            }
+
+            if (!sExecutors[char_id].Success)
+            {
+                currentEpisode.FailAction();
+                Debug.Log("Failure");
+            }
+            else
+            {
+                // Update the graph
+                List<ActionObjectData> last_action = new List<ActionObjectData>();
+                ScriptPair script = sExecutors[char_id].script[0];
+                State currentState = this.CurrentStateList[char_id];
+                EnvironmentObject obj1;
+                currentGraphCreator.objectNodeMap.TryGetValue(characters[char_id].gameObject, out obj1);
+                Character character_graph;
+                currentGraphCreator.characters.TryGetValue(obj1, out character_graph);
+
+                ActionObjectData object_script = new ActionObjectData(character_graph, script, currentState.scriptObjects);
+                last_action.Add(object_script);
+
+                GameObject rh = currentState.GetGameObject("RIGHT_HAND_OBJECT");
+                GameObject lh = currentState.GetGameObject("LEFT_HAND_OBJECT");
+                EnvironmentObject obj2;
+                if (lh != null)
+                {
+                    currentGraphCreator.objectNodeMap.TryGetValue(lh, out obj2);
+                    character_graph.grabbed_left = obj2;
+
+                }
+                else
+                {
+                    character_graph.grabbed_left = null;
+                }
+                if (rh != null)
+                {
+                    currentGraphCreator.objectNodeMap.TryGetValue(rh, out obj2);
+                    character_graph.grabbed_right = obj2;
+                }
+                else
+                {
+                    character_graph.grabbed_right = null;
+                }
+
+                foreach (KeyValuePair<Tuple<string, int>, ScriptObjectData> entry in currentState.scriptObjects)
+                {
+                    if (entry.Value.OpenStatus == OpenStatus.OPEN)
+                    {
+                        currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Remove(Utilities.ObjectState.CLOSED);
+                        currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Add(Utilities.ObjectState.OPEN);
+                    }
+                    else if (entry.Value.OpenStatus == OpenStatus.CLOSED)
+                    {
+                        currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Remove(Utilities.ObjectState.OPEN);
+                        currentGraphCreator.objectNodeMap[entry.Value.GameObject].states_set.Add(Utilities.ObjectState.CLOSED);
+                    }
+                }
+
+                currentGraph = currentGraphCreator.UpdateGraph(transform, null, last_action);
+                string fadeText = currentEpisode.checkTasks(currentGraph, currentGraphCreator);
+
+
+                string task = JsonConvert.SerializeObject(currentEpisode.UpdateTasksString());
+                string task_info = JsonConvert.SerializeObject(new ServerMessage("UpdateTask", task));
+                for (int itt = 0; itt < licr.Count; itt++)
+                {
+                    if (licr[itt] != null)
+                    {
+                        licr[itt].SendData(task_info);
+
+                    }
+                        
+                }
+
+                currentEpisode.StoreGraph(currentGraph, currTime, action_str, currentEpisode.posAndRotation.Count);
+            }
+
+            Debug.Log("Finished");
+
+
+
+
+
+            scriptLines[char_id] = "";
+            licr[char_id].SendData("DeleteButtons");
+
+            click = false;
+            Debug.Log("action executed");
+            pointer[char_id].SetActive(false);
+
+            //if (characters[char_id].transform.position != currentEpisode.previousPos || characters[char_id].transform.eulerAngles != currentEpisode.previousRotation)
+            //{
+            currentEpisode.AddCharInfo(char_id, characters[char_id].transform.position, characters[char_id].transform.eulerAngles, Time.time);
+            //}
+            currentEpisode.previousPos = characters[char_id].transform.position;
+            currentEpisode.previousRotation = characters[char_id].transform.eulerAngles;
+
+            //if (currentEpisode.IsCompleted || episodeDone)
+            if (episodeDone)
+
+            {
+                currentEpisode.RecordData();
+                for (int itt = 0; itt < licr.Count(); itt++)
+                {
+                    licr[itt].SendData("SaveTime");
+                }
+                string completed = "Tasks: Completed!\nLoading New Episode";
+                string tasksCompletedText = completed.AddColor(Color.green);
+                //tasksUI.text = tasksCompletedText;
+                //FadeCompletionText(tasksCompletedText, newCanvas);
+                //currentEpisode.RecordData(episode);
+                episodeDone = true;
+                episodeNum++;
+            }
+
+            t_lock = false;
+            mre.Set();
+            mre.Reset();
+            executing_action[char_id] = false;
+            yield return null;
+
+        }
+        // TODO: move this to utils
+        void AddButton(string text)
+        {
+            //TODO: create buttons 
+            GameObject buttonPrefab = Resources.Load("UI/UIButton") as GameObject;
+            GameObject curr_button = (GameObject)Instantiate(buttonPrefab);
+            curr_button.name = text + "Button";
+            //curr_button.tag = "Button";
+            curr_button.GetComponentInChildren<TextMeshProUGUI>().text = text;
+            curr_button.GetComponentInChildren<TextMeshProUGUI>().color = Color.red; //does this actually work?
+            curr_button.GetComponentInChildren<TextMeshProUGUI>().enableWordWrapping = false;
+            var panel = GameObject.Find("Canvas");
+            curr_button.transform.position = panel.transform.position;
+            curr_button.GetComponent<RectTransform>().SetParent(panel.transform);
+            curr_button.GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, 0, 100);
+            curr_button.layer = 5;
+
+        }
+
+        public void FadeCompletionText(string fadeText, GameObject canv)
+        {
+            GameObject compText = new GameObject("CompletedText");
+            compText.AddComponent<TextMeshProUGUI>();
+            TextMeshProUGUI fadingText = compText.GetComponent<TextMeshProUGUI>();
+            fadingText.raycastTarget = false;
+            fadingText.fontSize = 18;
+            float fadingW = fadingText.maxWidth / 2;
+            float fadingH = fadingText.maxHeight / 2;
+            fadingText.rectTransform.localPosition = new Vector3(-fadingW, -fadingH, 0);
+            fadingText.text = fadeText;
+            fadingText.alignment = TextAlignmentOptions.Center;
+            compText.transform.SetParent(canv.transform, false);
+            StartCoroutine(FadeTextToZeroAlpha(10, fadingText));
+        }
+
+        public IEnumerator FadeTextToZeroAlpha(float t, TextMeshProUGUI i)
+        {
+            i.color = new Color(i.color.r, i.color.g, i.color.b, 1);
+            while (i.color.a > 0.0f)
+            {
+                i.color = new Color(i.color.r, i.color.g, i.color.b, i.color.a - (8 * Time.deltaTime / t));
+                yield return null;
+            }
+            Destroy(i.gameObject);
+        }
+
+        
 
         private bool SeenByCamera(Camera camera, Transform transform)
         {
@@ -1196,7 +1606,7 @@ namespace StoryGenerator
 
         private FrontCameraControl CreateFrontCameraControls(GameObject character)
         {
-            List<Camera> charCameras = CameraExpander.AddCharacterCameras(character, transform, CameraExpander.INT_FORWARD_VIEW_CAMERA_NAME);
+            List<Camera> charCameras = CameraExpander.AddCharacterCameras(character, transform, CameraExpander.FORWARD_VIEW_CAMERA_NAME);
             CameraUtils.DeactivateCameras(charCameras);
             Camera camera = charCameras.First(c => c.name == CameraExpander.FORWARD_VIEW_CAMERA_NAME);
             return new FrontCameraControl(camera);
@@ -1249,58 +1659,57 @@ namespace StoryGenerator
 
                         CharacterControl chc = characters[rec.charIdx];
                         int index_cam = 0;
-                        bool cam_ctrl = false;
                         if (int.TryParse(config.camera_mode[cam_id], out index_cam))
                         {
                             //Camera cam = new Camera();
                             //cam.CopyFrom(sceneCameras[index_cam]);
                             Camera cam = cameras[index_cam];
                             cameraControl = new FixedCameraControl(cam);
-                            cam_ctrl = true;
                         }
                         else
                         {
-                            if (config.camera_mode[cam_id] == "PERSON_FRONT")
+                            switch (config.camera_mode[cam_id])
                             {
-                                cameraControl = CreateFrontCameraControls(chc.gameObject);
-                                cam_ctrl = true;
-                            }
-                            else
-                            {
-                                if (config.camera_mode[cam_id] == "AUTO")
-                                {
+                                case "FIRST_PERSON":
+                                    cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.FORWARD_VIEW_CAMERA_NAME, false);
+                                    break;
+                                case "PERSON_TOP":
+                                    cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.TOP_CHARACTER_CAMERA_NAME, false);
+                                    break;
+                                case "PERSON_FROM_BACK":
+                                    cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.FROM_BACK_CAMERA_NAME, false);
+                                    break;
+                                case "PERSON_FROM_LEFT":
+                                    cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.FROM_LEFT_CAMERA_NAME, false);
+                                    break;
+                                case "PERSON_FRONT":
+                                    cameraControl = CreateFrontCameraControls(chc.gameObject);
+                                    break;
+                                // case "TOP_VIEW":
+                                //     // every character has 6 cameras
+                                //     Camera top_cam = new Camera();
+                                //     top_cam.CopyFrom(cameras[cameras.Count - 6 * numCharacters - 1]);
+                                //     cameraControl = new FixedCameraControl(top_cam);
+                                //     break;
+                                default:
                                     AutoCameraControl autoCameraControl = new AutoCameraControl(sceneCameras, chc.transform, new Vector3(0, 1.0f, 0));
                                     autoCameraControl.RandomizeCameras = config.randomize_execution;
                                     autoCameraControl.CameraChangeEvent += rec.UpdateCameraData;
                                     cameraControl = autoCameraControl;
-                                    cam_ctrl = true;
-                                }
-                                else
-                                {
-
-                                    if (CameraExpander.HasCam(config.camera_mode[cam_id]))
-                                    {
-                                        cameraControl = CreateFixedCameraControl(chc.gameObject, CameraExpander.char_cams[config.camera_mode[cam_id]].name, false);
-                                        cam_ctrl = true;
-                                    }
-                                }
+                                    break;
                             }
 
-
-                        }
-                        if (cam_ctrl)
-                        {
-                            cameraControl.Activate(true);
-                            rec.CamCtrls[cam_id] = cameraControl;
                         }
 
+                        cameraControl.Activate(true);
+                        rec.CamCtrls[cam_id] = cameraControl;
                     }
                 }
             }
             //Debug.Log($"config.recording : {config.recording}");
             //Debug.Log($"cameraCtrl is not null2? : {cameraControl != null}");
             rec.Recording = config.recording;
-            rec.currentframeNum = 0;
+
             rec.currentCameraMode = config.camera_mode;
             rec.FrameRate = config.frame_rate;
             rec.imageSynthesis = config.image_synthesis;
@@ -1367,7 +1776,7 @@ namespace StoryGenerator
 
 
                 // Initialize the scriptExecutor for the character
-                ScriptExecutor sExecutor = new ScriptExecutor(objectList, dataProviders.RoomSelector, objectSel, recorders[i], i, interaction_cache, !config.skip_animation);
+                ScriptExecutor sExecutor = new ScriptExecutor(objectList, dataProviders.RoomSelector, objectSel, recorders[i], i, interaction_cache, !config.skip_animation, config.walk_before_interaction);
                 sExecutor.RandomizeExecution = config.randomize_execution;
                 sExecutor.ProcessingTimeLimit = config.processing_time_limit;
                 sExecutor.SkipExecution = config.skip_execution;
@@ -1385,7 +1794,8 @@ namespace StoryGenerator
             // This helps with rendering issues (disappearing suit on some cameras)
             SkinnedMeshRenderer[] mrCompoments = character.GetComponentsInChildren<SkinnedMeshRenderer>();
 
-            foreach (SkinnedMeshRenderer mr in mrCompoments) {
+            foreach (SkinnedMeshRenderer mr in mrCompoments)
+            {
                 mr.updateWhenOffscreen = true;
                 mr.enabled = false;
                 mr.enabled = true;
@@ -1396,16 +1806,20 @@ namespace StoryGenerator
         {
             List<GameObject> rooms = ScriptUtils.FindAllRooms(transform);
 
-            foreach (GameObject r in rooms) {
+            foreach (GameObject r in rooms)
+            {
                 r.AddComponent<Properties_room>();
             }
         }
 
         private void InitRandom(int seed)
         {
-            if (seed >= 0) {
+            if (seed >= 0)
+            {
                 UnityEngine.Random.InitState(seed);
-            } else {
+            }
+            else
+            {
                 UnityEngine.Random.InitState((int)DateTimeOffset.Now.ToUnixTimeMilliseconds());
             }
         }
@@ -1414,16 +1828,23 @@ namespace StoryGenerator
         {
             Dictionary<int, float[]> result = new Dictionary<int, float[]>();
 
-            foreach (EnvironmentObject eo in graphNodes) {
-                if (eo.transform == null) {
+            foreach (EnvironmentObject eo in graphNodes)
+            {
+                if (eo.transform == null)
+                {
                     result[eo.id] = new float[] { 1.0f, 1.0f, 1.0f };
-                } else {
+                }
+                else
+                {
                     int instId = eo.transform.gameObject.GetInstanceID();
                     Color instColor;
 
-                    if (ColorEncoding.instanceColor.TryGetValue(instId, out instColor)) {
+                    if (ColorEncoding.instanceColor.TryGetValue(instId, out instColor))
+                    {
                         result[eo.id] = new float[] { instColor.r, instColor.g, instColor.b };
-                    } else {
+                    }
+                    else
+                    {
                         result[eo.id] = new float[] { 1.0f, 1.0f, 1.0f };
                     }
                 }
@@ -1434,7 +1855,8 @@ namespace StoryGenerator
         private void StopCharacterAnimation(GameObject character)
         {
             Animator animator = character.GetComponent<Animator>();
-            if (animator != null) {
+            if (animator != null)
+            {
                 animator.speed = 0;
             }
         }
@@ -1443,7 +1865,7 @@ namespace StoryGenerator
         {
             if (indexes == null) return false;
             else if (indexes.Count == 0) return true;
-            else return indexes.Min() >= 0 && indexes.Max() < count; 
+            else return indexes.Min() >= 0 && indexes.Max() < count;
         }
 
         private int ParseCameraPass(string string_mode)
@@ -1454,7 +1876,8 @@ namespace StoryGenerator
 
         private void CreateSceneInfoFile(string outDir, SceneData sd)
         {
-            using (StreamWriter sw = new StreamWriter(Path.Combine(outDir, "sceneInfo.json"))) {
+            using (StreamWriter sw = new StreamWriter(Path.Combine(outDir, "sceneInfo.json")))
+            {
                 sw.WriteLine(JsonUtility.ToJson(sd, true));
             }
         }
@@ -1543,12 +1966,14 @@ namespace StoryGenerator
                         //newCharacter.transform.position = sceneCharacters[0].transform.position;
                         var nma = newCharacter.GetComponent<NavMeshAgent>();
                         nma.Warp(sceneCharacters[0].transform.position);
+                        newCharacter.transform.rotation = Quaternion.Euler(0, 0, 0);
                     }
                 }
                 else if (mode == "fix_position")
                 {
                     var nma = newCharacter.GetComponent<NavMeshAgent>();
                     nma.Warp(position);
+                    newCharacter.transform.rotation = Quaternion.Euler(0, 0, 0);
                 }
                 else if (mode == "fix_room")
                 {
@@ -1561,8 +1986,8 @@ namespace StoryGenerator
                         }
                     }
                     var nma = newCharacter.GetComponent<NavMeshAgent>();
-                    nma.Warp(ScriptUtils.FindRandomCCPosition(rooms_selected, cc));
-                    newCharacter.transform.rotation *= Quaternion.Euler(0, UnityEngine.Random.Range(-180.0f, 180.0f), 0);
+                    nma.Warp(ScriptUtils.FindCCPosition(rooms_selected[0], cc));
+                    newCharacter.transform.rotation = Quaternion.Euler(0, 0, 0);
                 }
                 // Must be called after correct char placement so that char's location doesn't change
                 // after instantiation.
@@ -1589,14 +2014,18 @@ namespace StoryGenerator
     internal class InstanceSelectorProvider : IObjectSelectorProvider
     {
         private Dictionary<int, GameObject> idObjectMap;
+        public Dictionary<GameObject, int> objectIdMap;
 
         public InstanceSelectorProvider(EnvironmentGraph currentGraph)
         {
-            idObjectMap = new Dictionary<int, GameObject>(); 
-
-            foreach (EnvironmentObject eo in currentGraph.nodes) {
-                if (eo.transform != null) {
+            idObjectMap = new Dictionary<int, GameObject>();
+            objectIdMap = new Dictionary<GameObject, int>();
+            foreach (EnvironmentObject eo in currentGraph.nodes)
+            {
+                if (eo.transform != null)
+                {
                     idObjectMap[eo.id] = eo.transform.gameObject;
+                    objectIdMap[eo.transform.gameObject] = eo.id;
                 }
             }
         }
@@ -1627,7 +2056,8 @@ namespace StoryGenerator
 
         public void Initialize(Action action)
         {
-            if (!initialized) {
+            if (!initialized)
+            {
                 action();
                 initialized = true;
             }
@@ -1663,7 +2093,6 @@ namespace StoryGenerator
         public Vector3 rotation = new Vector3(0.0f, 0.0f, 0.0f);
         public Vector3 position = new Vector3(0.0f, 0.0f, 0.0f);
         public float focal_length = 0.0f;
-        public string camera_name = "default";
 
     }
 
@@ -1674,7 +2103,6 @@ namespace StoryGenerator
         public bool ignore_obstacles = false;
         public bool animate_character = false;
         public bool transfer_transform = true;
-        public bool exact_expand = true;
     }
 
     public class CharacterConfig
@@ -1695,6 +2123,7 @@ namespace StoryGenerator
         public bool recording = false;
         public bool skip_execution = false;
         public bool skip_animation = false;
+        public bool walk_before_interaction = true;
     }
 
     public class DataProviders
@@ -1705,7 +2134,6 @@ namespace StoryGenerator
         public ObjectSelectionProvider ObjectSelectorProvider { get; private set; }
         public RoomSelector RoomSelector { get; private set; }
         public ObjectPropertiesProvider ObjectPropertiesProvider { get; private set; }
-        public Dictionary<string, string> AssetPathMap;
 
         public DataProviders()
         {
@@ -1717,29 +2145,9 @@ namespace StoryGenerator
             NameEquivalenceProvider = new NameEquivalenceProvider("Data/class_name_equivalence");
             ActionEquivalenceProvider = new ActionEquivalenceProvider("Data/action_mapping");
             AssetsProvider = new AssetsProvider("Data/object_prefabs");
-            AssetPathMap = BuildPathMap("Data/object_prefabs");
             ObjectSelectorProvider = new ObjectSelectionProvider(NameEquivalenceProvider);
             RoomSelector = new RoomSelector(NameEquivalenceProvider);
             ObjectPropertiesProvider = new ObjectPropertiesProvider(NameEquivalenceProvider);
-        }
-
-        private Dictionary<string, string> BuildPathMap(string resourceName)
-        {
-            Dictionary<string, string> result = new Dictionary<string, string> ();
-            List<string> all_prefabs = new List<string>();
-            TextAsset txtAsset = Resources.Load<TextAsset>(resourceName);
-            var tmpAssetsMap = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(txtAsset.text);
-
-            foreach (var e in tmpAssetsMap)
-            {
-                foreach (var str_prefab in e.Value)
-                {
-                    string prefab_name = Path.GetFileNameWithoutExtension(str_prefab);
-                    result[prefab_name] = str_prefab;
-                }
-
-            }
-            return result;
         }
     }
 
@@ -1752,13 +2160,296 @@ namespace StoryGenerator
             Regex regex = new Regex(@"-{1,2}([^=]+)=([^=]+)");
             var result = new Dictionary<string, string>();
 
-            foreach (string s in args) {
+            foreach (string s in args)
+            {
                 Match match = regex.Match(s);
-                if (match.Success) {
+                if (match.Success)
+                {
                     result[match.Groups[1].Value.Trim()] = match.Groups[2].Value.Trim();
                 }
             }
             return result;
+        }
+    }
+
+    public static class StringExtensions
+    {
+        public static string AddColor(this string text, Color col) => $"<color={ColorHexFromUnityColor(col)}>{text}</color>";
+        public static string ColorHexFromUnityColor(this Color unityColor) => $"#{ColorUtility.ToHtmlStringRGBA(unityColor)}";
+    }
+
+    [System.Serializable]
+    public class Episode
+    {
+        public string file_name = "default";
+        public int env_id;
+        public int task_id;
+        public int episode;
+        public string task_name;
+        public int level;
+        public string[] init_rooms;
+        public Task[] task_goal;
+        public EnvironmentGraph init_graph;
+        public List<Goal> goals = new List<Goal>();
+        public bool IsCompleted = false;
+
+        private List<(string, float, string, int)> allGraphs = new List<(string, float, string, int)>();
+
+        public List<(int, Vector3, Vector3, float)> posAndRotation = new List<(int, Vector3, Vector3, float)>();
+
+        private List<(string, float)> scriptActions = new List<(string, float)>();
+        private Dictionary<(string,string), List<string>> goalRelations = new Dictionary<(string,string), List<string>>();
+        private HashSet<string> allPlacedObjects = new HashSet<string>();
+
+        public Vector3 previousPos = new Vector3(0, 0, 0);
+        public Vector3 previousRotation = new Vector3(0, 0, 0);
+
+        public void ClearDataFile()
+        {
+            string outputPath = $"Episodes/{file_name}_Episode{episode}Data.txt";
+            using (FileStream fs = File.Create(outputPath)) { }
+            foreach (EnvironmentRelation r in init_graph.edges)
+            {
+                r.relation = (ObjectRelation)Enum.Parse(typeof(ObjectRelation), r.relation_type);
+            }
+            foreach (EnvironmentObject o in init_graph.nodes)
+            {
+                if (o.obj_transform.position == null)
+                {
+                    o.obj_transform = null;
+                }
+                if (o.bounding_box.center == null)
+                {
+                    o.bounding_box = null;
+                }
+                foreach (string s in o.states)
+                {
+                    o.states_set.Add((Utilities.ObjectState)Enum.Parse(typeof(Utilities.ObjectState), s));
+                }
+            }
+        }
+
+        public void RecordData()
+        {
+            string outputPath = $"Episodes/{file_name}_Episode{episode}Data.txt";
+            File.WriteAllText(outputPath, "");
+            StreamWriter outputFile = new StreamWriter(outputPath, true);
+            outputFile.WriteLine("Position and Orientation Data:");
+            foreach ((int, Vector3, Vector3, float) pos in posAndRotation)
+            {
+                outputFile.WriteLine(pos.ToString());
+            }
+            outputFile.WriteLine("Script Action Data:");
+            foreach ((string, float) action in scriptActions)
+            {
+                outputFile.WriteLine(action);
+            }
+            outputFile.WriteLine("Graph Data:");
+            foreach ((string, float, string, int) g in allGraphs)
+            {
+                List<string> graph_res = new List<string>();
+                graph_res.Add(g.Item1);
+                graph_res.Add(g.Item2.ToString());
+                graph_res.Add(g.Item3);
+                graph_res.Add(g.Item4.ToString());
+                outputFile.WriteLine(JsonConvert.SerializeObject(graph_res));
+            }
+            outputFile.Close();
+        }
+
+        public void AddCharInfo(int char_id, Vector3 coord, Vector3 rot, float t)
+        {
+            posAndRotation.Add((char_id, coord, rot, t));
+        }
+
+        public void FailAction()
+        {
+            // Make the last action fail
+            if (scriptActions.Count > 0)
+            {
+                var (action, t) = scriptActions[scriptActions.Count - 1];
+                action = "failure " + action;
+                scriptActions[scriptActions.Count - 1] = (action, t);
+            }
+            
+        }
+        public void AddAction(string a, float t)
+        {
+            scriptActions.Add((a, t));
+        }
+
+        public string GenerateTasksAndGoals()
+        {
+            string response = "Tasks: \n";
+            foreach (Task t in task_goal)
+            {
+                string action = t.task;
+                string obj1 = action.Split('{', '}')[1];
+                string obj2 = action.Split('{', '}')[3];
+                string verb = action.Split('_')[0];
+                string rel = action.Split('_')[2];
+                //string[] a = action.Split('_');
+                response += $"{verb} {obj1} {rel} {obj2} x{t.repetitions}\n";
+                Goal newG = new Goal(verb, rel, obj1, obj2, t.repetitions);
+                goals.Add(newG);
+                allPlacedObjects.Add(obj1);
+                if (!goalRelations.ContainsKey((obj2, rel)))
+                {
+                    goalRelations.Add((obj2, rel), new List<string>());
+                }
+                for (int i = 0; i < t.repetitions; i++)
+                {
+                    goalRelations[(obj2, rel)].Add(obj1);
+                }
+            }
+            return response;
+        }
+
+        public bool IsOn(EnvironmentObject o1, EnvironmentObject o2, EnvironmentGraphCreator graphCreator)
+        {
+            return graphCreator.HasEdge(o1.id, o2.id, ObjectRelation.ON);
+        }
+
+        public bool IsInside(EnvironmentObject o1, EnvironmentObject o2, EnvironmentGraphCreator graphCreator)
+        {
+            return graphCreator.HasEdge(o1.id, o2.id, ObjectRelation.INSIDE);
+        }
+
+        public List<string> RelationsCompleted(List<string> objs, (string, string) dest, EnvironmentGraph g, EnvironmentGraphCreator gc)
+        {
+            List<string> allObjsNeeded = new List<string>(objs);
+            List<EnvironmentObject> platforms = new List<EnvironmentObject>();
+            foreach (EnvironmentObject o in g.nodes) { if (o.class_name.Equals(dest.Item1)) { platforms.Add(o); } }
+            foreach (EnvironmentObject env_obj in g.nodes)
+            {
+                if (objs.Contains(env_obj.class_name))
+                {
+                    foreach (EnvironmentObject platform in platforms)
+                    {
+                        if (dest.Item2.Equals("on") && IsOn(env_obj, platform, gc))
+                        {
+                            allObjsNeeded.Remove(env_obj.class_name);
+                        }
+                        if (dest.Item2.Equals("in") && IsInside(env_obj, platform, gc))
+                        {
+                            allObjsNeeded.Remove(env_obj.class_name);
+                        }
+                    } 
+                }
+            }
+            return allObjsNeeded;
+        }
+
+        public Dictionary<(string, string), List<string>> makeRelGoalsCopy()
+        {
+            Dictionary<(string, string), List<string>> cp = new Dictionary<(string, string), List<string>>();
+            foreach ((string, string) dest in goalRelations.Keys.ToList())
+            {
+                cp[dest] = new List<string>();
+                foreach (string plat in goalRelations[dest])
+                {
+                    cp[dest].Add(string.Copy(plat));
+                }
+            }
+            return cp;
+        }
+
+        public string checkTasks(EnvironmentGraph g, EnvironmentGraphCreator gc)
+        {
+            string completedTask = "None";
+            Dictionary<(string, string), List<string>> goalsCopy = makeRelGoalsCopy();
+            foreach ((string, string) dest in goalsCopy.Keys.ToList())
+            {
+                goalsCopy[dest] = RelationsCompleted(goalsCopy[dest], dest, g, gc);
+            }
+            foreach (Goal goal in goals)
+            {
+                int newReps = goalsCopy[(goal.obj2, goal.relation)].Where(x => x.Equals(goal.obj1)).Count();
+                if (newReps != 0)
+                {
+                    completedTask = $"Task Completed!:\n {goal.verb} {goal.obj1} {goal.relation} {goal.obj2} x{goal.repetitions - newReps}";
+                    completedTask = $"{completedTask.AddColor(Color.green)}";
+                }
+                goal.count = goal.repetitions - newReps;
+            }
+            return completedTask;
+        }
+
+        //public string UpdateTasksString()
+        //{
+        //    string response = "Tasks: \n".AddColor(Color.black);
+        //    bool moreTasks = false;
+        //    foreach (Goal g in goals)
+        //    {
+        //        if (g.repetitions == 0)
+        //        {
+        //            string s = $"{g.verb} {g.obj1} {g.relation} {g.obj2} x{g.repetitions}\n";
+        //            response += $"{s.AddColor(Color.green)}";
+        //        }
+        //        else
+        //        {
+        //            moreTasks = true;
+        //            string s = $"{g.verb} {g.obj1} {g.relation} {g.obj2} x{g.repetitions}\n";
+        //            response += $"{s.AddColor(Color.black)}"; 
+        //        }
+        //    }
+        //    if (!moreTasks)
+        //    {
+        //        IsCompleted = true;
+        //    }
+        //    return response;
+        //}
+
+        public List<Goal> UpdateTasksString()
+        {
+            bool moreTasks = false;
+            foreach (Goal g in goals)
+            {
+
+                if (g.repetitions != g.count)
+                {
+
+                    moreTasks = true;
+                }
+            }
+            if (!moreTasks)
+            {
+                IsCompleted = true;
+            }
+            return goals;
+        }
+
+        public void StoreGraph(EnvironmentGraph g, float t, string action_str, int ct)
+        {
+            string graphString = JsonUtility.ToJson(g);
+            allGraphs.Add((graphString, t, action_str, ct));
+        }
+
+    }
+    [System.Serializable]
+    public class Task
+    {
+        public string task;
+        public int repetitions;
+    }
+
+    public class Goal
+    {
+        public string verb { get; set; }
+        public string relation { get; set; }
+        public string obj1 { get; set; }
+        public string obj2 { get; set; }
+        public int repetitions { get; set; }
+        public int count { get; set; }
+
+        public Goal(string v, string rel, string o1, string o2, int reps)
+        {
+            verb = v;
+            relation = rel;
+            obj1 = o1;
+            obj2 = o2;
+            repetitions = reps;
+            count = 0;
         }
     }
 

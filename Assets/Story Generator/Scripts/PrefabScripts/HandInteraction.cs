@@ -70,7 +70,6 @@ namespace StoryGenerator.CharInteraction
         {
             {"Female1", 0},
             {"Male1", 0},
-            {"Male1_invisible", 0},
             {"Male1_red", 0},
             {"Male1_blue", 0},
             {"Female2", 1},
@@ -1177,15 +1176,15 @@ namespace StoryGenerator.CharInteraction
             
             // Update SceneStates if necessary
             State_object so = GetComponent<State_object> ();
-            if (so != null)
-            {
-                so.UpdateParentInfo(charTsfm);
-                // If charater is putting it back, we should put empty string instead.
-                if (! isPickedUp)
-                {
-                    objType = so.GetObjType();
-                }
-            }
+            //if (so != null)
+            //{
+            //    so.UpdateParentInfo(charTsfm);
+            //    // If charater is putting it back, we should put empty string instead.
+            //    if (! isPickedUp)
+            //    {
+            //        objType = so.GetObjType();
+            //    }
+            //}
 
             State_char sc = m_tsfm_char.GetComponent<State_char> ();
             if (sc != null)

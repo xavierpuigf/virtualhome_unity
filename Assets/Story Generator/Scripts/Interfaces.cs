@@ -32,6 +32,7 @@ namespace StoryGenerator.Utilities
         TEXT,
         WALKTOWARDS,
         WALKFORWARD,
+        WALKBACKWARD,
         TURNLEFT,
         TURNRIGHT
     }
