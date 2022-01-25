@@ -10,4 +10,4 @@ File > Build Settings
 You should see a window like the one below
 ![](assets/build_exec.png)
 
-Make sure that the scenes you have built and the initial 7 scenes are included in the build, select your target platform and architecture and press Build. After a few minutes, an executable will be generated allowing you to run the simulator.
+Make sure that the scenes you have built and the initial 50 scenes are included in the build, select your target platform and architecture and press Build. After a few minutes, an executable will be generated allowing you to run the simulator.

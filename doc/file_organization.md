@@ -6,6 +6,8 @@
 # Assets
 #### Plugins
 * Inverse Kinematics plugin (RootMotion's Final IK)
+* Procedural Generation Toolkit plugin (DunGen)
+* Procedural Generation Grid plugin (FImpossibleCreations)
 
 #### PostProcessing
 * Unity's post procressing stack used to enhance RGB frame qualities

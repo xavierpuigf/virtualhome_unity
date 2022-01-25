@@ -12,21 +12,21 @@ We use the following assets in VirtualHome, which you will need to purchase to d
 | [Complete Home Interior Pack](https://assetstore.unity.com/packages/3d/props/interior/complete-home-interior-pack-31049)      |  Contains 3D models of objects to populate the scenes, as well as the apartment layouts       |     35$      |
 | [Modern House Interior Pack](https://assetstore.unity.com/packages/3d/props/interior/modern-house-interior-props-48564)   | Contains objects to populate the scene       |    35$       |
 | [Final IK](https://assetstore.unity.com/packages/tools/animation/final-ik-14290) | Contains character animations, and tools to make the agent motions and object interactions more realistic. | 90$ |
-
-To build an executable, open the project, click on the top menu in Unity and select:
+| [DunGen](https://assetstore.unity.com/packages/tools/utilities/dungen-15682) | Contains procedural generation tools to create new environments during runtime. | 75$ |
+| [Procedural Generation Grid](https://assetstore.unity.com/packages/tools/utilities/procedural-generation-grid-beta-195535) | Contains procedural generation tools to create new environments during runtime. | 35$ |
 
 
 ## Including the assets in VirtualHome
 After cloning VirtualHome, open the project in Unity and try opening a scene
 
-```File > Open Scene > Assets/Story Generator/TestScene/TestScene.unity. ```
+```File > Open Scene > Assets/Story Generator/Scene/Scene0.unity. ```
 
 You will see an image as the one below. The cameras and a few objects are placed around an apartment layout, but there are mostly no objects, walls or textures. This means you need to include your assets. Follow the steps below to do that.
 
 ![](assets/scene_empty.png)
 
 
-### Buying and Dowloading the assets
+### Buying and Downloading the assets
 Click on each of the asset links in the table above, and purchase them assets using your Unity Account. In the Unity Editor, go into the *Unity Asset Store* and click on *My Assets*. You should see the 3 Assets you just purchased there. For each asset, click *Download* and after downloading click *Import*. This process should take a few minutes.
 
 After having downloaded and imported your assets, try opening the Unity Scene. It should look as follows.

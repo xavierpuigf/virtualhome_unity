@@ -35,7 +35,7 @@ If you use VirtualHome in your research, please consider citing the following pa
 
 ## Setup
 ### Install Unity
-We have been using **Unity 2018.4.** for development. We recommend to install it through [Unity Hub](https://store.unity.com/download). 
+We have been using **Unity 2019.4.** for development. We recommend to install it through [Unity Hub](https://store.unity.com/download). 
 
 ### Clone the repository
 Clone the repository with the Unity Source Code.
@@ -50,7 +50,7 @@ git clone https://github.com/xavierpuigf/virtualhome.git
 ```
 
 ### Including third party assets
-VirtualHome uses a set of third party assets to include more 3D objects in the environment, and provide realistic motions for the agents. If you want to develop on the simulator, you will need to purchase these assets separately and include them in the source code. Find [here](doc/third_party.md) the documentation for how to install the assets.
+VirtualHome uses a set of third party assets to include more 3D objects in the environment, provide realistic motions for the agents, and allow procedural generation to build dynamic environments. If you want to further develop the simulator, you will need to purchase these assets separately and include them in the source code. Find [here](doc/third_party.md) the documentation for how to install the assets.
 
 **Note:** Purchasing these assets is only necessary if you want to work with the Unity Source Code. You can use the Unity Executables to generate videos or do RL research without purchasing any asset. The executables are found in the [VirtualHome API](https://github.com/xavierpuigf/virtualhome) repository and the [main webpage](https://www.virtual-home.org).
 
@@ -59,7 +59,7 @@ After the previous steps you should be able to test the simulator. Open a scene 
 
 ```File > Open Scene > Assets/Story Generator/TestScene/TestScene_*.unity. ```
 
-Once you do that, you shold see in the Scene window an apartment. The following image corresponds to opening *TestScene_3.unity*.
+Once you do that, you shold see in the Scene window an apartment. The following image corresponds to opening *Scene_3.unity*.
 
 <p align="center">
   <img height="300" src="doc/assets/scene_view.png">
@@ -96,7 +96,7 @@ comm.add_character()
 comm.render_script(['<char0> [walk] <fridge> (1)'], find_solution=True)
 ```
 
-You should see in Unity an agent walking towards the fridge. You can find more examples in [VirtualHome API](https://github.com/xavierpuigf/virtualhome).
+In Unity you should see an agent walking towards the fridge. You can find more examples in [VirtualHome API](https://github.com/xavierpuigf/virtualhome).
 
 ### Generating an executable
 You may want to interact with the simulator without using Unity. You can generate an executable so that VirtualHome runs without opening or installing Unity. You will then be able to run the tool both  on your desktop or in headless servers.
