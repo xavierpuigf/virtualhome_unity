@@ -7665,6 +7665,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3674359589520648255}
   - component: {fileID: 3674359589887951419}
+  - component: {fileID: 5036657544144285017}
   m_Layer: 0
   m_Name: PRE_ROO_Bedroom_004
   m_TagString: Type_Room
@@ -7711,6 +7712,64 @@ OcclusionArea:
   m_Size: {x: 5.5, y: 3, z: 5.5}
   m_Center: {x: 2.5, y: 1.25, z: -1.25}
   m_IsViewVolume: 1
+--- !u!114 &5036657544144285017
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3674359589887951418}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 238d443cf4b172f4989d5ce455c57c3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  allowImmediateRepeats: 1
+  AllowRotation: 1
+  RepeatMode: 2
+  OverrideAutomaticTileBounds: 0
+  TileBoundsOverride:
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 0.5, y: 0.5, z: 0.5}
+  Entrance: {fileID: 0}
+  Exit: {fileID: 0}
+  OverrideConnectionChance: 0
+  ConnectionChance: 0
+  Tags:
+    Tags: []
+  AllDoorways: []
+  UsedDoorways: []
+  UnusedDoorways: []
+  placement:
+    pathDepth: 0
+    normalizedPathDepth: 0
+    branchDepth: 0
+    normalizedBranchDepth: 0
+    isOnMainPath: 0
+    localBounds:
+      m_Center: {x: 0, y: 0, z: 0}
+      m_Extent: {x: 0, y: 0, z: 0}
+    graphNode:
+      Graph: {fileID: 0}
+      TileSets: []
+      NodeType: 0
+      Position: 0
+      Label: 
+      Keys: []
+      Locks: []
+      LockPlacement: 0
+    graphLine:
+      Graph: {fileID: 0}
+      DungeonArchetypes: []
+      Position: 0
+      Length: 0
+      Keys: []
+      Locks: []
+    archetype: {fileID: 0}
+    tileSet: {fileID: 0}
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: 0, y: 0, z: 0, w: 1}
+  fileVersion: 1
 --- !u!1 &3674359589898376989
 GameObject:
   m_ObjectHideFlags: 0
@@ -12367,15 +12426,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6c3c16eb2bfa14c2baefebba6bddec04, type: 3}
---- !u!4 &3674359589725109343 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 400272, guid: 6c3c16eb2bfa14c2baefebba6bddec04,
-    type: 3}
-  m_PrefabInstance: {fileID: 3674359589724973007}
-  m_PrefabAsset: {fileID: 0}
 --- !u!136 &3682241020158645563 stripped
 CapsuleCollider:
   m_CorrespondingSourceObject: {fileID: 136234054175879924, guid: 6c3c16eb2bfa14c2baefebba6bddec04,
+    type: 3}
+  m_PrefabInstance: {fileID: 3674359589724973007}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3674359589725109343 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 400272, guid: 6c3c16eb2bfa14c2baefebba6bddec04,
     type: 3}
   m_PrefabInstance: {fileID: 3674359589724973007}
   m_PrefabAsset: {fileID: 0}

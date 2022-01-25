@@ -12763,6 +12763,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7452510488904240973}
   - component: {fileID: 7452510488904240962}
+  - component: {fileID: 7330936046649160218}
   m_Layer: 0
   m_Name: PRE_ROO_Bedroom_002
   m_TagString: Type_Room
@@ -12810,6 +12811,64 @@ OcclusionArea:
   m_Size: {x: 8, y: 3, z: 8}
   m_Center: {x: 1.25, y: 1.25, z: 2.5}
   m_IsViewVolume: 1
+--- !u!114 &7330936046649160218
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7452510488904240972}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 238d443cf4b172f4989d5ce455c57c3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  allowImmediateRepeats: 1
+  AllowRotation: 1
+  RepeatMode: 2
+  OverrideAutomaticTileBounds: 0
+  TileBoundsOverride:
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 0.5, y: 0.5, z: 0.5}
+  Entrance: {fileID: 0}
+  Exit: {fileID: 0}
+  OverrideConnectionChance: 0
+  ConnectionChance: 0
+  Tags:
+    Tags: []
+  AllDoorways: []
+  UsedDoorways: []
+  UnusedDoorways: []
+  placement:
+    pathDepth: 0
+    normalizedPathDepth: 0
+    branchDepth: 0
+    normalizedBranchDepth: 0
+    isOnMainPath: 0
+    localBounds:
+      m_Center: {x: 0, y: 0, z: 0}
+      m_Extent: {x: 0, y: 0, z: 0}
+    graphNode:
+      Graph: {fileID: 0}
+      TileSets: []
+      NodeType: 0
+      Position: 0
+      Label: 
+      Keys: []
+      Locks: []
+      LockPlacement: 0
+    graphLine:
+      Graph: {fileID: 0}
+      DungeonArchetypes: []
+      Position: 0
+      Length: 0
+      Keys: []
+      Locks: []
+    archetype: {fileID: 0}
+    tileSet: {fileID: 0}
+    position: {x: 0, y: 0, z: 0}
+    rotation: {x: 0, y: 0, z: 0, w: 1}
+  fileVersion: 1
 --- !u!1 &7452510488907272120
 GameObject:
   m_ObjectHideFlags: 0
@@ -14270,15 +14329,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 839c9b8e74cb34a58b6d2eb7b22eb0de, type: 3}
---- !u!1 &7452510487677374560 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 191366, guid: 839c9b8e74cb34a58b6d2eb7b22eb0de,
-    type: 3}
-  m_PrefabInstance: {fileID: 7452510487677303782}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &7452510487677641060 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 449154, guid: 839c9b8e74cb34a58b6d2eb7b22eb0de,
+    type: 3}
+  m_PrefabInstance: {fileID: 7452510487677303782}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &7452510487677374560 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 191366, guid: 839c9b8e74cb34a58b6d2eb7b22eb0de,
     type: 3}
   m_PrefabInstance: {fileID: 7452510487677303782}
   m_PrefabAsset: {fileID: 0}
@@ -14481,15 +14540,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 566c3b93cc23e40aca5de50ed2d2f20e, type: 3}
---- !u!4 &7452510488447190536 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 403882, guid: 566c3b93cc23e40aca5de50ed2d2f20e,
-    type: 3}
-  m_PrefabInstance: {fileID: 7452510488447070114}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &7452510488447113218 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 128928, guid: 566c3b93cc23e40aca5de50ed2d2f20e,
+    type: 3}
+  m_PrefabInstance: {fileID: 7452510488447070114}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &7452510488447190536 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 403882, guid: 566c3b93cc23e40aca5de50ed2d2f20e,
     type: 3}
   m_PrefabInstance: {fileID: 7452510488447070114}
   m_PrefabAsset: {fileID: 0}

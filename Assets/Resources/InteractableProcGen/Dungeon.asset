@@ -1,0 +1,114 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e228b45736a8cf4ea000616e628a4dd, type: 3}
+  m_Name: Dungeon
+  m_EditorClassIdentifier: 
+  globalPropGroupID_obsolete: 
+  globalPropRanges_obsolete: []
+  Length:
+    Min: 5
+    Max: 6
+  BranchMode: 0
+  BranchCount:
+    Min: 1
+    Max: 5
+  GlobalProps: []
+  KeyManager: {fileID: 0}
+  DoorwayConnectionChance: 0
+  RestrictConnectionToSameSection: 0
+  TileInjectionRules:
+  - TileSet: {fileID: 11400000, guid: 2b8fe7482b8d741f08f4d2db75583ea0, type: 2}
+    NormalizedPathDepth:
+      Min: 0
+      Max: 1
+    NormalizedBranchDepth:
+      Min: 0
+      Max: 1
+    CanAppearOnMainPath: 1
+    CanAppearOnBranchPath: 0
+    IsRequired: 0
+    IsLocked: 0
+    LockID: 0
+  - TileSet: {fileID: 11400000, guid: 079a2a222b3164ab59ce4d6169679783, type: 2}
+    NormalizedPathDepth:
+      Min: 0
+      Max: 1
+    NormalizedBranchDepth:
+      Min: 0
+      Max: 1
+    CanAppearOnMainPath: 1
+    CanAppearOnBranchPath: 0
+    IsRequired: 1
+    IsLocked: 0
+    LockID: 0
+  - TileSet: {fileID: 11400000, guid: b5ed2c6a3231f4225850265e9a19c289, type: 2}
+    NormalizedPathDepth:
+      Min: 0
+      Max: 1
+    NormalizedBranchDepth:
+      Min: 0
+      Max: 1
+    CanAppearOnMainPath: 1
+    CanAppearOnBranchPath: 0
+    IsRequired: 1
+    IsLocked: 0
+    LockID: 0
+  - TileSet: {fileID: 11400000, guid: b9dc0d678a8f44ec4863f45fe7c1e10e, type: 2}
+    NormalizedPathDepth:
+      Min: 0
+      Max: 1
+    NormalizedBranchDepth:
+      Min: 0
+      Max: 1
+    CanAppearOnMainPath: 1
+    CanAppearOnBranchPath: 0
+    IsRequired: 1
+    IsLocked: 0
+    LockID: 0
+  TileTagConnectionMode: 0
+  TileConnectionTags: []
+  BranchTagPruneMode: 1
+  BranchPruneTags: []
+  Nodes:
+  - Graph: {fileID: 11400000}
+    TileSets:
+    - {fileID: 11400000, guid: 2b8fe7482b8d741f08f4d2db75583ea0, type: 2}
+    - {fileID: 11400000, guid: 079a2a222b3164ab59ce4d6169679783, type: 2}
+    - {fileID: 11400000, guid: b5ed2c6a3231f4225850265e9a19c289, type: 2}
+    - {fileID: 11400000, guid: b9dc0d678a8f44ec4863f45fe7c1e10e, type: 2}
+    NodeType: 1
+    Position: 0
+    Label: Start
+    Keys: []
+    Locks: []
+    LockPlacement: 0
+  - Graph: {fileID: 11400000}
+    TileSets:
+    - {fileID: 11400000, guid: 2b8fe7482b8d741f08f4d2db75583ea0, type: 2}
+    - {fileID: 11400000, guid: 079a2a222b3164ab59ce4d6169679783, type: 2}
+    - {fileID: 11400000, guid: b5ed2c6a3231f4225850265e9a19c289, type: 2}
+    - {fileID: 11400000, guid: b9dc0d678a8f44ec4863f45fe7c1e10e, type: 2}
+    NodeType: 2
+    Position: 1
+    Label: Goal
+    Keys: []
+    Locks: []
+    LockPlacement: 0
+  Lines:
+  - Graph: {fileID: 11400000}
+    DungeonArchetypes:
+    - {fileID: 11400000, guid: 4b1deefc084904420a05ab4ea9d1e031, type: 2}
+    Position: 0
+    Length: 1
+    Keys: []
+    Locks: []
+  currentFileVersion: 1
