@@ -36,7 +36,7 @@ namespace StoryGenerator
 
 
         private const int DefaultPort = 8080;
-        private const int DefaultTimeout = 500000;
+        private const int DefaultTimeout = 5000000;
 
 
         //static ProcessingController processingController;
@@ -984,7 +984,10 @@ namespace StoryGenerator
                         }
                     }
 
-                } else if (networkRequest.action == "reset") {
+                } 
+                
+                else if (networkRequest.action == "reset") 
+                {
                     cameraInitializer.initialized = false;
                     networkRequest.action = "environment_graph"; // return result after scene reload
                     currentGraph = null;
@@ -1024,6 +1027,27 @@ namespace StoryGenerator
                         yield break;
                     }
                 }
+
+                else if (networkRequest.action == "procedural_generation") 
+                {
+                    cameraInitializer.initialized = false;
+                    networkRequest.action = "environment_graph"; // return result after scene reload
+                    currentGraph = null;
+                    currentGraphCreator = null;
+                    CurrentStateList = new List<State>();
+                    //cc = null;
+                    numCharacters = 0;
+                    characters = new List<CharacterControl>();
+                    sExecutors = new List<ScriptExecutor>();
+                    cameras = cameras.GetRange(0, numSceneCameras);
+                    CameraExpander.ResetCameraExpander();
+
+                    int sceneIndex = 50;
+                    SceneManager.LoadScene(sceneIndex);
+                    yield break;
+
+                }
+
                 else if (networkRequest.action == "observation")
                 {
 

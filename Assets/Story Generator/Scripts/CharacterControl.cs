@@ -685,6 +685,22 @@ namespace StoryGenerator
         {
             yield return SimpleAction("TalkRight");
         }
+
+        // public IEnumerator Type()
+        // {
+        //     yield return SimpleAction("Type");
+        // }
+
+        // public IEnumerator Sleep()
+        // {
+        //     yield return SimpleAction("Sleep");
+        // }
+
+        // public IEnumerator Eat()
+        // {
+        //     yield return SimpleAction("Eat");
+        // }
+
         #endregion
 
         #region Public DoorActions
