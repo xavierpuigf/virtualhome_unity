@@ -114,6 +114,7 @@ namespace StoryGenerator
             if (networkRequest == null) {
                 commServer.UnlockProcessing(); // Allow to proceed with requests
             }
+            LightingSetup();
             StartCoroutine(ProcessNetworkRequest());
         }
         
@@ -1760,6 +1761,20 @@ namespace StoryGenerator
             }
             return result;
         }
+    }
+
+    private void LightingSetup()
+    {
+        GameObject timeObject = new GameObject("Time");
+        timeObject.transform.position = new Vector3(0,0,0);
+        timeObject.AddComponent<Orbit>();
+        GameObject sunObject = new GameObject("Sun");
+        sunObject.transform.position = new Vector3(100,0,0);
+        sunObject.transform.Rotate(0,-90,0);
+        sunObject.transform.parent = timeObject.transform;
+        Light dirLight = sunObject.AddComponent<Light>();
+        dirLight.color = Color.white;
+        dirLight.type = LightType.Directional;
     }
 
 }
