@@ -43,6 +43,8 @@ namespace StoryGenerator
         static HttpCommunicationServer commServer;
         static NetworkRequest networkRequest = null;
 
+        private GameObject timeObject = null;
+
         public static DataProviders dataProviders;
 
         public List<State> CurrentStateList = new List<State>();
@@ -153,6 +155,21 @@ namespace StoryGenerator
 
         }
 
+        private void LightingSetup()
+        {
+            timeObject = new GameObject("Time");
+            timeObject.transform.position = new Vector3(0,0,0);
+            timeObject.AddComponent<Orbit>();
+            GameObject sunObject = new GameObject("Sun");
+            sunObject.transform.position = new Vector3(100,0,0);
+            sunObject.transform.Rotate(0,-90,0);
+            sunObject.transform.parent = timeObject.transform;
+            Light dirLight = sunObject.AddComponent<Light>();
+            dirLight.color = Color.white;
+            dirLight.type = LightType.Directional;
+            dirLight.intensity = .5f;
+        }
+
         void ProcessHome(bool randomizeExecution)
         {
             UtilsAnnotator.ProcessHome(transform, randomizeExecution);
@@ -223,6 +240,13 @@ namespace StoryGenerator
                 if (networkRequest.action == "camera_count"){
                     response.success = true;
                     response.value = cameras.Count;
+                } else if (networkRequest.action == "set_time") 
+                {
+                    TimeConfig time_config = JsonConvert.DeserializeObject<TimeConfig>(networkRequest.stringParams[0]);
+                    Debug.Log(time_config.hour);
+                    Orbit currentOrbit = timeObject.GetComponent<Orbit>();
+                    currentOrbit.SetTime(time_config.hour, time_config.minute, time_config.second);
+                    response.success = true;
                 } else if (networkRequest.action == "character_cameras")
                 {
                     response.success = true;
@@ -1687,6 +1711,13 @@ namespace StoryGenerator
         public string mode = "random";
     }
 
+    public class TimeConfig
+    {
+        public int hour = 0;
+        public int minute = 0;
+        public int second = 0;
+    }
+
     public class ExecutionConfig : RecorderConfig
     {
         public bool find_solution = true;
@@ -1761,20 +1792,6 @@ namespace StoryGenerator
             }
             return result;
         }
-    }
-
-    private void LightingSetup()
-    {
-        GameObject timeObject = new GameObject("Time");
-        timeObject.transform.position = new Vector3(0,0,0);
-        timeObject.AddComponent<Orbit>();
-        GameObject sunObject = new GameObject("Sun");
-        sunObject.transform.position = new Vector3(100,0,0);
-        sunObject.transform.Rotate(0,-90,0);
-        sunObject.transform.parent = timeObject.transform;
-        Light dirLight = sunObject.AddComponent<Light>();
-        dirLight.color = Color.white;
-        dirLight.type = LightType.Directional;
     }
 
 }
