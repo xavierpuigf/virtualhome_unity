@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 using StoryGenerator.CharInteraction;
 using Unity.Profiling;
 using RootMotion.FinalIK;
+using DunGen;
 
 
 namespace StoryGenerator
@@ -53,7 +54,7 @@ namespace StoryGenerator
         private int numSceneCameras = 0;
         private int numCharacters = 0;
         public int finishedChars = 0; // Used to count the number of characters finishing their actions.
-
+        
 
         Recorder recorder;
         // TODO: should we delete this ^
