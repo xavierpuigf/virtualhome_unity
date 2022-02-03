@@ -54,7 +54,7 @@ namespace StoryGenerator
         private int numSceneCameras = 0;
         private int numCharacters = 0;
         public int finishedChars = 0; // Used to count the number of characters finishing their actions.
-        
+
 
         Recorder recorder;
         // TODO: should we delete this ^
@@ -377,6 +377,18 @@ namespace StoryGenerator
                 } 
                 
                 else if (networkRequest.action == "environment_graph") {
+                    
+                    cameraInitializer.initialized = false;
+                    currentGraph = null;
+                    currentGraphCreator = null;
+                    CurrentStateList = new List<State>();
+                    //cc = null;
+                    numCharacters = 0;
+                    characters = new List<CharacterControl>();
+                    sExecutors = new List<ScriptExecutor>();
+                    cameras = cameras.GetRange(0, numSceneCameras);
+                    CameraExpander.ResetCameraExpander();
+
                     if (currentGraph == null)
                     {
                         currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
