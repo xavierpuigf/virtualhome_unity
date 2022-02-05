@@ -9,11 +9,10 @@ namespace StoryGenerator.Utilities
     public enum InteractionType {
         UNSPECIFIED, SPECIAL,
         CLOSE,
-        DRINK,
-        // EAT,
         FIND,
         GOTO,
         GRAB,
+        DRINK,
         LOOKAT /* == LOOKAT_MEDIUM */, LOOKAT_SHORT, LOOKAT_MEDIUM, LOOKAT_LONG,
         OPEN,
         POINTAT,
@@ -22,21 +21,19 @@ namespace StoryGenerator.Utilities
         PUTIN,
         RUN,
         SIT,
-        // SLEEP,
         STANDUP,
         SWITCHON,
         SWITCHOFF,
-        TALK,
-        TEXT,
         TOUCH,
         TURNTO,
-        TURNLEFT,
-        TURNRIGHT,
-        // TYPE,
         WALK,
         WATCH,
+        TALK,
+        TEXT,
         WALKTOWARDS,
-        WALKFORWARD
+        WALKFORWARD,
+        TURNLEFT,
+        TURNRIGHT
     }
 
     public static class InteractionTypeGroup

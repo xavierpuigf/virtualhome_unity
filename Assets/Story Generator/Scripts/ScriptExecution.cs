@@ -413,53 +413,6 @@ namespace StoryGenerator.Utilities
         }
     }
 
-    // public class TypeAction : IAction
-    // {
-    //     public ScriptObjectName Name { get; private set; }
-    //     public int ScriptLine { get; private set; }
-    //     public bool Close { get; private set; }
-    //     public IObjectSelector Selector;
-
-
-    //     public TypeAction(int scriptLine, IObjectSelector selector, string name, int instance, bool close)
-    //     {
-    //         Selector = selector;
-    //         ScriptLine = scriptLine;
-    //         Name = new ScriptObjectName(name, instance);
-    //     }
-    // }
-
-    // public class SleepAction : IAction
-    // {
-    //     public ScriptObjectName Name { get; private set; }
-    //     public int ScriptLine { get; private set; }
-    //     public bool Close { get; private set; }
-    //     public IObjectSelector Selector;
-
-
-    //     public SleepAction(int scriptLine, IObjectSelector selector, string name, int instance, bool close)
-    //     {
-    //         Selector = selector;
-    //         ScriptLine = scriptLine;
-    //         Name = new ScriptObjectName(name, instance);
-    //     }
-    // }
-
-    // public class EatAction : IAction
-    // {
-    //     public ScriptObjectName Name { get; private set; }
-    //     public int ScriptLine { get; private set; }
-    //     public bool Close { get; private set; }
-    //     public IObjectSelector Selector;
-
-
-    //     public EatAction(int scriptLine, IObjectSelector selector, string name, int instance, bool close)
-    //     {
-    //         Selector = selector;
-    //         ScriptLine = scriptLine;
-    //         Name = new ScriptObjectName(name, instance);
-    //     }
-    // }
 
     #endregion
 
@@ -1067,21 +1020,6 @@ namespace StoryGenerator.Utilities
         {
             script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessOpen((OpenAction)ac, s)) });
         }
-
-        // public void AddAction(TypeAction a)
-        // {
-        //     script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessOpen((OpenAction)ac, s)) });
-        // }
-
-        // public void AddAction(SleepAction a)
-        // {
-        //     script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessOpen((OpenAction)ac, s)) });
-        // }
-
-        // public void AddAction(EatAction a)
-        // {
-        //     script.Add(new ScriptPair() { Action = a, ProcessMethod = ((ac, s) => this.ProcessOpen((OpenAction)ac, s)) });
-        // }
 
         #endregion
 
@@ -2769,93 +2707,6 @@ namespace StoryGenerator.Utilities
 
         }
 
-        // private IEnumerable<IStateGroup> ProcessType(TypeAction a, State current)
-        // {
-        //     GameObject go = current.GetScriptGameObject(a.Name);
-
-        //     if (go == null)
-        //     {
-        //         report.AddItem("PROCESS TYPE", $"Not found object: {a.Name.Name}");
-        //     }
-        //     else
-        //     {
-        //         return ProcessTypeAction(a, current);
-        //     }
-        // }
-
-        // private IEnumerable<IStateGroup> ProcessTypeAction(TypeAction a, State current)
-        // {
-        //     GameObject go = current.GetScriptGameObject(a.Name);
-
-        //     if (go == null)
-        //     {
-        //         report.AddItem("PROCESS TYPE", $"Not found object: {a.Name.Name}");
-        //     }
-        //     else
-        //     {
-        //         State s = new State(current, a, current.InteractionPosition, ExecuteType);
-        //         yield return s;
-        //     }
-        // }
-
-        // private IEnumerable<IStateGroup> ProcessSleep(TypeAction a, State current)
-        // {
-        //     GameObject go = current.GetScriptGameObject(a.Name);
-
-        //     if (go == null)
-        //     {
-        //         report.AddItem("PROCESS TYPE", $"Not found object: {a.Name.Name}");
-        //     }
-        //     else
-        //     {
-        //         return ProcessSleepAction(a, current);
-        //     }
-        // }
-
-        // private IEnumerable<IStateGroup> ProcessSleepAction(SleepAction a, State current)
-        // {
-        //     GameObject go = current.GetScriptGameObject(a.Name);
-
-        //     if (go == null)
-        //     {
-        //         report.AddItem("PROCESS TYPE", $"Not found object: {a.Name.Name}");
-        //     }
-        //     else
-        //     {
-        //         State s = new State(current, a, current.InteractionPosition, ExecuteSleep);
-        //         yield return s;
-        //     }
-        // }
-
-        // private IEnumerable<IStateGroup> ProcessEat(TypeAction a, State current)
-        // {
-        //     GameObject go = current.GetScriptGameObject(a.Name);
-
-        //     if (go == null)
-        //     {
-        //         report.AddItem("PROCESS TYPE", $"Not found object: {a.Name.Name}");
-        //     }
-        //     else
-        //     {
-        //         return ProcessEatAction(a, current);
-        //     }
-        // }
-
-        // private IEnumerable<IStateGroup> ProcessEatAction(EatAction a, State current)
-        // {
-        //     GameObject go = current.GetScriptGameObject(a.Name);
-
-        //     if (go == null)
-        //     {
-        //         report.AddItem("PROCESS TYPE", $"Not found object: {a.Name.Name}");
-        //     }
-        //     else
-        //     {
-        //         State s = new State(current, a, current.InteractionPosition, ExecuteEat);
-        //         yield return s;
-        //     }
-        // }
-
         #endregion
 
         #region Execute**** methods
@@ -3256,63 +3107,6 @@ namespace StoryGenerator.Utilities
                         cameraControls[cam_id].ClearFocusObject();
             }
         }
-
-        // private IEnumerator ExecuteType(State s)
-        // {
-        //     if (cameraControls != null)
-        //     {
-        //         for (int cam_id = 0; cam_id < cameraControls.Count; cam_id++)
-        //             if (cameraControls[cam_id] != null)
-        //                 cameraControls[cam_id].SetVisibleArea(characterControl.UpperPartArea());
-        //     }
-        //     recorder.MarkActionStart(InteractionType.TYPE, s.Action.ScriptLine);
-        //     yield return characterControl.Type();
-
-        //     if (cameraControls != null)
-        //     {
-        //         for (int cam_id = 0; cam_id < cameraControls.Count; cam_id++)
-        //             if (cameraControls[cam_id] != null)
-        //                 cameraControls[cam_id].ClearVisibleArea();
-        //     }
-        // }
-
-        // private IEnumerator ExecuteSleep(State s)
-        // {
-        //     if (cameraControls != null)
-        //     {
-        //         for (int cam_id = 0; cam_id < cameraControls.Count; cam_id++)
-        //             if (cameraControls[cam_id] != null)
-        //                 cameraControls[cam_id].SetVisibleArea(characterControl.UpperPartArea());
-        //     }
-        //     recorder.MarkActionStart(InteractionType.TYPE, s.Action.ScriptLine);
-        //     yield return characterControl.Type();
-
-        //     if (cameraControls != null)
-        //     {
-        //         for (int cam_id = 0; cam_id < cameraControls.Count; cam_id++)
-        //             if (cameraControls[cam_id] != null)
-        //                 cameraControls[cam_id].ClearVisibleArea();
-        //     }
-        // }
-
-        // private IEnumerator ExecuteEat(State s)
-        // {
-        //     if (cameraControls != null)
-        //     {
-        //         for (int cam_id = 0; cam_id < cameraControls.Count; cam_id++)
-        //             if (cameraControls[cam_id] != null)
-        //                 cameraControls[cam_id].SetVisibleArea(characterControl.UpperPartArea());
-        //     }
-        //     recorder.MarkActionStart(InteractionType.TYPE, s.Action.ScriptLine);
-        //     yield return characterControl.Type();
-
-        //     if (cameraControls != null)
-        //     {
-        //         for (int cam_id = 0; cam_id < cameraControls.Count; cam_id++)
-        //             if (cameraControls[cam_id] != null)
-        //                 cameraControls[cam_id].ClearVisibleArea();
-        //     }
-        // }
 
         #endregion
 
@@ -4376,15 +4170,6 @@ namespace StoryGenerator.Utilities
                 case InteractionType.CLOSE:
                     sExecutor.AddAction(new OpenAction(sl.LineNumber, sExecutor.GetObjectSelector(name0, instance0), name0, instance0, true));
                     break;
-                // case InteractionType.TYPE:
-                //     sExecutor.AddAction(new OpenAction(sl.LineNumber, sExecutor.GetObjectSelector(name0, instance0), name0, instance0, true));
-                //     break;
-                // case InteractionType.SLEEP:
-                //     sExecutor.AddAction(new OpenAction(sl.LineNumber, sExecutor.GetObjectSelector(name0, instance0), name0, instance0, true));
-                //     break;
-                // case InteractionType.EAT:
-                //     sExecutor.AddAction(new OpenAction(sl.LineNumber, sExecutor.GetObjectSelector(name0, instance0), name0, instance0, true));
-                //     break;
                 case InteractionType.SPECIAL:
                     // Ignore
                     break;
