@@ -227,11 +227,16 @@ namespace StoryGenerator
                 if (networkRequest.action == "camera_count"){
                     response.success = true;
                     response.value = cameras.Count;
-                } else if (networkRequest.action == "character_cameras")
+                } 
+                
+                else if (networkRequest.action == "character_cameras")
                 {
                     response.success = true;
                     response.message = JsonConvert.SerializeObject(CameraExpander.GetCamNames());
-                } else if (networkRequest.action == "camera_data") {
+                } 
+                
+                else if (networkRequest.action == "camera_data") 
+                {
                     cameraInitializer.Initialize(() => CameraUtils.InitCameras(cameras));
 
                     IList<int> indexes = networkRequest.intParams;
@@ -245,7 +250,10 @@ namespace StoryGenerator
                         response.success = true;
                         response.message = JsonConvert.SerializeObject(cameraData);
                     }
-                } else if (networkRequest.action == "add_camera") {
+                } 
+                
+                else if (networkRequest.action == "add_camera") 
+                {
                     CameraConfig camera_config = JsonConvert.DeserializeObject<CameraConfig>(networkRequest.stringParams[0]);
                     String camera_name = cameras.Count().ToString();
                     GameObject go = new GameObject("new_camera" + camera_name, typeof(Camera));
@@ -266,8 +274,8 @@ namespace StoryGenerator
                     response.success = true;;
                     cameraInitializer.initialized = false;
                     CameraUtils.DeactivateCameras(cameras);
-
                 }
+                
                 else if (networkRequest.action == "add_character_camera")
                 {
                     CameraConfig camera_config = JsonConvert.DeserializeObject<CameraConfig>(networkRequest.stringParams[0]);
@@ -294,10 +302,10 @@ namespace StoryGenerator
                             response.message = "Error: a camera with this name already exists";
                         }
                     }
-                    
-
                 }
-                else if (networkRequest.action == "camera_image") {
+
+                else if (networkRequest.action == "camera_image") 
+                {
                     
                     cameraInitializer.Initialize(() => CameraUtils.InitCameras(cameras));
 
@@ -337,7 +345,10 @@ namespace StoryGenerator
                         }
 
                     }
-                } else if (networkRequest.action == "environment_graph") {
+                } 
+                
+                else if (networkRequest.action == "environment_graph") 
+                {
                     if (currentGraph == null)
                     {
                         currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
@@ -360,7 +371,10 @@ namespace StoryGenerator
                     {
                         response.message = JsonConvert.SerializeObject(currentGraph);
                     }
-                } else if (networkRequest.action == "expand_scene") {
+                } 
+                
+                else if (networkRequest.action == "expand_scene") 
+                {
                     cameraInitializer.initialized = false;
                     List<IEnumerator> animationEnumerators = new List<IEnumerator>();
 
@@ -528,7 +542,10 @@ namespace StoryGenerator
 
                     
 
-                } else if (networkRequest.action == "point_cloud") {
+                } 
+                
+                else if (networkRequest.action == "point_cloud") 
+                {
                     if (currentGraph == null) {
                         currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
                         currentGraph = currentGraphCreator.CreateGraph(transform);
@@ -537,7 +554,10 @@ namespace StoryGenerator
                     List<ObjectPointCloud> result = exporter.ExportObjects(currentGraph.nodes);
                     response.success = true;
                     response.message = JsonConvert.SerializeObject(result);
-                } else if (networkRequest.action == "instance_colors") {
+                } 
+                
+                else if (networkRequest.action == "instance_colors") 
+                {
                     if (currentGraph == null) {
                         EnvironmentGraphCreator graphCreator = new EnvironmentGraphCreator(dataProviders);
                         currentGraph = graphCreator.CreateGraph(transform);
@@ -585,6 +605,7 @@ namespace StoryGenerator
                 //        camera.gameObject.SetActive(false);
                 //    }
                 }
+
                 else if (networkRequest.action == "add_character")
                 {
                     CharacterConfig config = JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
@@ -660,7 +681,8 @@ namespace StoryGenerator
                 }
                 // TODO: remove character as well
 
-                else if (networkRequest.action == "render_script") {
+                else if (networkRequest.action == "render_script") 
+                {
                     if (numCharacters == 0)
                     {
                         networkRequest = null;
@@ -988,8 +1010,10 @@ namespace StoryGenerator
                             }
                         }
                     }
-
-                } else if (networkRequest.action == "reset") {
+                } 
+                
+                else if (networkRequest.action == "reset") 
+                {
                     cameraInitializer.initialized = false;
                     networkRequest.action = "environment_graph"; // return result after scene reload
                     currentGraph = null;
@@ -1029,9 +1053,9 @@ namespace StoryGenerator
                         yield break;
                     }
                 }
+
                 else if (networkRequest.action == "observation")
                 {
-
                     if (currentGraph == null)
                     {
                         response.success = false;
@@ -1082,15 +1106,10 @@ namespace StoryGenerator
 
                         }
                     }
-
-
                 }
-
-
 
                 else if (networkRequest.action == "environment") 
                 {   
-
                     cameraInitializer.initialized = false;
                     currentGraph = null;
                     currentGraphCreator = null;
@@ -1113,28 +1132,31 @@ namespace StoryGenerator
                             response.success = true;
                             response.message = "";
                         }
-                        else
-                        {   
-                            response.success = false;
-                            response.message = "Invalid scene index";
-                        }
+                        // else
+                        // {   
+                        //     response.success = false;
+                        //     response.message = "Invalid scene index";
+                        // }
                     }
+     
+                    NavMeshSurface nm = GameObject.FindObjectOfType<NavMeshSurface>();
+                    nm.BuildNavMesh();
                 }
 
                 else if (networkRequest.action == "clear")
                 {   
                     System.Diagnostics.Stopwatch resetStopwatch = System.Diagnostics.Stopwatch.StartNew();
+
                     SceneManager.LoadScene(0);
-                   
+
+                    DeleteChar();
+                    
                     response.success = true;
                     response.message = "";
 
                     resetStopwatch.Stop();
                     Debug.Log(String.Format("clear time: {0}", resetStopwatch.ElapsedMilliseconds));
                 }
-
-
-
 
                 else if (networkRequest.action == "fast_reset")
                 {
@@ -1195,12 +1217,16 @@ namespace StoryGenerator
 
                     resetStopwatch.Stop();
                     Debug.Log(String.Format("fast reset time: {0}", resetStopwatch.ElapsedMilliseconds));
-
                 }
-                else if (networkRequest.action == "idle") {
+
+                else if (networkRequest.action == "idle") 
+                {
                     response.success = true;
                     response.message = "";
-                } else {
+                } 
+                
+                else 
+                {
                     response.success = false;
                     response.message = "Unknown action " + networkRequest.action;
                 }
@@ -1575,7 +1601,7 @@ namespace StoryGenerator
                         return null;
                 }
 
-                GameObject newCharacter = Instantiate(loadedObj, destRoomm, instantiateInWorldSpace=true) as GameObject;
+                GameObject newCharacter = Instantiate(loadedObj, destRoom) as GameObject;
 
                 newCharacter.name = loadedObj.name;
                 ColorEncoding.EncodeGameObject(newCharacter);

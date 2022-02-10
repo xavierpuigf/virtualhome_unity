@@ -265,7 +265,7 @@ namespace StoryGenerator.Recording
             }
             if (tsfm.name.Contains("StoveCoil"))
             {
-                Debug.Log("HEre");
+                Debug.Log("Here");
             }
             if (m_instanceGroup_prefab.ContainsKey(tsfm.name)) {
                 id_inst_self = ColorEncoding.GetInstID();
