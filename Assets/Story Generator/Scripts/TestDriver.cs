@@ -68,6 +68,9 @@ namespace StoryGenerator
         [SerializeField] GameObject[] prefab;
         public GameObject _instance;
 
+        // Environment memory
+        public int currentEnvironment = 0;
+
 
         WaitForSeconds WAIT_AFTER_END_OF_SCENE = new WaitForSeconds(3.0f);
 
@@ -259,13 +262,15 @@ namespace StoryGenerator
                     GameObject go = new GameObject("new_camera" + camera_name, typeof(Camera));
                     Camera new_camera = go.GetComponent<Camera>();
 
-                    // new_camera.usePhysicalProperties = true;
-                    // new_camera.focalLength = 30.0f;
+                    new_camera.usePhysicalProperties = true;
+                    float focal_length = camera_config.focal_length;
+                    new_camera.focalLength = focal_length;
 
                     new_camera.renderingPath = RenderingPath.UsePlayerSettings;
 
                     Vector3 position_vec = camera_config.position;
                     Vector3 rotation_vec = camera_config.rotation;
+
                     go.transform.localPosition = position_vec;
                     go.transform.localEulerAngles = rotation_vec;
 
@@ -1129,14 +1134,16 @@ namespace StoryGenerator
                         {   
                             GameObject _instance = Instantiate(prefab[environment], new Vector3(0, 0, 0), Quaternion.identity) as GameObject;
 
+                            currentEnvironment = environment;
+
                             response.success = true;
                             response.message = "";
                         }
-                        // else
-                        // {   
-                        //     response.success = false;
-                        //     response.message = "Invalid scene index";
-                        // }
+                        else
+                        {   
+                            response.success = false;
+                            response.message = "Invalid scene index";
+                        }
                     }
      
                     NavMeshSurface nm = GameObject.FindObjectOfType<NavMeshSurface>();
@@ -1145,17 +1152,12 @@ namespace StoryGenerator
 
                 else if (networkRequest.action == "clear")
                 {   
-                    System.Diagnostics.Stopwatch resetStopwatch = System.Diagnostics.Stopwatch.StartNew();
-
                     SceneManager.LoadScene(0);
 
                     DeleteChar();
                     
                     response.success = true;
                     response.message = "";
-
-                    resetStopwatch.Stop();
-                    Debug.Log(String.Format("clear time: {0}", resetStopwatch.ElapsedMilliseconds));
                 }
 
                 else if (networkRequest.action == "fast_reset")
