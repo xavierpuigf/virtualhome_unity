@@ -44,7 +44,7 @@ namespace StoryGenerator.Recording
     static float stepSize_green;
     static float stepSize_blue;
 #else
-        const int SPLIT_RGB = 8;
+        const int SPLIT_RGB = 12;
         const int MAX_INSTANCE = SPLIT_RGB * SPLIT_RGB * SPLIT_RGB;
         const float STEP_SIZE_RGB = 1 / (float)(SPLIT_RGB - 1);
 #endif
