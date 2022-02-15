@@ -1042,11 +1042,6 @@ namespace StoryGenerator
                                             script_object_changed[entry.Key] = entry.Value;
                                         }
 
-                                        //}
-                                        //else
-                                        //{
-
-                                        //}
                                     }
 
                                 }
@@ -1219,25 +1214,7 @@ namespace StoryGenerator
 
                 else if (networkRequest.action == "procedural_generation") 
                 {   
-                    // SceneManager.LoadScene(SceneManager.GetActiveScene().name);
                     SceneManager.LoadScene(1);
-
-                    // DungeonGenerator dg = gameObject.GetComponent<DungeonGenerator>();
-                    // int seeds = dg.seed();
-
-                    // cameraInitializer.initialized = false;
-                    // currentGraph = null;
-                    // currentGraphCreator = null;
-                    // CurrentStateList = new List<State>();
-                    // //cc = null;
-                    // numCharacters = 0;
-                    // characters = new List<CharacterControl>();
-                    // sExecutors = new List<ScriptExecutor>();
-                    // cameras = cameras.GetRange(0, numSceneCameras);
-                    // CameraExpander.ResetCameraExpander();
-     
-                    // NavMeshSurface nm = GameObject.FindObjectOfType<NavMeshSurface>();
-                    // nm.BuildNavMesh();
 
                     response.success = true;
                     response.message = "";
@@ -1274,9 +1251,7 @@ namespace StoryGenerator
                     if (gravity == 1.0f) 
                     {
                         Gravity();
-                        // ZeroGravity();
-                        // Physics.gravity = new Vector3(0, 0, 0);
-                        
+                        // Physics.gravity = new Vector3(0, 0, 0);   
                     }
 
                     response.success = true;
@@ -1334,7 +1309,6 @@ namespace StoryGenerator
                     numCharacters = 0;
                     sExecutors = new List<ScriptExecutor>();
                     cameras = cameras.GetRange(0, numSceneCameras);
-
 
                     //Start();
                     response.success = true;
@@ -1396,7 +1370,6 @@ namespace StoryGenerator
                 return false;
             }
             // if (Mathf.Abs(hit.point.y - dest.y) > yTolerance) return false;
-
             return true;
         }
 
@@ -1693,19 +1666,21 @@ namespace StoryGenerator
                 }
 
 
-                if (sceneCharacters.Count > 0 && mode == "random") destRoom = sceneCharacters[0].transform.parent.transform;
-                else
+                if (sceneCharacters.Count > 0 && mode == "random") 
+                {
+                    destRoom = sceneCharacters[0].transform.parent.transform;
+                }
+                else 
                 {
                     string room_name = "livingroom";
-                    if (mode == "fix_room")
+                    if (mode == "fix_room") 
                     {
                         room_name = initial_room;
                     }
                     int index = 0;
-                    for (int i = 0; i < rooms.Count; i++)
+                    for (int i = 0; i < rooms.Count; i++) 
                     {
-                        if (rooms[i].name.Contains(room_name.Substring(1)))
-                        {
+                        if (rooms[i].name.Contains(room_name.Substring(1))) {
                             index = i;
                         }
                     }
@@ -1751,11 +1726,13 @@ namespace StoryGenerator
                         nma.Warp(sceneCharacters[0].transform.position);
                     }
                 }
+
                 else if (mode == "fix_position")
                 {
                     var nma = newCharacter.GetComponent<NavMeshAgent>();
                     nma.Warp(position);
                 }
+
                 else if (mode == "fix_room")
                 {
                     List<GameObject> rooms_selected = new List<GameObject>();
