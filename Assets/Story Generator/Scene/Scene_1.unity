@@ -300,6 +300,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1990996012755495734}
   - component: {fileID: 1990996013638155612}
+  - component: {fileID: 1990996013638155614}
+  - component: {fileID: 1990996013638155615}
   m_Layer: 0
   m_Name: Home_Procedural_Generation
   m_TagString: Untagged
@@ -351,3 +353,41 @@ MonoBehaviour:
     fileVersion: 1
   GenerateOnStart: 1
   Root: {fileID: 0}
+--- !u!114 &1990996013638155614
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1990996013638155610}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 754fbe491e27744129dc77a2f8591750, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  imageSynthesis: []
+  savePoseData: 0
+  saveSceneStates: 0
+  currentCameraMode: []
+  currentframeNum: 0
+  ImageWidth: 640
+  ImageHeight: 480
+--- !u!114 &1990996013638155615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1990996013638155610}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b3509914c77447d8b22734079f8e215, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  num_renderings: 0
+  finishedChars: 0
+  myPrefab: {fileID: 0}
+  prefab: []
+  _instance: {fileID: 0}
+  object1: {fileID: 0}
+  object2: {fileID: 0}

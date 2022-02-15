@@ -212,15 +212,17 @@ namespace StoryGenerator
                 if (g.name.ToLower().Contains("new"))
                 {
                     object1 = (GameObject) g;
+                    Destroy(object1.GetComponent<TestDriver>());
                 }
                 else if (g.name.ToLower().Contains("generation"))
                 {
                     object2 = (GameObject) g;
+                    Destroy(object2);
                 }
             }
 
-            object1.transform.parent = object2.transform;
-            object2.AddComponent(typeof(TestDriver));
+            // object1.transform.parent = object2.transform;
+            object1.AddComponent(typeof(TestDriver));
 
         }
 
