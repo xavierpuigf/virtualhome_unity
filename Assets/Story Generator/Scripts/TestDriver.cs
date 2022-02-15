@@ -206,9 +206,7 @@ namespace StoryGenerator
             foreach (object o in obj)
             {   
                 GameObject g = (GameObject) o;
-                
 
-                // Destroy box colliders and replace it with mesh colliders and rigidbody
                 if (g.name.ToLower().Contains("new"))
                 {
                     object1 = (GameObject) g;
@@ -220,12 +218,8 @@ namespace StoryGenerator
                     Destroy(object2);
                 }
             }
-
-            // object1.transform.parent = object2.transform;
             object1.AddComponent(typeof(TestDriver));
-
         }
-
 
         void ProcessHome(bool randomizeExecution)
         {
