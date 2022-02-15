@@ -290,25 +290,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1990996013638155608
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1990996013638155610}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 754fbe491e27744129dc77a2f8591750, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  imageSynthesis: []
-  savePoseData: 0
-  saveSceneStates: 0
-  currentCameraMode: []
-  currentframeNum: 0
-  ImageWidth: 640
-  ImageHeight: 480
 --- !u!1 &1990996013638155610
 GameObject:
   m_ObjectHideFlags: 0
@@ -318,8 +299,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1990996012755495734}
-  - component: {fileID: 1990996013638155611}
-  - component: {fileID: 1990996013638155608}
   - component: {fileID: 1990996013638155612}
   m_Layer: 0
   m_Name: Home_Procedural_Generation
@@ -328,23 +307,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1990996013638155611
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1990996013638155610}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0b3509914c77447d8b22734079f8e215, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  num_renderings: 0
-  finishedChars: 0
-  myPrefab: {fileID: 0}
-  prefab: []
-  _instance: {fileID: 0}
 --- !u!114 &1990996013638155612
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -376,7 +338,7 @@ MonoBehaviour:
     TileTriggerLayer: 2
     GenerateAsynchronously: 0
     MaxAsyncFrameMilliseconds: 50
-    PauseBetweenRooms: 0
+    PauseBetweenRooms: 0.47
     RestrictDungeonToBounds: 0
     TilePlacementBounds:
       m_Center: {x: 0, y: 0, z: 0}
@@ -387,5 +349,5 @@ MonoBehaviour:
     Root: {fileID: 0}
     DungeonFlow: {fileID: 11400000, guid: 030c14b57e1fd4d8292dfe317d19b31e, type: 2}
     fileVersion: 1
-  GenerateOnStart: 0
+  GenerateOnStart: 1
   Root: {fileID: 0}

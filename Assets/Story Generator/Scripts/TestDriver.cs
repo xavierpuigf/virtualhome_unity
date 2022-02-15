@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 using StoryGenerator.CharInteraction;
 using Unity.Profiling;
 using RootMotion.FinalIK;
+using DunGen;
 
 
 namespace StoryGenerator
@@ -156,7 +157,807 @@ namespace StoryGenerator
                     }
                 }
             }
+        }
 
+        void EnhancedColliders()
+        {   
+            // Traverse all objetcs in the scene
+            object[] obj = GameObject.FindSceneObjectsOfType(typeof (GameObject));
+            foreach (object o in obj)
+            {   
+                GameObject g = (GameObject) o;
+
+                // Destroy box colliders and replace it with mesh colliders and rigidbody
+                if (g.name.ToLower().Contains("apple"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("bananas"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("bread"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("carrot"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("alcohol"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("cereal"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;                    
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("chicken"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("cupcake"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("milkshake"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("pancake"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("pie"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("pound_cake"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("pudding"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("sundae"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("watermelon"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("creamy_buns"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("salmon"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("potato"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("bell_pepper"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("chocolate_syrup"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("salt_crackers"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("whipped_cream"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("cutlet"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("pear"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("plum"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("orange"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("cucumber"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("tomato"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("minced_meat"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("juice"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("lemon"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("lime"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("shaker"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("candy_bar"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("potato_chips"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("milk"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("salad"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("fork"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("knife"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("glass"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("plate"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("bowl"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    // g.GetComponent<Rigidbody>().isKinematic = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("pillow"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("book_"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("paper"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("clothes"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("perfume"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("shampoo"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("conditioner"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("face_cream"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("soap"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("perfume"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("tooth"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("painkillers"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("deodorant"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("candle"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("cellphone"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("mug"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("slippers"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("folder"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("radio"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("cream"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("wine"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("box"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("condiment"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("pot"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("pan"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("photo_frame"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<MeshCollider>().convex = true;
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("pre_fur_kitchen_counter"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(MeshCollider));
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("pre_fur_bathrooom_counter"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(MeshCollider));
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("stove"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(MeshCollider));
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                else if (g.name.ToLower().Contains("table"))
+                {
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(MeshCollider));
+                    
+                    foreach(Transform child in GetComponentsInChildren<Transform>()){
+                        Destroy(child.GetComponent<BoxCollider>());
+                    }
+                }
+                
+            }
 
         }
 
@@ -1017,47 +1818,47 @@ namespace StoryGenerator
                     }
                 } 
                 
-                else if (networkRequest.action == "reset") 
-                {
-                    cameraInitializer.initialized = false;
-                    networkRequest.action = "environment_graph"; // return result after scene reload
-                    currentGraph = null;
-                    currentGraphCreator = null;
-                    CurrentStateList = new List<State>();
-                    //cc = null;
-                    numCharacters = 0;
-                    characters = new List<CharacterControl>();
-                    sExecutors = new List<ScriptExecutor>();
-                    cameras = cameras.GetRange(0, numSceneCameras);
-                    CameraExpander.ResetCameraExpander();
+                // else if (networkRequest.action == "reset") 
+                // {
+                //     cameraInitializer.initialized = false;
+                //     networkRequest.action = "environment_graph"; // return result after scene reload
+                //     currentGraph = null;
+                //     currentGraphCreator = null;
+                //     CurrentStateList = new List<State>();
+                //     //cc = null;
+                //     numCharacters = 0;
+                //     characters = new List<CharacterControl>();
+                //     sExecutors = new List<ScriptExecutor>();
+                //     cameras = cameras.GetRange(0, numSceneCameras);
+                //     CameraExpander.ResetCameraExpander();
 
-                    if (networkRequest.intParams?.Count > 0)
-                    {
-                        int sceneIndex = networkRequest.intParams[0];
+                //     if (networkRequest.intParams?.Count > 0)
+                //     {
+                //         int sceneIndex = networkRequest.intParams[0];
 
-                        if (sceneIndex >= 0 && sceneIndex < SceneManager.sceneCountInBuildSettings)
-                        {
+                //         if (sceneIndex >= 0 && sceneIndex < SceneManager.sceneCountInBuildSettings)
+                //         {
 
-                            SceneManager.LoadScene(sceneIndex);
+                //             SceneManager.LoadScene(sceneIndex);
 
-                            yield break;
-                        }
-                        else
-                        {
-                            response.success = false;
-                            response.message = "Invalid scene index";
-                        }
-                    }
-                    else
-                    {
+                //             yield break;
+                //         }
+                //         else
+                //         {
+                //             response.success = false;
+                //             response.message = "Invalid scene index";
+                //         }
+                //     }
+                //     else
+                //     {
 
-                        Debug.Log("Reloading");
-                        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-                        DeleteChar();
-                        Debug.Log("Reloaded");
-                        yield break;
-                    }
-                }
+                //         Debug.Log("Reloading");
+                //         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+                //         DeleteChar();
+                //         Debug.Log("Reloaded");
+                //         yield break;
+                //     }
+                // }
 
                 else if (networkRequest.action == "observation")
                 {
@@ -1158,6 +1959,57 @@ namespace StoryGenerator
                     
                     response.success = true;
                     response.message = "";
+                }
+
+                else if (networkRequest.action == "procedural_generation") 
+                {   
+
+                    SceneManager.LoadScene(1);
+
+                    // DungeonGenerator dg = gameObject.GetComponent<DungeonGenerator>();
+                    // int seeds = dg.seed();
+
+                    // cameraInitializer.initialized = false;
+                    // currentGraph = null;
+                    // currentGraphCreator = null;
+                    // CurrentStateList = new List<State>();
+                    // //cc = null;
+                    // numCharacters = 0;
+                    // characters = new List<CharacterControl>();
+                    // sExecutors = new List<ScriptExecutor>();
+                    // cameras = cameras.GetRange(0, numSceneCameras);
+                    // CameraExpander.ResetCameraExpander();
+     
+                    // NavMeshSurface nm = GameObject.FindObjectOfType<NavMeshSurface>();
+                    // nm.BuildNavMesh();
+
+                    response.success = true;
+                    response.message = "";
+                }
+
+                else if (networkRequest.action == "process") 
+                {   
+                    cameraInitializer.initialized = false;
+                    currentGraph = null;
+                    currentGraphCreator = null;
+                    CurrentStateList = new List<State>();
+                    //cc = null;
+                    numCharacters = 0;
+                    characters = new List<CharacterControl>();
+                    sExecutors = new List<ScriptExecutor>();
+                    cameras = cameras.GetRange(0, numSceneCameras);
+                    CameraExpander.ResetCameraExpander();
+     
+                    NavMeshSurface nm = GameObject.FindObjectOfType<NavMeshSurface>();
+                    nm.BuildNavMesh();
+                    
+                    response.success = true;
+                    response.message = "";
+                }
+
+                else if (networkRequest.action == "activate_physics") 
+                {   
+                    EnhancedColliders();
                 }
 
                 else if (networkRequest.action == "fast_reset")
