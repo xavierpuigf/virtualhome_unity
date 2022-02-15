@@ -70,7 +70,8 @@ namespace StoryGenerator
         public GameObject _instance;
 
         // Environment memory
-        public int currentEnvironment = 0;
+        public GameObject object1;
+        public GameObject object2;
 
 
         WaitForSeconds WAIT_AFTER_END_OF_SCENE = new WaitForSeconds(3.0f);
@@ -195,7 +196,34 @@ namespace StoryGenerator
                     }
                 }
             }
+
         }
+
+        void ProceduralGenerationShift()
+        {   
+            // Traverse all objetcs in the scene
+            object[] obj = GameObject.FindSceneObjectsOfType(typeof (GameObject));
+            foreach (object o in obj)
+            {   
+                GameObject g = (GameObject) o;
+                
+
+                // Destroy box colliders and replace it with mesh colliders and rigidbody
+                if (g.name.ToLower().Contains("new"))
+                {
+                    object1 = (GameObject) g;
+                }
+                else if (g.name.ToLower().Contains("generation"))
+                {
+                    object2 = (GameObject) g;
+                }
+            }
+
+            object1.transform.parent = object2.transform;
+            object2.AddComponent(typeof(TestDriver));
+
+        }
+
 
         void ProcessHome(bool randomizeExecution)
         {
@@ -1169,8 +1197,6 @@ namespace StoryGenerator
                         {   
                             GameObject _instance = Instantiate(prefab[environment], new Vector3(0, 0, 0), Quaternion.identity) as GameObject;
 
-                            currentEnvironment = environment;
-
                             response.success = true;
                             response.message = "";
                         }
@@ -1236,7 +1262,9 @@ namespace StoryGenerator
      
                     NavMeshSurface nm = GameObject.FindObjectOfType<NavMeshSurface>();
                     nm.BuildNavMesh();
-                    
+
+                    ProceduralGenerationShift(); 
+                
                     response.success = true;
                     response.message = "";
                 }
