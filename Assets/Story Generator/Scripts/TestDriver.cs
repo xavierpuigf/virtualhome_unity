@@ -1184,18 +1184,27 @@ namespace StoryGenerator
                     {
                         int environment = networkRequest.intParams[0];
 
+                        PreviousEnvironment.IndexMemory = environment;
+
                         if (environment >= 0 && environment < 50)
                         {   
                             GameObject _instance = Instantiate(prefab[environment], new Vector3(0, 0, 0), Quaternion.identity) as GameObject;
-
                             response.success = true;
                             response.message = "";
                         }
-                        else
-                        {   
-                            response.success = false;
-                            response.message = "Invalid scene index";
-                        }
+                    }
+                    else if (PreviousEnvironment.IndexMemory == -1)
+                    {
+                        SceneManager.LoadScene(1);
+
+                        response.success = true;
+                        response.message = "";
+                    }
+                    else
+                    {
+                        GameObject _instance = Instantiate(prefab[PreviousEnvironment.IndexMemory], new Vector3(0, 0, 0), Quaternion.identity) as GameObject;
+                        response.success = true;
+                        response.message = "";
                     }
      
                     NavMeshSurface nm = GameObject.FindObjectOfType<NavMeshSurface>();
@@ -1204,16 +1213,28 @@ namespace StoryGenerator
 
                 else if (networkRequest.action == "clear")
                 {   
-                    SceneManager.LoadScene(0);
+                    if (networkRequest.intParams?.Count > 0)
+                    {
+                        SceneManager.LoadScene(0);
+                        DeleteChar();
+                    }
+                    else if (PreviousEnvironment.IndexMemory == -1)
+                    {
+                        // do nothing
+                    }
+                    else
+                    {
+                        SceneManager.LoadScene(0);
+                        DeleteChar();
+                    }
 
-                    DeleteChar();
-                    
                     response.success = true;
                     response.message = "";
                 }
 
                 else if (networkRequest.action == "procedural_generation") 
-                {   
+                {
+                    PreviousEnvironment.IndexMemory = -1;
                     SceneManager.LoadScene(1);
 
                     response.success = true;
@@ -1858,6 +1879,11 @@ namespace StoryGenerator
         public bool animate_character = false;
         public bool transfer_transform = true;
         public bool exact_expand = true;
+    }
+
+    public class PreviousEnvironment 
+    {
+        public static int IndexMemory = 0;
     }
 
     public class PhysicsConfig
