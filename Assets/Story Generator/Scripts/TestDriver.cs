@@ -73,6 +73,9 @@ namespace StoryGenerator
         public GameObject object1;
         public GameObject object2;
 
+        // Physics
+        public float maxDepenetrationVelocity = 0.0f;
+
 
         WaitForSeconds WAIT_AFTER_END_OF_SCENE = new WaitForSeconds(3.0f);
 
@@ -170,30 +173,23 @@ namespace StoryGenerator
 
                 // Destroy box colliders and replace it with mesh colliders and rigidbody
                 if (g.name.ToLower().Contains("apple"))
-                {
-                    Destroy(g.GetComponent<BoxCollider>());
-                    g.AddComponent(typeof(Rigidbody));
-                    g.GetComponent<Rigidbody>().useGravity = false;
-                    g.GetComponent<Rigidbody>().isKinematic = true;
+                { 
                     g.AddComponent(typeof(MeshCollider));
                     g.GetComponent<MeshCollider>().convex = true;
+                    Destroy(g.GetComponent<BoxCollider>());
+                    g.AddComponent(typeof(Rigidbody));
+                    g.GetComponent<Rigidbody>().useGravity = true;
 
-                    foreach(Transform child in GetComponentsInChildren<Transform>()){
-                        Destroy(child.GetComponent<BoxCollider>());
-                    }
+                    // We now need to iterate through the respectiive object's child objects to destroy/deactivate the box collider in the collider object
+
                 }
-                else if (g.name.ToLower().Contains("banana"))
+                else if (g.name.ToLower().Contains("bowl"))
                 {
+                    g.AddComponent(typeof(MeshCollider));
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
-                    g.GetComponent<Rigidbody>().useGravity = false;
-                    g.GetComponent<Rigidbody>().isKinematic = true;
-                    g.AddComponent(typeof(MeshCollider));
+                    g.GetComponent<Rigidbody>().useGravity = true;
                     g.GetComponent<MeshCollider>().convex = true;
-                    
-                    foreach(Transform child in GetComponentsInChildren<Transform>()){
-                        Destroy(child.GetComponent<BoxCollider>());
-                    }
                 }
             }
 
@@ -1272,7 +1268,7 @@ namespace StoryGenerator
                     if (gravity == 1.0f) 
                     {
                         Gravity();
-                        // Physics.gravity = new Vector3(0, 0, 0);   
+                        Physics.gravity = new Vector3(0, -1.0f, 0);   
                     }
 
                     response.success = true;
