@@ -74,7 +74,7 @@ namespace StoryGenerator
         public GameObject object2;
 
         // Physics
-        public float maxDepenetrationVelocity = 0.0f;
+        public float maxDepenetrationVelocity = 0.1f;
 
 
         WaitForSeconds WAIT_AFTER_END_OF_SCENE = new WaitForSeconds(3.0f);
@@ -178,6 +178,41 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
+                }
+                else if (g.name.ToLower().Contains("bowl"))
+                { 
+                    g.AddComponent(typeof(MeshCollider));
+                    // g.GetComponent<MeshCollider>().convex = true;
+                    Destroy(g.GetComponent<BoxCollider>());
+                    // g.AddComponent(typeof(Rigidbody));
+                    g.isStatic = false;
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
+                }
+                else if (g.name.ToLower().Contains("bowl_of"))
+                { 
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("bananas"))
                 { 
@@ -185,13 +220,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
-                }
-                else if (g.name.ToLower().Contains("bananas"))
-                { 
-                    g.AddComponent(typeof(MeshCollider));
-                    g.GetComponent<MeshCollider>().convex = true;
-                    Destroy(g.GetComponent<BoxCollider>());
-                    g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("plum"))
                 { 
@@ -199,6 +235,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("lime"))
                 { 
@@ -206,6 +250,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("peach"))
                 { 
@@ -213,6 +265,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("pear"))
                 { 
@@ -220,6 +280,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("kiwi"))
                 { 
@@ -227,6 +295,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("bell_pepper_1024"))
                 {
@@ -234,6 +310,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("tomato"))
                 {
@@ -241,6 +325,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("potato"))
                 {
@@ -248,6 +340,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("beer"))
                 {
@@ -255,6 +355,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("cake"))
                 { 
@@ -262,6 +370,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("pie"))
                 { 
@@ -269,6 +385,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("chicken"))
                 { 
@@ -276,6 +400,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("cutlet"))
                 { 
@@ -283,6 +415,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("meat"))
                 { 
@@ -290,6 +430,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("candy"))
                 { 
@@ -297,6 +445,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("crackers"))
                 { 
@@ -304,6 +460,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("cereal"))
                 { 
@@ -311,6 +475,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("buns"))
                 { 
@@ -318,6 +490,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("chips"))
                 { 
@@ -325,6 +505,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("chocolate"))
                 { 
@@ -332,6 +520,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("juice"))
                 { 
@@ -339,6 +535,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("wine"))
                 { 
@@ -346,6 +550,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("cream"))
                 { 
@@ -353,6 +565,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("milk"))
                 { 
@@ -360,6 +580,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("shaker"))
                 { 
@@ -367,6 +595,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("condiment"))
                 { 
@@ -374,6 +610,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("glass"))
                 { 
@@ -381,6 +625,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("mug"))
                 { 
@@ -388,6 +640,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("plate"))
                 { 
@@ -395,6 +655,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("pan"))
                 { 
@@ -402,6 +670,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("pot"))
                 { 
@@ -409,6 +685,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("liquid"))
                 { 
@@ -416,6 +700,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("sponge"))
                 { 
@@ -423,6 +715,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("knife_0"))
                 { 
@@ -430,6 +730,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("fork"))
                 { 
@@ -437,6 +745,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("cellphone"))
                 { 
@@ -444,6 +760,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("remote"))
                 { 
@@ -451,6 +775,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("folder"))
                 { 
@@ -458,12 +790,28 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 // else if (g.name.ToLower().Contains("paper_"))
                 // { 
                 //     g.AddComponent(typeof(MeshCollider));
                 //     Destroy(g.GetComponent<BoxCollider>());
                 //     g.AddComponent(typeof(Rigidbody));
+                    // for (int i = 0; i < g.transform.childCount; i++)
+                    // {
+                    //     GameObject child = g.transform.GetChild(i).gameObject;
+                    //     if (child.name.ToLower().Contains("collider"))
+                    //     {
+                    //         Destroy(child);
+                    //     }
+                    // }
                 // }
                 else if (g.name.ToLower().Contains("book_"))
                 { 
@@ -471,6 +819,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("box_"))
                 { 
@@ -478,6 +834,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("photo"))
                 { 
@@ -485,6 +849,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("pillow"))
                 { 
@@ -492,6 +864,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("keyboard"))
                 { 
@@ -499,6 +879,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("mouse"))
                 { 
@@ -506,6 +894,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("toothpaste"))
                 { 
@@ -513,6 +909,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("toothbrush"))
                 { 
@@ -520,6 +924,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("shampoo"))
                 { 
@@ -527,6 +939,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("conditioner"))
                 { 
@@ -534,6 +954,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("deodorant"))
                 { 
@@ -541,6 +969,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("soap"))
                 { 
@@ -548,6 +984,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("towel"))
                 { 
@@ -555,6 +999,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("clothe"))
                 { 
@@ -562,6 +1014,14 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
                 else if (g.name.ToLower().Contains("candle"))
                 { 
@@ -569,12 +1029,20 @@ namespace StoryGenerator
                     g.GetComponent<MeshCollider>().convex = true;
                     Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
+                    for (int i = 0; i < g.transform.childCount; i++)
+                    {
+                        GameObject child = g.transform.GetChild(i).gameObject;
+                        if (child.name.ToLower().Contains("collider"))
+                        {
+                            Destroy(child);
+                        }
+                    }
                 }
 
             }
 
         }
-
+        // Convoluted but mportant object manipulation to make procedural generation work with the testdriver script
         void ProceduralGenerationShift()
         {   
             // Traverse all objetcs in the scene
