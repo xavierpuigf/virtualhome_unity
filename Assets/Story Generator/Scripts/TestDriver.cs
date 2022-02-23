@@ -127,6 +127,7 @@ namespace StoryGenerator
             if (networkRequest == null) {
                 commServer.UnlockProcessing(); // Allow to proceed with requests
             }
+
             StartCoroutine(ProcessNetworkRequest());
         }
         
@@ -150,7 +151,6 @@ namespace StoryGenerator
 
         void DeleteChar()
         {
-
             foreach (Transform tf_child in transform)
             {
                 foreach (Transform tf_obj in tf_child)
@@ -166,7 +166,7 @@ namespace StoryGenerator
         void Gravity()
         {   
             // Traverse all objetcs in the scene
-            object[] obj = GameObject.FindSceneObjectsOfType(typeof (GameObject));
+            object[] obj = GameObject.FindObjectsOfType(typeof (GameObject));
             foreach (object o in obj)
             {   
                 GameObject g = (GameObject) o;
@@ -1042,11 +1042,11 @@ namespace StoryGenerator
             }
 
         }
-        // Convoluted but mportant object manipulation to make procedural generation work with the testdriver script
+        // Convoluted but required object manipulation to make procedural generation work with the testdriver script
         void ProceduralGenerationShift()
         {   
             // Traverse all objetcs in the scene
-            object[] obj = GameObject.FindSceneObjectsOfType(typeof (GameObject));
+            object[] obj = GameObject.FindObjectsOfType(typeof (GameObject));
             foreach (object o in obj)
             {   
                 GameObject g = (GameObject) o;
@@ -2073,7 +2073,6 @@ namespace StoryGenerator
                     }
 
                     response.success = true;
-                    response.message = "";
                 }
 
                 else if (networkRequest.action == "procedural_generation") 
@@ -2082,7 +2081,6 @@ namespace StoryGenerator
                     SceneManager.LoadScene(1);
 
                     response.success = true;
-                    response.message = "";
                 }
 
                 else if (networkRequest.action == "process") 
@@ -2104,7 +2102,6 @@ namespace StoryGenerator
                     ProceduralGenerationShift(); 
                 
                     response.success = true;
-                    response.message = "";
                 }
 
                 else if (networkRequest.action == "activate_physics") 
@@ -2117,7 +2114,6 @@ namespace StoryGenerator
                     Physics.gravity = new Vector3(0, gravity_force, 0);   
 
                     response.success = true;
-                    response.message = "";
                 }
 
                 else if (networkRequest.action == "fast_reset")
@@ -2730,6 +2726,13 @@ namespace StoryGenerator
     public class PhysicsConfig
     {
         public float gravity = 1.0f;
+    }
+
+    public class TimeConfig
+    {
+        public int hour = 0;
+        public int minute = 0;
+        public int second = 0;
     }
 
     public class ProceduralGenerationConfig
