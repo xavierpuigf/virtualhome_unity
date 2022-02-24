@@ -1172,7 +1172,7 @@ namespace StoryGenerator.Utilities
                         go = new GameObject("Character_Camera_right", typeof(Camera));
                         camera = go.GetComponent<Camera>();
 
-                        go.hideFlags = HideFlags.HideAndDontSave;
+                        //go.hideFlags = HideFlags.HideAndDontSave;
                         go.transform.parent = character.transform;
                         go.transform.localPosition = new Vector3(0, 1.8f, 0.3f);
                         go.transform.localRotation = Quaternion.Euler(20, 90, 0);
@@ -1183,7 +1183,7 @@ namespace StoryGenerator.Utilities
                         go = new GameObject("Character_Camera_left", typeof(Camera));
                         camera = go.GetComponent<Camera>();
 
-                        go.hideFlags = HideFlags.HideAndDontSave;
+                        //go.hideFlags = HideFlags.HideAndDontSave;
                         go.transform.parent = character.transform;
                         go.transform.localPosition = new Vector3(0, 1.8f, 0.3f);
                         go.transform.localRotation = Quaternion.Euler(20, -90, 0);
@@ -1194,7 +1194,7 @@ namespace StoryGenerator.Utilities
                         go = new GameObject("Character_Camera_back", typeof(Camera));
                         camera = go.GetComponent<Camera>();
 
-                        go.hideFlags = HideFlags.HideAndDontSave;
+                        //go.hideFlags = HideFlags.HideAndDontSave;
                         go.transform.parent = character.transform;
                         go.transform.localPosition = new Vector3(0, 1.8f, -0.3f);
                         go.transform.localRotation = Quaternion.Euler(20, 180, 0);
@@ -1211,6 +1211,20 @@ namespace StoryGenerator.Utilities
                         // Temporary, will be changed when requested
                         go.transform.localPosition = 1.5f * Vector3.forward;
                         go.transform.localRotation = Quaternion.LookRotation(Vector3.back);
+
+                        newCameras.Add(camera);
+
+
+                        go = new GameObject(FROM_BACK_CAMERA_NAME, typeof(Camera));
+                        camera = go.GetComponent<Camera>();
+
+                        camera.renderingPath = RenderingPath.UsePlayerSettings;
+
+                        
+                        go.transform.parent = character.transform;
+                        go.transform.localPosition = new Vector3(0, 2.0f, -1.2f);
+                        go.transform.localRotation = Quaternion.Euler(20, 0, 0);
+
 
                         newCameras.Add(camera);
                     }

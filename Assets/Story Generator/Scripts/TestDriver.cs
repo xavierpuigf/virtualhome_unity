@@ -133,6 +133,8 @@ namespace StoryGenerator
         private List<Mouse> m_mouse_l;
 
 
+        public int counter = 0;
+
         public List<string> scriptLines;
         EnvironmentGraphCreator currentGraphCreator = null;
         EnvironmentGraph currentGraph = null;
@@ -434,7 +436,40 @@ namespace StoryGenerator
 
             }
         }
+        void UpdateStreamCamera(MultiPlayerBroadcast bc,  string new_cam_name="Character_Camera_Fwd", string old_cam_name = "Character_Camera_Fwd")
+        {
+            List <Camera> oldCameraChar = cameras.FindAll(c => c.name.Equals(new_cam_name));
+            foreach (Camera oldcam in cameras)
+            {
+                CameraStreamer streamer = oldcam.GetComponent<CameraStreamer>();
+                bc.RemoveComponent(streamer);
+                Destroy(streamer);
+                oldcam.gameObject.SetActive(false);
 
+            }
+            Debug.Log(new_cam_name);
+
+            List<Camera> currentCameraChar = cameras.FindAll(c => c.name.Equals(new_cam_name));
+            int itt = 0;
+            currentCameras.Clear();
+            foreach (Camera newcam in currentCameraChar)
+            {
+
+                CameraUtils.InitCamera(newcam);
+                newcam.gameObject.SetActive(true);
+
+                CameraStreamer cs = newcam.gameObject.AddComponent<CameraStreamer>();
+                bc.AddComponent(cs);
+
+                currentCameras.Add(newcam);
+                //WebBrowserInputData icr = newcam.gameObject.AddComponent<WebBrowserInputData>();
+                //icr.SetDriver(this, itt);
+                //licr.Add(icr);
+                //icr.onDeviceChange += OnDeviceChange;
+                //itt += 1;
+            }
+            
+        }
         IEnumerator ProcessInputRequest(int episode)
         {
             yield return null;
@@ -568,6 +603,7 @@ namespace StoryGenerator
 
 
             scriptLines = new List<string>();
+            List<string> char_names = new List<string> { "Chars/Male1", "Chars/Female2" };
             for (int itt = 0; itt < num_chars; itt++)
             {
                 
@@ -576,9 +612,10 @@ namespace StoryGenerator
                 m_mouse_l.Add(null);
                 highlightedObj.Add(null);
                 action_button.Add(new List<string> ());
-                newchar = AddCharacter(configchar.character_resource, false, "fix_room", configchar.character_position, currentEpisode.init_rooms[0]);
-                newchar.SetSpeed(20.0f);
-                StopCharacterAnimation(newchar.gameObject);
+                newchar = AddCharacter(char_names[itt], false, "fix_room", configchar.character_position, currentEpisode.init_rooms[0]);
+
+                //newchar.SetSpeed(20.0f);
+                //StopCharacterAnimation(newchar.gameObject);
 
                 characters.Add(newchar);
                 CurrentStateList.Add(null);
@@ -596,7 +633,7 @@ namespace StoryGenerator
                 executing_action.Add(false);
                 
 
-                Camera currentCameraChar = charCameras.Find(c => c.name.Equals("Character_Camera_Fwd"));
+                Camera currentCameraChar = charCameras.Find(c => c.name.Equals("Character_Camera_FBack"));
 
                 WebBrowserInputData icr = currentCameraChar.gameObject.AddComponent<WebBrowserInputData>();
                 icr.SetDriver(this, itt);
@@ -606,7 +643,7 @@ namespace StoryGenerator
                 CameraUtils.InitCamera(currentCameraChar);
                 currentCameraChar.gameObject.SetActive(true);
                 //recorders[0].CamCtrls[cameras.IndexOf(currentCamera)].Activate(true);
-                currentCameraChar.transform.localPosition = currentCameraChar.transform.localPosition + new Vector3(0, -0.15f, 0.1f);
+                //currentCameraChar.transform.localPosition = currentCameraChar.transform.localPosition + new Vector3(0, -0.15f, 0.1f);
 
 
                 if (use_video_stream)
@@ -619,12 +656,14 @@ namespace StoryGenerator
                 currentCameras.Add(currentCameraChar);
             }
             yield return null;
+
             currentGraph = currentGraphCreator.UpdateGraph(transform);
             ExecutionConfig config = new ExecutionConfig();
             config.walk_before_interaction = false;
             IObjectSelectorProvider objectSelectorProvider = new InstanceSelectorProvider(currentGraph);
             IList<GameObject> objectList = ScriptUtils.FindAllObjects(transform);
             createRecorders(config);
+
             sExecutors = InitScriptExecutors(config, objectSelectorProvider, sceneCameras, objectList);
 
             
@@ -644,41 +683,8 @@ namespace StoryGenerator
             // Buttons: grab, open, putleft, putright, close
 
             // Create canvas and event system
-            GameObject newCanvas = new GameObject("Canvas");
-            Canvas canv = newCanvas.AddComponent<Canvas>();
-            canv.renderMode = RenderMode.ScreenSpaceOverlay;
-            newCanvas.AddComponent<CanvasScaler>();
-            newCanvas.AddComponent<GraphicRaycaster>();
-            GameObject eventSystem = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
-
-            Rect canvasrect = canv.GetComponent<RectTransform>().rect;
-            
-            GameObject panel = new GameObject("Panel");
-            panel.AddComponent<CanvasRenderer>();
-
-            float sizew = canvasrect.width * 0.25f;
-            float sizeh = sizew * 0.5f;
-            float margin = sizew * 0.05f;
-            float posx = -canvasrect.width / 2.0f + sizew * 0.5f + margin;
-            panel.transform.position = new Vector3(posx, +canvasrect.height * 0.5f - sizeh/2.0f - margin);
-            Image i = panel.AddComponent<Image>();
-            i.rectTransform.sizeDelta = new Vector2(sizew, sizeh);
-            i.color = Color.white;
-            var tempColor = i.color;
-            tempColor.a = .6f;
-            i.color = tempColor;
-
-            panel.transform.SetParent(newCanvas.transform, false);
            
-            GameObject tasksText = new GameObject("tasksText");
-            tasksText.AddComponent<TextMeshProUGUI>();
-            TextMeshProUGUI tasksUI = tasksText.GetComponent<TextMeshProUGUI>();
-            tasksUI.raycastTarget = false;
-            List<string> goals = new List<string>();
-            tasksUI.fontSize = 12 * sizew / 250;
-            //tasksUI.font
-            tasksUI.rectTransform.position = new Vector3(posx, +canvasrect.height * 0.5f - sizeh/2.0f - margin);
-            tasksUI.rectTransform.sizeDelta = new Vector2(sizew, sizeh);
+
             currentEpisode.GenerateTasksAndGoals();
 
 
@@ -704,7 +710,7 @@ namespace StoryGenerator
                 button_created.Add(false);
             }
 
-            currentEpisode.StoreGraph(currentGraph, 0, "", -1);
+            //currentEpisode.StoreGraph(currentGraph, 0, "", -1);
 
             while (!episodeDone)
             {
@@ -746,7 +752,7 @@ namespace StoryGenerator
                                 first_press[kboard_id] = true;
                             }
                         }
-                        else if (m_keyboard.fKey.isPressed)
+                        else if (m_keyboard.dKey.isPressed)
                         {
                             if (!first_press[kboard_id])
                             {
@@ -754,6 +760,25 @@ namespace StoryGenerator
                                 Debug.Log("move right");
                                 keyPressed[kboard_id] = true;
                                 first_press[kboard_id] = true;
+                            }
+
+                        }
+                        else if (m_keyboard.cKey.isPressed)
+                        {
+                            if (kboard_id == 0)
+                            {
+                                if (!first_press[kboard_id])
+                                {
+                                
+                                    List<string> cam_list = new List<string> { "Character_Camera_FBack", "Character_Camera_Fwd", "Character_Camera_Top" };
+
+                                    counter = (counter + 1) % cam_list.Count;
+                                    string new_cam_name = cam_list[counter];
+                                    UpdateStreamCamera(bc, new_cam_name);
+
+                                    first_press[kboard_id] = true;
+                                }
+                                
                             }
 
                         }
@@ -1024,11 +1049,11 @@ namespace StoryGenerator
                                 ISet<Utilities.ObjectState> objStates = obj.states_set;
 
                                 // coordinate of click
-                                Vector2 mousePos = new Vector2();
-                                mousePos.x = Input.mousePosition.x;
-                                mousePos.y = currentCameras[kboard_id].pixelHeight - Input.mousePosition.y;
-                                Vector3 point = currentCameras[kboard_id].ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, currentCameras[kboard_id].nearClipPlane));
-                                Debug.Log("point " + point);
+                                //Vector2 mousePos = new Vector2();
+                                //mousePos.x = Input.mousePosition.x;
+                                //mousePos.y = currentCameras[kboard_id].pixelHeight - Input.mousePosition.y;
+                                //Vector3 point = currentCameras[kboard_id].ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, currentCameras[kboard_id].nearClipPlane));
+                                //Debug.Log("point " + point);
 
                                 //TODO: grabbing/putting with right and left hands
                                 State currentState = this.CurrentStateList[kboard_id];
@@ -1158,6 +1183,10 @@ namespace StoryGenerator
                                     }
                                 }
 
+                                // Add action for walk
+                                buttons_show.Add(new ButtonClicks("Walk to " + objectName, String.Format("<char{2}> [walk] <{0}> ({1})", objectName, objectId, kboard_id),
+                                        new Vector3(mouseClickPosition.x * 100.0f / currentCameras[kboard_id].pixelWidth, 100.0f - mouseClickPosition.y * 100.0f / currentCameras[kboard_id].pixelHeight)));
+
                                 string button_click_info = JsonConvert.SerializeObject(buttons_show);
                                 button_click_info = JsonConvert.SerializeObject(new ServerMessage("ButtonInfo", button_click_info));
                                 action_button[kboard_id].Clear();
@@ -1242,11 +1271,11 @@ namespace StoryGenerator
             executing_action[char_id] = true;
             if (t_lock)
             {
-                mre.WaitOne();
+                //mre.WaitOne();
 
             }
 
-            t_lock = true;
+            //t_lock = true;
             if (action_button[char_id].Count > 0)
                 for (int it = 0; it < action_button.Count; it++)
                 {
@@ -1260,7 +1289,7 @@ namespace StoryGenerator
                     }
                 }
             sExecutors[char_id].ClearScript();
-            sExecutors[char_id].smooth_walk = false;
+            sExecutors[char_id].smooth_walk = true;
             if (scriptLines[char_id] == "")
             {
                 yield return null;
@@ -1277,7 +1306,7 @@ namespace StoryGenerator
             StartCoroutine(sExecutors[char_id].ProcessAndExecute(false, this));
             //while (finishedChars == 0)
             //    yield return new WaitForSeconds(0.01f);
-            yield return new WaitUntil(() => finishedChars > 0);
+            //yield return new WaitUntil(() => finishedChars > 0);
 
             if (!use_video_stream) {
                 for (int cam_id = 0; cam_id < currentCameras.Count; cam_id++)
@@ -1403,8 +1432,9 @@ namespace StoryGenerator
             }
 
             t_lock = false;
-            mre.Set();
-            mre.Reset();
+            //mre.Set();
+            //mre.Reset();
+
             executing_action[char_id] = false;
             yield return null;
 
