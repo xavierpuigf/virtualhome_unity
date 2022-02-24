@@ -2056,11 +2056,13 @@ namespace StoryGenerator
                 }
 
                 else if (networkRequest.action == "clear")
-                {   
+                {
+                    networkRequest.action = "";
                     if (networkRequest.intParams?.Count > 0)
                     {
                         SceneManager.LoadScene(0);
                         DeleteChar();
+                        yield break;
                     }
                     else if (PreviousEnvironment.IndexMemory == -1)
                     {
@@ -2070,9 +2072,11 @@ namespace StoryGenerator
                     {
                         SceneManager.LoadScene(0);
                         DeleteChar();
+                        yield break;
                     }
 
                     response.success = true;
+                   
                 }
 
                 else if (networkRequest.action == "procedural_generation") 
