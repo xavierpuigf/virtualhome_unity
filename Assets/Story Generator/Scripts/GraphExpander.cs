@@ -1160,7 +1160,7 @@ namespace StoryGenerator.Utilities
 
         public static Dictionary <string, CharacterCamera> char_cams = new Dictionary<string, CharacterCamera>();
 
-        static public void ResetCameraExpander() {
+        static public void ResetCharacterCameras() {
             char_cams.Clear();
             char_cams[INT_FRONT_CHARACTER_CAMERA_NAME] = new CharacterCamera(FRONT_CHARACTER_CAMERA_NAME, 1.5f * Vector3.forward, Quaternion.LookRotation(Vector3.back));
             char_cams[INT_TOP_CHARACTER_CAMERA_NAME] = new CharacterCamera(TOP_CHARACTER_CAMERA_NAME, new Vector3(0, 4.5f, 0), Quaternion.LookRotation(Vector3.down));

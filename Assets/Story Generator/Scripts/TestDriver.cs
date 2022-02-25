@@ -119,8 +119,6 @@ namespace StoryGenerator
             }
             commServer.Driver = this;
 
-            ProcessHome(false);
-            DeleteChar();
 
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
 
@@ -1106,7 +1104,6 @@ namespace StoryGenerator
         IEnumerator ProcessNetworkRequest()
         {
             // There is not always a character
-            // StopCharacterAnimation(character);
 
             sceneCameras = ScriptUtils.FindAllCameras(transform);
             numSceneCameras = sceneCameras.Count;
@@ -1119,9 +1116,8 @@ namespace StoryGenerator
             EnvironmentGraph currentGraph = null;
             int expandSceneCount = 0;
 
-            InitRooms();
-
-            CameraExpander.ResetCameraExpander();
+            
+            CameraExpander.ResetCharacterCameras();
 
             while (true) {
                 Debug.Log("Waiting for request");
@@ -2022,7 +2018,7 @@ namespace StoryGenerator
                     characters = new List<CharacterControl>();
                     sExecutors = new List<ScriptExecutor>();
                     cameras = cameras.GetRange(0, numSceneCameras);
-                    CameraExpander.ResetCameraExpander();
+                    CameraExpander.ResetCharacterCameras();
 
                     if (networkRequest.intParams?.Count > 0)
                     {
@@ -2053,6 +2049,10 @@ namespace StoryGenerator
      
                     NavMeshSurface nm = GameObject.FindObjectOfType<NavMeshSurface>();
                     nm.BuildNavMesh();
+
+                    ProcessHome(false);
+                    InitRooms();
+
                 }
 
                 else if (networkRequest.action == "clear")
@@ -2081,10 +2081,12 @@ namespace StoryGenerator
 
                 else if (networkRequest.action == "procedural_generation") 
                 {
+
+                    //networkRequest.action = "process";
                     PreviousEnvironment.IndexMemory = -1;
                     SceneManager.LoadScene(1);
+                    //yield break;
 
-                    response.success = true;
                 }
 
                 else if (networkRequest.action == "process") 
@@ -2098,13 +2100,22 @@ namespace StoryGenerator
                     characters = new List<CharacterControl>();
                     sExecutors = new List<ScriptExecutor>();
                     cameras = cameras.GetRange(0, numSceneCameras);
-                    CameraExpander.ResetCameraExpander();
+                    CameraExpander.ResetCharacterCameras();
      
                     NavMeshSurface nm = GameObject.FindObjectOfType<NavMeshSurface>();
                     nm.BuildNavMesh();
 
-                    ProceduralGenerationShift(); 
-                
+                    ProceduralGenerationShift();
+
+
+                    yield return null;
+
+                    currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
+                    var graph = currentGraphCreator.CreateGraph(transform);
+                    currentGraph = graph;
+
+
+                    response.message = "";
                     response.success = true;
                 }
 
