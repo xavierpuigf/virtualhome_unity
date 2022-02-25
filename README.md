@@ -5,7 +5,6 @@ This repository contains the source code of the VirtualHome environment, a platf
   <img height="300" src="doc/assets/banner.gif">
 </p>
 
-
 ## Table of Contents
 1. Overview
 2. Cite
