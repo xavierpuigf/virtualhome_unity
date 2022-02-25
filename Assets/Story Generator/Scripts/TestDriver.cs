@@ -21,7 +21,7 @@ using System.Threading.Tasks;
 using StoryGenerator.CharInteraction;
 using Unity.Profiling;
 using RootMotion.FinalIK;
-using DunGen;
+using UnityEngine.UI;
 
 
 namespace StoryGenerator
@@ -76,6 +76,13 @@ namespace StoryGenerator
         // Physics
         public float maxDepenetrationVelocity = 0.1f;
 
+        // Set Time
+        // private GameObject timeObject = null;
+        public GameObject myTerrain;
+        [SerializeField] GameObject[] terrain;
+        public GameObject _terrain;
+        public GameObject _lighting;
+
 
         WaitForSeconds WAIT_AFTER_END_OF_SCENE = new WaitForSeconds(3.0f);
 
@@ -128,7 +135,9 @@ namespace StoryGenerator
                 commServer.UnlockProcessing(); // Allow to proceed with requests
             }
 
+            // LightingSetup();
             StartCoroutine(ProcessNetworkRequest());
+
         }
         
         private void InitServer()
@@ -162,8 +171,24 @@ namespace StoryGenerator
                 }
             }
         }
+
+        // private void LightingSetup()
+        // {
+        //     timeObject = new GameObject("Time");
+        //     timeObject.transform.position = new Vector3(0, 0, 0);
+        //     timeObject.AddComponent<Orbit>();
+        //     GameObject sunObject = new GameObject("Sun");
+        //     sunObject.transform.position = new Vector3(150, 0, 0);
+        //     sunObject.transform.Rotate(0, -90, 0);
+        //     sunObject.transform.parent = timeObject.transform;
+        //     Light dirLight = sunObject.AddComponent<Light>();
+        //     dirLight.color = Color.white;
+        //     dirLight.type = LightType.Directional;
+        //     dirLight.intensity = .5f;
+        // }
+
         // To-do minimize code length
-        void Gravity()
+        void Gravity() 
         {   
             // Traverse all objetcs in the scene
             object[] obj = GameObject.FindObjectsOfType(typeof (GameObject));
@@ -1472,46 +1497,6 @@ namespace StoryGenerator
                     }
                     response.success = true;
                     response.message = JsonConvert.SerializeObject(GetInstanceColoring(currentGraph.nodes));
-                //} else if (networkRequest.action == "start_recorder") {
-                //    RecorderConfig config = JsonConvert.DeserializeObject<RecorderConfig>(networkRequest.stringParams[0]);
-
-                //    string outDir = Path.Combine(config.output_folder, config.file_name_prefix);
-                //    Directory.CreateDirectory(outDir);
-
-                //    InitRecorder(config, outDir);
-
-                //    CharacterControl cc = character.GetComponent<CharacterControl>();
-                //    cc.rcdr = recorder;
-
-                //    if (recorder.saveSceneStates) {
-                //        List<GameObject> rooms = ScriptUtils.FindAllRooms(transform);
-                //        State_char sc = character.AddComponent<State_char>();
-                //        sc.Initialize(rooms, recorder.sceneStateSequence);
-                //        cc.stateChar = sc;
-                //    }
-
-                //    foreach (Camera camera in sceneCameras) {
-                //        camera.gameObject.SetActive(true);
-                //    }
-
-                //    recorder.Animator = cc.GetComponent<Animator>();
-                //    recorder.Animator.speed = 1;
-
-                //    CameraControl cameraControl = new CameraControl(sceneCameras, cc.transform, new Vector3(0, 1.0f, 0));
-                //    cameraControl.RandomizeCameras = config.randomize_recording;
-                //    cameraControl.CameraChangeEvent += recorder.UpdateCameraData;
-
-                //    recorder.CamCtrl = cameraControl;
-                //    recorder.MaxFrameNumber = 1000;
-                //    recorder.Recording = true;
-                //} else if (networkRequest.action == "stop_recorder") {
-                //    recorder.MarkTermination();
-                //    yield return WAIT_AFTER_END_OF_SCENE;
-                //    recorder.Recording = false;
-                //    recorder.Animator.speed = 0;
-                //    foreach (Camera camera in sceneCameras) {
-                //        camera.gameObject.SetActive(false);
-                //    }
                 }
 
                 else if (networkRequest.action == "add_character")
@@ -1587,7 +1572,6 @@ namespace StoryGenerator
                     }
 
                 }
-                // TODO: remove character as well
 
                 else if (networkRequest.action == "render_script") 
                 {
@@ -1914,48 +1898,6 @@ namespace StoryGenerator
                         }
                     }
                 } 
-                
-                // else if (networkRequest.action == "reset") 
-                // {
-                //     cameraInitializer.initialized = false;
-                //     networkRequest.action = "environment_graph"; // return result after scene reload
-                //     currentGraph = null;
-                //     currentGraphCreator = null;
-                //     CurrentStateList = new List<State>();
-                //     //cc = null;
-                //     numCharacters = 0;
-                //     characters = new List<CharacterControl>();
-                //     sExecutors = new List<ScriptExecutor>();
-                //     cameras = cameras.GetRange(0, numSceneCameras);
-                //     CameraExpander.ResetCameraExpander();
-
-                //     if (networkRequest.intParams?.Count > 0)
-                //     {
-                //         int sceneIndex = networkRequest.intParams[0];
-
-                //         if (sceneIndex >= 0 && sceneIndex < SceneManager.sceneCountInBuildSettings)
-                //         {
-
-                //             SceneManager.LoadScene(sceneIndex);
-
-                //             yield break;
-                //         }
-                //         else
-                //         {
-                //             response.success = false;
-                //             response.message = "Invalid scene index";
-                //         }
-                //     }
-                //     else
-                //     {
-
-                //         Debug.Log("Reloading");
-                //         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-                //         DeleteChar();
-                //         Debug.Log("Reloaded");
-                //         yield break;
-                //     }
-                // }
 
                 else if (networkRequest.action == "observation")
                 {
@@ -2116,6 +2058,22 @@ namespace StoryGenerator
 
                     Gravity();
                     Physics.gravity = new Vector3(0, gravity_force, 0);   
+
+                    response.success = true;
+                }
+
+                else if (networkRequest.action == "set_time") 
+                {   
+                    
+
+                    // TimeConfig time_config = JsonConvert.DeserializeObject<TimeConfig>(networkRequest.stringParams[0]);
+                    // Debug.Log(time_config.hour);
+                    // Orbit currentOrbit = timeObject.GetComponent<Orbit>();
+                    // currentOrbit.SetTime(time_config.hour, time_config.minute, time_config.second);
+                    // response.success = true;
+        
+                    GameObject _terrain = Instantiate(terrain[0], new Vector3(0, -0.5f, 0), Quaternion.identity) as GameObject;
+                    GameObject _lighting = Instantiate(terrain[1], new Vector3(100f, 100f, -50f), Quaternion.identity) as GameObject;
 
                     response.success = true;
                 }
