@@ -65,9 +65,9 @@ namespace StoryGenerator
 
 
         // Prefab placement
-        public GameObject myPrefab;
         [SerializeField] GameObject[] prefab;
         public GameObject _instance;
+        public Transform houseTransform;
 
         // Environment memory
         public GameObject object1;
@@ -94,6 +94,17 @@ namespace StoryGenerator
             public int frameRate;
         }
 
+        void ProcessHomeandCameras()
+        {
+            ProcessHome(false);
+            InitRooms();
+            sceneCameras = ScriptUtils.FindAllCameras(houseTransform);
+            numSceneCameras = sceneCameras.Count;
+            cameras = sceneCameras.ToList();
+            cameras.AddRange(CameraExpander.AddRoomCameras(houseTransform));
+            CameraUtils.DeactivateCameras(cameras);
+
+        }
         void Start()
         {
             recorder = GetComponent<Recorder>();
@@ -105,7 +116,7 @@ namespace StoryGenerator
 
             List<string> list_assets = dataProviders.AssetsProvider.GetAssetsPaths();
 
-            
+
 
             // Check all the assets exist
             //foreach (string asset_name in list_assets)
@@ -121,20 +132,29 @@ namespace StoryGenerator
             //    }
             //}
 
-            if (commServer == null) {
-                InitServer();
+            if (transform.gameObject.name.Contains("Home_Procedural_Generation") || !transform.gameObject.name.Contains("Home"))
+            {
+                if (commServer == null)
+                {
+                    InitServer();
+                }
+                commServer.Driver = this;
+
+
+                Screen.sleepTimeout = SleepTimeout.NeverSleep;
+
+                if (networkRequest == null)
+                {
+                    commServer.UnlockProcessing(); // Allow to proceed with requests
+                }
+
+                // LightingSetup();
+                StartCoroutine(ProcessNetworkRequest());
             }
-            commServer.Driver = this;
+            
+            
 
-
-            Screen.sleepTimeout = SleepTimeout.NeverSleep;
-
-            if (networkRequest == null) {
-                commServer.UnlockProcessing(); // Allow to proceed with requests
-            }
-
-            // LightingSetup();
-            StartCoroutine(ProcessNetworkRequest());
+            
 
         }
         
@@ -1077,7 +1097,7 @@ namespace StoryGenerator
                 if (g.name.ToLower().Contains("new"))
                 {
                     object1 = (GameObject) g;
-                    Destroy(object1.GetComponent<TestDriver>());
+                    //Destroy(object1.GetComponent<TestDriver>());
                 }
                 else if (g.name.ToLower().Contains("generation"))
                 {
@@ -1085,14 +1105,14 @@ namespace StoryGenerator
                     Destroy(object2);
                 }
             }
-            object1.AddComponent(typeof(TestDriver));
+            //object1.AddComponent(typeof(TestDriver));
         }
 
         void ProcessHome(bool randomizeExecution)
         {
-            UtilsAnnotator.ProcessHome(transform, randomizeExecution);
+            UtilsAnnotator.ProcessHome(houseTransform, randomizeExecution);
 
-            ColorEncoding.EncodeCurrentScene(transform);
+            ColorEncoding.EncodeCurrentScene(houseTransform);
             // Disable must come after color encoding. Otherwise, GetComponent<Renderer> failes to get
             // Renderer for the disabled objects.
             UtilsAnnotator.PostColorEncoding_DisableGameObjects();
@@ -1130,11 +1150,9 @@ namespace StoryGenerator
         {
             // There is not always a character
 
-            sceneCameras = ScriptUtils.FindAllCameras(transform);
-            numSceneCameras = sceneCameras.Count;
-            cameras = sceneCameras.ToList();
-            cameras.AddRange(CameraExpander.AddRoomCameras(transform));
-            CameraUtils.DeactivateCameras(cameras);
+            
+
+
             OneTimeInitializer cameraInitializer = new OneTimeInitializer();
             OneTimeInitializer homeInitializer = new OneTimeInitializer();
             EnvironmentGraphCreator currentGraphCreator = null;
@@ -1283,7 +1301,7 @@ namespace StoryGenerator
                     if (currentGraph == null)
                     {
                         currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                        var graph = currentGraphCreator.CreateGraph(transform);
+                        var graph = currentGraphCreator.CreateGraph(houseTransform);
                         response.success = true;
                         response.message = JsonConvert.SerializeObject(graph);
                         currentGraph = graph;
@@ -1314,7 +1332,7 @@ namespace StoryGenerator
                     try {
                         if (currentGraph == null) {
                             currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                            currentGraph = currentGraphCreator.CreateGraph(transform);
+                            currentGraph = currentGraphCreator.CreateGraph(houseTransform);
                         }
 
                         ExpanderConfig config = JsonConvert.DeserializeObject<ExpanderConfig>(networkRequest.stringParams[0]);
@@ -1353,7 +1371,7 @@ namespace StoryGenerator
                         // This should go somewhere else...
                         List<GameObject> added_chars = new List<GameObject>();
 
-                        graphExpander.ExpandScene(transform, graph, currentGraph, expandSceneCount, added_chars, grabbed_objs, exact_expand);
+                        graphExpander.ExpandScene(houseTransform, graph, currentGraph, expandSceneCount, added_chars, grabbed_objs, exact_expand);
                         int chid = 0;
                         foreach(GameObject added_char in added_chars)
                         {
@@ -1370,7 +1388,7 @@ namespace StoryGenerator
 
                             CurrentStateList.Add(null);
                             numCharacters++;
-                            List<Camera> charCameras = CameraExpander.AddCharacterCameras(added_char.gameObject, transform, "");
+                            List<Camera> charCameras = CameraExpander.AddCharacterCameras(added_char.gameObject, "");
                             CameraUtils.DeactivateCameras(charCameras);
                             cameras.AddRange(charCameras);
                             cameraInitializer.initialized = false;
@@ -1397,7 +1415,7 @@ namespace StoryGenerator
                         Debug.Log(e);
                     }
                     yield return null;
-                    currentGraph = currentGraphCreator.UpdateGraph(transform);
+                    currentGraph = currentGraphCreator.UpdateGraph(houseTransform);
 
                     // Update grabbed stuff. This is a hack because it is difficult to get
                     // from the transforms the grabbing relationships. Could be much improved
@@ -1477,7 +1495,7 @@ namespace StoryGenerator
                 {
                     if (currentGraph == null) {
                         currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                        currentGraph = currentGraphCreator.CreateGraph(transform);
+                        currentGraph = currentGraphCreator.CreateGraph(houseTransform);
                     }
                     PointCloudExporter exporter = new PointCloudExporter(0.01f);
                     List<ObjectPointCloud> result = exporter.ExportObjects(currentGraph.nodes);
@@ -1489,7 +1507,7 @@ namespace StoryGenerator
                 {
                     if (currentGraph == null) {
                         EnvironmentGraphCreator graphCreator = new EnvironmentGraphCreator(dataProviders);
-                        currentGraph = graphCreator.CreateGraph(transform);
+                        currentGraph = graphCreator.CreateGraph(houseTransform);
                     }
                     response.success = true;
                     response.message = JsonConvert.SerializeObject(GetInstanceColoring(currentGraph.nodes));
@@ -1506,7 +1524,7 @@ namespace StoryGenerator
                         characters.Add(newchar);
                         CurrentStateList.Add(null);
                         numCharacters++;
-                        List<Camera> charCameras = CameraExpander.AddCharacterCameras(newchar.gameObject, transform, "");
+                        List<Camera> charCameras = CameraExpander.AddCharacterCameras(newchar.gameObject, "");
                         CameraUtils.DeactivateCameras(charCameras);
                         cameras.AddRange(charCameras);
                         cameraInitializer.initialized = false;
@@ -1514,11 +1532,11 @@ namespace StoryGenerator
                         if (currentGraph == null)
                         {
                             currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                            currentGraph = currentGraphCreator.CreateGraph(transform);
+                            currentGraph = currentGraphCreator.CreateGraph(houseTransform);
                         }
                         else
                         {
-                            currentGraph = currentGraphCreator.UpdateGraph(transform);
+                            currentGraph = currentGraphCreator.UpdateGraph(houseTransform);
                         }
                         // add camera
                         // cameras.AddRange(CameraExpander.AddCharacterCameras(newchar.gameObject, transform, ""));
@@ -1541,7 +1559,7 @@ namespace StoryGenerator
                     Debug.Log($"move_char to : {position}");
 
 
-                    List<GameObject> rooms = ScriptUtils.FindAllRooms(transform);
+                    List<GameObject> rooms = ScriptUtils.FindAllRooms(houseTransform);
                     foreach (GameObject r in rooms)
                     {
                         if (r.GetComponent<Properties_room>() != null)
@@ -1592,7 +1610,7 @@ namespace StoryGenerator
                     if (currentGraph == null)
                     {
                         currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                        currentGraph = currentGraphCreator.CreateGraph(transform);
+                        currentGraph = currentGraphCreator.CreateGraph(houseTransform);
                     }
 
                     string outDir = Path.Combine(config.output_folder, config.file_name_prefix);
@@ -1604,7 +1622,7 @@ namespace StoryGenerator
                         objectSelectorProvider = new ObjectSelectionProvider(dataProviders.NameEquivalenceProvider);
                     else
                         objectSelectorProvider = new InstanceSelectorProvider(currentGraph);
-                    IList<GameObject> objectList = ScriptUtils.FindAllObjects(transform);
+                    IList<GameObject> objectList = ScriptUtils.FindAllObjects(houseTransform);
                     // TODO: check if we need this
                     if (recorders.Count != numCharacters)
                     {
@@ -1627,7 +1645,7 @@ namespace StoryGenerator
                     }
                     if (config.skip_animation)
                     {
-                        UtilsAnnotator.SetSkipAnimation(transform);
+                        UtilsAnnotator.SetSkipAnimation(houseTransform);
                     }
                     // initialize the recorders
                     if (config.recording)
@@ -1887,9 +1905,9 @@ namespace StoryGenerator
                             using (s_UpdateGraph.Auto())
                             {
                                 if (single_action)
-                                    currentGraph = currentGraphCreator.UpdateGraph(transform, null, last_action);
+                                    currentGraph = currentGraphCreator.UpdateGraph(houseTransform, null, last_action);
                                 else
-                                    currentGraph = currentGraphCreator.UpdateGraph(transform, changedObjs);
+                                    currentGraph = currentGraphCreator.UpdateGraph(houseTransform, changedObjs);
                             }
                         }
                     }
@@ -1959,7 +1977,6 @@ namespace StoryGenerator
                     numCharacters = 0;
                     characters = new List<CharacterControl>();
                     sExecutors = new List<ScriptExecutor>();
-                    cameras = cameras.GetRange(0, numSceneCameras);
                     CameraExpander.ResetCharacterCameras();
 
                     if (networkRequest.intParams?.Count > 0)
@@ -1971,8 +1988,10 @@ namespace StoryGenerator
                         if (environment >= 0 && environment < 50)
                         {   
                             GameObject _instance = Instantiate(prefab[environment], new Vector3(0, 0, 0), Quaternion.identity) as GameObject;
+                            houseTransform = _instance.transform;
                             response.success = true;
                             response.message = "";
+                            ProcessHomeandCameras();
                         }
                     }
                     else if (PreviousEnvironment.IndexMemory == -1)
@@ -1985,15 +2004,22 @@ namespace StoryGenerator
                     else
                     {
                         GameObject _instance = Instantiate(prefab[PreviousEnvironment.IndexMemory], new Vector3(0, 0, 0), Quaternion.identity) as GameObject;
+                        houseTransform = _instance.transform;
                         response.success = true;
                         response.message = "";
+                        ProcessHomeandCameras();
                     }
      
                     NavMeshSurface nm = GameObject.FindObjectOfType<NavMeshSurface>();
                     nm.BuildNavMesh();
 
-                    ProcessHome(false);
-                    InitRooms();
+
+                    // environment_graph
+                    currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
+                    var graph = currentGraphCreator.CreateGraph(houseTransform);
+                    currentGraph = graph;
+                    response.message = "";
+                    response.success = true;
 
                 }
 
@@ -2003,7 +2029,6 @@ namespace StoryGenerator
                     if (networkRequest.intParams?.Count > 0)
                     {
                         SceneManager.LoadScene(0);
-                        DeleteChar();
                         yield break;
                     }
                     else if (PreviousEnvironment.IndexMemory == -1)
@@ -2013,7 +2038,6 @@ namespace StoryGenerator
                     else
                     {
                         SceneManager.LoadScene(0);
-                        DeleteChar();
                         yield break;
                     }
 
@@ -2024,10 +2048,10 @@ namespace StoryGenerator
                 else if (networkRequest.action == "procedural_generation") 
                 {
 
-                    //networkRequest.action = "process";
+                    networkRequest.action = "process";
                     PreviousEnvironment.IndexMemory = -1;
                     SceneManager.LoadScene(1);
-                    //yield break;
+                    yield break;
 
                 }
 
@@ -2038,22 +2062,28 @@ namespace StoryGenerator
                     currentGraphCreator = null;
                     CurrentStateList = new List<State>();
                     //cc = null;
+
+                    
+     
+                    NavMeshSurface nm = GameObject.FindObjectOfType<NavMeshSurface>();
+                    nm.BuildNavMesh();
+
+                    houseTransform = GameObject.Find("Dungeon").transform;
+                    ProcessHomeandCameras();
+
                     numCharacters = 0;
                     characters = new List<CharacterControl>();
                     sExecutors = new List<ScriptExecutor>();
                     cameras = cameras.GetRange(0, numSceneCameras);
                     CameraExpander.ResetCharacterCameras();
-     
-                    NavMeshSurface nm = GameObject.FindObjectOfType<NavMeshSurface>();
-                    nm.BuildNavMesh();
 
-                    ProceduralGenerationShift();
+                    //ProceduralGenerationShift();
 
 
                     yield return null;
 
                     currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
-                    var graph = currentGraphCreator.CreateGraph(transform);
+                    var graph = currentGraphCreator.CreateGraph(houseTransform);
                     currentGraph = graph;
 
 
@@ -2206,7 +2236,7 @@ namespace StoryGenerator
 
         private FrontCameraControl CreateFrontCameraControls(GameObject character)
         {
-            List<Camera> charCameras = CameraExpander.AddCharacterCameras(character, transform, CameraExpander.INT_FORWARD_VIEW_CAMERA_NAME);
+            List<Camera> charCameras = CameraExpander.AddCharacterCameras(character, CameraExpander.INT_FORWARD_VIEW_CAMERA_NAME);
             CameraUtils.DeactivateCameras(charCameras);
             Camera camera = charCameras.First(c => c.name == CameraExpander.FORWARD_VIEW_CAMERA_NAME);
             return new FrontCameraControl(camera);
@@ -2214,7 +2244,7 @@ namespace StoryGenerator
 
         private FixedCameraControl CreateFixedCameraControl(GameObject character, string cameraName, bool focusToObject)
         {
-            List<Camera> charCameras = CameraExpander.AddCharacterCameras(character, transform, cameraName);
+            List<Camera> charCameras = CameraExpander.AddCharacterCameras(character, cameraName);
             CameraUtils.DeactivateCameras(charCameras);
             Camera camera = charCameras.First(c => c.name == cameraName);
             return new FixedCameraControl(camera) { DoFocusObject = focusToObject };
@@ -2404,7 +2434,7 @@ namespace StoryGenerator
 
         private void InitRooms()
         {
-            List<GameObject> rooms = ScriptUtils.FindAllRooms(transform);
+            List<GameObject> rooms = ScriptUtils.FindAllRooms(houseTransform);
 
             foreach (GameObject r in rooms) {
                 r.AddComponent<Properties_room>();
@@ -2477,7 +2507,7 @@ namespace StoryGenerator
         private CharacterControl AddCharacter(string path, bool randomizeExecution, string mode, Vector3 position, string initial_room)
         {
             GameObject loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(path)) as GameObject;
-            List<GameObject> sceneCharacters = ScriptUtils.FindAllCharacters(transform);
+            List<GameObject> sceneCharacters = ScriptUtils.FindAllCharacters(houseTransform);
 
             if (loadedObj == null)
             {
@@ -2489,7 +2519,7 @@ namespace StoryGenerator
                 Transform destRoom;
 
 
-                List<GameObject> rooms = ScriptUtils.FindAllRooms(transform);
+                List<GameObject> rooms = ScriptUtils.FindAllRooms(houseTransform);
                 foreach (GameObject r in rooms)
                 {
                     if (r.GetComponent<Properties_room>() == null)

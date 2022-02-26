@@ -1213,7 +1213,7 @@ namespace StoryGenerator.Utilities
             return newCameras;
         }
 
-        public static List<Camera> AddCharacterCameras(GameObject character, Transform transform, string cameraName)
+        public static List<Camera> AddCharacterCameras(GameObject character, string cameraName)
         {
             List<Camera> newCameras = new List<Camera>();
             CharacterCamera out_cam;
