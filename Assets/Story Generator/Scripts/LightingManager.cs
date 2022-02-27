@@ -7,7 +7,7 @@ public class LightingManager : MonoBehaviour
 {
     [SerializeField] private Light DirectionalLight;
     [SerializeField] private LightingPreset Preset;
-    [SerializeField, Range(0, 86400)] private float TimeOfDay;
+    [SerializeField, Range(0, 86400)] public float TimeOfDay;
 
 
     private void Update()
@@ -43,6 +43,11 @@ public class LightingManager : MonoBehaviour
             DirectionalLight.transform.localRotation = Quaternion.Euler(new Vector3((timePercent * 360f) - 90f, 170f, 0));
         }
 
+    }
+
+    public void SetTime(int second)
+    {
+        TimeOfDay = second;
     }
 
     private void OnValidate()

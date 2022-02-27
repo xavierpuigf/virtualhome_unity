@@ -78,11 +78,7 @@ namespace StoryGenerator
         public float maxDepenetrationVelocity = 0.1f;
 
         // Set Time
-        public int time = 0;
-        public GameObject myTerrain;
-        [SerializeField] GameObject[] terrain;
-        public GameObject _terrain;
-        public GameObject _lighting;
+        public float time = 10000;
 
 
         WaitForSeconds WAIT_AFTER_END_OF_SCENE = new WaitForSeconds(3.0f);
@@ -2098,6 +2094,21 @@ namespace StoryGenerator
                     minute = minute * 60;
                     second = hour + minute + second;
 
+                    GameObject timeObject = GameObject.FindWithTag("Time");
+                    LightingManager currentLightingManager = timeObject.GetComponent<LightingManager>();
+
+                    currentLightingManager.SetTime(second);
+
+                    // object[] obj = GameObject.FindObjectsOfType(typeof (GameObject));
+                    // foreach (object o in obj)
+                    // {   
+                    //     GameObject g = (GameObject) o;
+                    //     if (g.name.ToLower().Contains("home_controller"))
+                    //     { 
+                    //         LightingManager lightManager = g.GetComponent<LightingManager>();
+                    //     }
+                    // }
+
                     // LightingManager currentLightingManager = timeObject.GetComponent<Orbit>();
 
                     // Debug.Log(time_config.hour);
@@ -2105,9 +2116,6 @@ namespace StoryGenerator
                     // currentOrbit.SetTime(time_config.hour, time_config.minute, time_config.second);
                     // response.success = true;
         
-                    GameObject _terrain = Instantiate(terrain[0], new Vector3(0, -0.5f, 0), Quaternion.identity) as GameObject;
-                    GameObject _lighting = Instantiate(terrain[1], new Vector3(100f, 100f, -50f), Quaternion.identity) as GameObject;
-
                     response.success = true;
                 }
 
