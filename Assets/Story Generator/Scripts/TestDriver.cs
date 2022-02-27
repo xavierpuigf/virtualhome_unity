@@ -2083,7 +2083,6 @@ namespace StoryGenerator
 
                 else if (networkRequest.action == "set_time") 
                 {   
-
                     TimeConfig config = JsonConvert.DeserializeObject<TimeConfig>(networkRequest.stringParams[0]);
 
                     int hour = config.hour;
@@ -2098,23 +2097,6 @@ namespace StoryGenerator
                     LightingManager currentLightingManager = timeObject.GetComponent<LightingManager>();
 
                     currentLightingManager.SetTime(second);
-
-                    // object[] obj = GameObject.FindObjectsOfType(typeof (GameObject));
-                    // foreach (object o in obj)
-                    // {   
-                    //     GameObject g = (GameObject) o;
-                    //     if (g.name.ToLower().Contains("home_controller"))
-                    //     { 
-                    //         LightingManager lightManager = g.GetComponent<LightingManager>();
-                    //     }
-                    // }
-
-                    // LightingManager currentLightingManager = timeObject.GetComponent<Orbit>();
-
-                    // Debug.Log(time_config.hour);
-                    // Orbit currentOrbit = timeObject.GetComponent<Orbit>();
-                    // currentOrbit.SetTime(time_config.hour, time_config.minute, time_config.second);
-                    // response.success = true;
         
                     response.success = true;
                 }
