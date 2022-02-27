@@ -2087,7 +2087,6 @@ namespace StoryGenerator
 
                 else if (networkRequest.action == "set_time") 
                 {   
-                    
 
                     TimeConfig config = JsonConvert.DeserializeObject<TimeConfig>(networkRequest.stringParams[0]);
 
