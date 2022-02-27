@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using StoryGenerator.HomeAnnotation;
 using StoryGenerator.Recording;
@@ -21,7 +22,7 @@ using System.Threading.Tasks;
 using StoryGenerator.CharInteraction;
 using Unity.Profiling;
 using RootMotion.FinalIK;
-using UnityEngine.UI;
+
 
 
 namespace StoryGenerator
@@ -77,7 +78,7 @@ namespace StoryGenerator
         public float maxDepenetrationVelocity = 0.1f;
 
         // Set Time
-        // private GameObject timeObject = null;
+        public int time = 0;
         public GameObject myTerrain;
         [SerializeField] GameObject[] terrain;
         public GameObject _terrain;
@@ -189,21 +190,6 @@ namespace StoryGenerator
                 }
             }
         }
-
-        // private void LightingSetup()
-        // {
-        //     timeObject = new GameObject("Time");
-        //     timeObject.transform.position = new Vector3(0, 0, 0);
-        //     timeObject.AddComponent<Orbit>();
-        //     GameObject sunObject = new GameObject("Sun");
-        //     sunObject.transform.position = new Vector3(150, 0, 0);
-        //     sunObject.transform.Rotate(0, -90, 0);
-        //     sunObject.transform.parent = timeObject.transform;
-        //     Light dirLight = sunObject.AddComponent<Light>();
-        //     dirLight.color = Color.white;
-        //     dirLight.type = LightType.Directional;
-        //     dirLight.intensity = .5f;
-        // }
 
         // To-do minimize code length
         void Gravity() 
@@ -722,7 +708,7 @@ namespace StoryGenerator
                         }
                     }
                 }
-                else if (g.name.ToLower().Contains("pot"))
+                else if (g.name.ToLower().Contains("cooking"))
                 { 
                     g.AddComponent(typeof(MeshCollider));
                     g.GetComponent<MeshCollider>().convex = true;
@@ -1085,7 +1071,7 @@ namespace StoryGenerator
         // Convoluted but required object manipulation to make procedural generation work with the testdriver script
         void ProceduralGenerationShift()
         {   
-            // Traverse all objetcs in the scene
+            // Traverse all objects in the scene
             object[] obj = GameObject.FindObjectsOfType(typeof (GameObject));
             foreach (object o in obj)
             {   
@@ -1970,7 +1956,6 @@ namespace StoryGenerator
                     currentGraph = null;
                     currentGraphCreator = null;
                     CurrentStateList = new List<State>();
-                    //cc = null;
                     numCharacters = 0;
                     characters = new List<CharacterControl>();
                     sExecutors = new List<ScriptExecutor>();
@@ -2104,7 +2089,18 @@ namespace StoryGenerator
                 {   
                     
 
-                    // TimeConfig time_config = JsonConvert.DeserializeObject<TimeConfig>(networkRequest.stringParams[0]);
+                    TimeConfig config = JsonConvert.DeserializeObject<TimeConfig>(networkRequest.stringParams[0]);
+
+                    int hour = config.hour;
+                    int minute = config.minute;
+                    int second = config.second;
+
+                    hour = hour * 3600;
+                    minute = minute * 60;
+                    second = hour + minute + second;
+
+                    // LightingManager currentLightingManager = timeObject.GetComponent<Orbit>();
+
                     // Debug.Log(time_config.hour);
                     // Orbit currentOrbit = timeObject.GetComponent<Orbit>();
                     // currentOrbit.SetTime(time_config.hour, time_config.minute, time_config.second);
