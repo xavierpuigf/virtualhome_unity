@@ -2059,7 +2059,6 @@ namespace StoryGenerator
                     numCharacters = 0;
                     characters = new List<CharacterControl>();
                     sExecutors = new List<ScriptExecutor>();
-                    cameras = cameras.GetRange(0, numSceneCameras);
                     CameraExpander.ResetCharacterCameras();
 
                     //ProceduralGenerationShift();
