@@ -22,7 +22,7 @@ using System.Threading.Tasks;
 using StoryGenerator.CharInteraction;
 using Unity.Profiling;
 using RootMotion.FinalIK;
-
+using DunGen;
 
 
 namespace StoryGenerator
@@ -78,7 +78,7 @@ namespace StoryGenerator
         public float maxDepenetrationVelocity = 0.1f;
 
         // Set Time
-        public float time = 10000;
+        public float time = 0;
 
 
         WaitForSeconds WAIT_AFTER_END_OF_SCENE = new WaitForSeconds(3.0f);
@@ -1064,28 +1064,28 @@ namespace StoryGenerator
             }
 
         }
-        // Convoluted but required object manipulation to make procedural generation work with the testdriver script
-        void ProceduralGenerationShift()
-        {   
-            // Traverse all objects in the scene
-            object[] obj = GameObject.FindObjectsOfType(typeof (GameObject));
-            foreach (object o in obj)
-            {   
-                GameObject g = (GameObject) o;
+        // // Convoluted but required object manipulation to make procedural generation work with the testdriver script
+        // void ProceduralGenerationShift()
+        // {   
+        //     // Traverse all objects in the scene
+        //     object[] obj = GameObject.FindObjectsOfType(typeof (GameObject));
+        //     foreach (object o in obj)
+        //     {   
+        //         GameObject g = (GameObject) o;
 
-                if (g.name.ToLower().Contains("new"))
-                {
-                    object1 = (GameObject) g;
-                    //Destroy(object1.GetComponent<TestDriver>());
-                }
-                else if (g.name.ToLower().Contains("generation"))
-                {
-                    object2 = (GameObject) g;
-                    Destroy(object2);
-                }
-            }
-            //object1.AddComponent(typeof(TestDriver));
-        }
+        //         if (g.name.ToLower().Contains("new"))
+        //         {
+        //             object1 = (GameObject) g;
+        //             Destroy(object1.GetComponent<TestDriver>());
+        //         }
+        //         else if (g.name.ToLower().Contains("generation"))
+        //         {
+        //             object2 = (GameObject) g;
+        //             Destroy(object2);
+        //         }
+        //     }
+        //     object1.AddComponent(typeof(TestDriver));
+        // }
 
         void ProcessHome(bool randomizeExecution)
         {
@@ -2024,7 +2024,17 @@ namespace StoryGenerator
                 }
 
                 else if (networkRequest.action == "procedural_generation") 
-                {
+                {   
+                    ProceduralGenerationConfig config = JsonConvert.DeserializeObject<ProceduralGenerationConfig>(networkRequest.stringParams[0]);
+
+                    // bool random_seed = config.random_seed;
+                    // int seed = config.seed;
+
+                    // GameObject ProceduralGenerationObject = GameObject.FindWithTag("Time");
+                    // RuntimeGenerator currentDungeonGenerator = ProceduralGenerationObject.GetComponent<RuntimeGenerator>();
+
+                    // DunGen.DungeonGenerator.Seed = 100;
+
 
                     networkRequest.action = "process";
                     PreviousEnvironment.IndexMemory = -1;
@@ -2039,9 +2049,6 @@ namespace StoryGenerator
                     currentGraph = null;
                     currentGraphCreator = null;
                     CurrentStateList = new List<State>();
-                    //cc = null;
-
-                    
      
                     NavMeshSurface nm = GameObject.FindObjectOfType<NavMeshSurface>();
                     nm.BuildNavMesh();
@@ -2057,13 +2064,11 @@ namespace StoryGenerator
 
                     //ProceduralGenerationShift();
 
-
                     yield return null;
 
                     currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
                     var graph = currentGraphCreator.CreateGraph(houseTransform);
                     currentGraph = graph;
-
 
                     response.message = "";
                     response.success = true;
@@ -2722,7 +2727,8 @@ namespace StoryGenerator
 
     public class ProceduralGenerationConfig
     {
-        public bool random_seed = true;
+        public int seed = 0;
+        // public bool random_seed = true;
     }
 
     public class CharacterConfig
