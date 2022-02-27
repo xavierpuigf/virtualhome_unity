@@ -2025,7 +2025,7 @@ namespace StoryGenerator
 
                 else if (networkRequest.action == "procedural_generation") 
                 {   
-                    ProceduralGenerationConfig config = JsonConvert.DeserializeObject<ProceduralGenerationConfig>(networkRequest.stringParams[0]);
+                    // ProceduralGenerationConfig config = JsonConvert.DeserializeObject<ProceduralGenerationConfig>(networkRequest.stringParams[0]);
 
                     // bool random_seed = config.random_seed;
                     // int seed = config.seed;
