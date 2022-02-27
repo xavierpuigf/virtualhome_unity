@@ -814,9 +814,6 @@ namespace StoryGenerator
                 }
                 else if (g.name.ToLower().Contains("remote"))
                 { 
-                    g.AddComponent(typeof(MeshCollider));
-                    g.GetComponent<MeshCollider>().convex = true;
-                    Destroy(g.GetComponent<BoxCollider>());
                     g.AddComponent(typeof(Rigidbody));
                     for (int i = 0; i < g.transform.childCount; i++)
                     {
