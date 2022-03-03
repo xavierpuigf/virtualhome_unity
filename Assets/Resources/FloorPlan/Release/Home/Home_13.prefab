@@ -52,9 +52,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   num_renderings: 0
   finishedChars: 0
-  myPrefab: {fileID: 0}
   prefab: []
   _instance: {fileID: 0}
+  houseTransform: {fileID: 0}
+  object1: {fileID: 0}
+  object2: {fileID: 0}
+  maxDepenetrationVelocity: 0.1
+  time: 0
 --- !u!114 &8281635494322772334
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -100,7 +104,7 @@ MonoBehaviour:
   m_OverrideTileSize: 0
   m_TileSize: 256
   m_OverrideVoxelSize: 0
-  m_VoxelSize: 0.033333335
+  m_VoxelSize: 0.083333336
   m_BuildHeightMesh: 0
   m_NavMeshData: {fileID: 0}
 --- !u!1001 &4306149834726665788
@@ -110,6 +114,26 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 8281635495054429952}
     m_Modifications:
+    - target: {fileID: 5272804695290163848, guid: e6fa6c8afb3864578ae3e5211a0cc836,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5272804695681193648, guid: e6fa6c8afb3864578ae3e5211a0cc836,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5272804695864164285, guid: e6fa6c8afb3864578ae3e5211a0cc836,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5272804695882204790, guid: e6fa6c8afb3864578ae3e5211a0cc836,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 5272804695916065018, guid: e6fa6c8afb3864578ae3e5211a0cc836,
         type: 3}
       propertyPath: m_Name
@@ -170,6 +194,31 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5272804696246812802, guid: e6fa6c8afb3864578ae3e5211a0cc836,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5272804696500721598, guid: e6fa6c8afb3864578ae3e5211a0cc836,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5272804696923712320, guid: e6fa6c8afb3864578ae3e5211a0cc836,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5272804696972543425, guid: e6fa6c8afb3864578ae3e5211a0cc836,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5272804697078198301, guid: e6fa6c8afb3864578ae3e5211a0cc836,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e6fa6c8afb3864578ae3e5211a0cc836, type: 3}
 --- !u!4 &8281635493786672839 stripped
@@ -185,6 +234,11 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 8281635495054429952}
     m_Modifications:
+    - target: {fileID: 2578852373493545073, guid: d8f272010861042dabbed03014f4d524,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 2578852373821625677, guid: d8f272010861042dabbed03014f4d524,
         type: 3}
       propertyPath: m_Name
@@ -244,6 +298,46 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2578852373834069065, guid: d8f272010861042dabbed03014f4d524,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2578852374008085680, guid: d8f272010861042dabbed03014f4d524,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2578852374123443190, guid: d8f272010861042dabbed03014f4d524,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2578852374253786074, guid: d8f272010861042dabbed03014f4d524,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2578852374706679145, guid: d8f272010861042dabbed03014f4d524,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2578852374885237911, guid: d8f272010861042dabbed03014f4d524,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2578852375021962004, guid: d8f272010861042dabbed03014f4d524,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2578852375570074375, guid: d8f272010861042dabbed03014f4d524,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d8f272010861042dabbed03014f4d524, type: 3}
@@ -320,6 +414,26 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2076922816259216128, guid: 8fd1d0a9b878c41858d59be06f86192b,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2076922817004209082, guid: 8fd1d0a9b878c41858d59be06f86192b,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2076922817020431474, guid: 8fd1d0a9b878c41858d59be06f86192b,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2076922817327247535, guid: 8fd1d0a9b878c41858d59be06f86192b,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8fd1d0a9b878c41858d59be06f86192b, type: 3}
 --- !u!4 &8281635493905299084 stripped
@@ -335,6 +449,26 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 8281635495054429952}
     m_Modifications:
+    - target: {fileID: 2029180704808735006, guid: 5689217575fb548f1b631ce5c777338f,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2029180704891350600, guid: 5689217575fb548f1b631ce5c777338f,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2029180705007438378, guid: 5689217575fb548f1b631ce5c777338f,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2029180705083724793, guid: 5689217575fb548f1b631ce5c777338f,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 2029180705183168461, guid: 5689217575fb548f1b631ce5c777338f,
         type: 3}
       propertyPath: m_RootOrder
@@ -394,6 +528,31 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: PRE_ROO_Bedroom_13
+      objectReference: {fileID: 0}
+    - target: {fileID: 2029180705611087740, guid: 5689217575fb548f1b631ce5c777338f,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2029180705656586027, guid: 5689217575fb548f1b631ce5c777338f,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2029180706312516186, guid: 5689217575fb548f1b631ce5c777338f,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2029180706439846325, guid: 5689217575fb548f1b631ce5c777338f,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2029180706504762475, guid: 5689217575fb548f1b631ce5c777338f,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 5689217575fb548f1b631ce5c777338f, type: 3}

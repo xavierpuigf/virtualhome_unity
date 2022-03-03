@@ -53,9 +53,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   num_renderings: 0
   finishedChars: 0
-  myPrefab: {fileID: 0}
   prefab: []
   _instance: {fileID: 0}
+  houseTransform: {fileID: 0}
+  object1: {fileID: 0}
+  object2: {fileID: 0}
+  maxDepenetrationVelocity: 0.1
+  time: 0
 --- !u!114 &2495779866031358690
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -101,7 +105,7 @@ MonoBehaviour:
   m_OverrideTileSize: 0
   m_TileSize: 256
   m_OverrideVoxelSize: 0
-  m_VoxelSize: 0.033333335
+  m_VoxelSize: 0.083333336
   m_BuildHeightMesh: 0
   m_NavMeshData: {fileID: 0}
 --- !u!1001 &2191570089573920334
@@ -111,6 +115,16 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 2495779866960680076}
     m_Modifications:
+    - target: {fileID: 4379979276208803291, guid: 4bc422d054eaf4c5e80debc815ee0154,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4379979276580089727, guid: 4bc422d054eaf4c5e80debc815ee0154,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 4379979276651946360, guid: 4bc422d054eaf4c5e80debc815ee0154,
         type: 3}
       propertyPath: m_RootOrder
@@ -170,6 +184,26 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: PRE_ROO_Livingroom_36_2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4379979276950434844, guid: 4bc422d054eaf4c5e80debc815ee0154,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4379979277357424726, guid: 4bc422d054eaf4c5e80debc815ee0154,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4379979277556310199, guid: 4bc422d054eaf4c5e80debc815ee0154,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4379979277733818977, guid: 4bc422d054eaf4c5e80debc815ee0154,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4bc422d054eaf4c5e80debc815ee0154, type: 3}
@@ -246,6 +280,26 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 254778918434337283, guid: f3bea8da2c2264c6e8fbc3ed19d435ad,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 254778918898310097, guid: f3bea8da2c2264c6e8fbc3ed19d435ad,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 254778919473858442, guid: f3bea8da2c2264c6e8fbc3ed19d435ad,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 254778920260123911, guid: f3bea8da2c2264c6e8fbc3ed19d435ad,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f3bea8da2c2264c6e8fbc3ed19d435ad, type: 3}
 --- !u!4 &2495779867101885676 stripped
@@ -261,6 +315,16 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 2495779866960680076}
     m_Modifications:
+    - target: {fileID: 7970458945728020292, guid: f667382f83ad9402eaf532eb134a4376,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7970458945771537044, guid: f667382f83ad9402eaf532eb134a4376,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 7970458946760930026, guid: f667382f83ad9402eaf532eb134a4376,
         type: 3}
       propertyPath: m_Name
@@ -321,6 +385,16 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7970458946898545746, guid: f667382f83ad9402eaf532eb134a4376,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7970458947171841220, guid: f667382f83ad9402eaf532eb134a4376,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f667382f83ad9402eaf532eb134a4376, type: 3}
 --- !u!4 &2495779867120830223 stripped
@@ -336,6 +410,26 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 2495779866960680076}
     m_Modifications:
+    - target: {fileID: 5324099268567531682, guid: d1e82dae2a2cb4d47a4192eaed0e1c93,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5324099268651998461, guid: d1e82dae2a2cb4d47a4192eaed0e1c93,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5324099269015862333, guid: d1e82dae2a2cb4d47a4192eaed0e1c93,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5324099269018421952, guid: d1e82dae2a2cb4d47a4192eaed0e1c93,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 5324099269555266768, guid: d1e82dae2a2cb4d47a4192eaed0e1c93,
         type: 3}
       propertyPath: m_RootOrder
@@ -396,6 +490,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: PRE_ROO_Kitchen_36
       objectReference: {fileID: 0}
+    - target: {fileID: 5324099270056556996, guid: d1e82dae2a2cb4d47a4192eaed0e1c93,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5324099270169005385, guid: d1e82dae2a2cb4d47a4192eaed0e1c93,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d1e82dae2a2cb4d47a4192eaed0e1c93, type: 3}
 --- !u!4 &2495779867280518967 stripped
@@ -411,6 +515,26 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 2495779866960680076}
     m_Modifications:
+    - target: {fileID: 6863716321606189349, guid: 3e8ff57afe0df42b6a2e1d10498c2939,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6863716322261393525, guid: 3e8ff57afe0df42b6a2e1d10498c2939,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6863716322521516534, guid: 3e8ff57afe0df42b6a2e1d10498c2939,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6863716322970937705, guid: 3e8ff57afe0df42b6a2e1d10498c2939,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 6863716323011652666, guid: 3e8ff57afe0df42b6a2e1d10498c2939,
         type: 3}
       propertyPath: m_RootOrder

@@ -53,9 +53,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   num_renderings: 0
   finishedChars: 0
-  myPrefab: {fileID: 0}
   prefab: []
   _instance: {fileID: 0}
+  houseTransform: {fileID: 0}
+  object1: {fileID: 0}
+  object2: {fileID: 0}
+  maxDepenetrationVelocity: 0.1
+  time: 0
 --- !u!114 &6597499667405391188
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -101,7 +105,7 @@ MonoBehaviour:
   m_OverrideTileSize: 0
   m_TileSize: 256
   m_OverrideVoxelSize: 0
-  m_VoxelSize: 0.033333335
+  m_VoxelSize: 0.083333336
   m_BuildHeightMesh: 0
   m_NavMeshData: {fileID: 0}
 --- !u!1001 &4727297590724305682
@@ -111,6 +115,26 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 6597499668839043898}
     m_Modifications:
+    - target: {fileID: 1879613901485754506, guid: 7bd266d70c13543d1aa94815c4cbf0a9,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1879613902370293663, guid: 7bd266d70c13543d1aa94815c4cbf0a9,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1879613902375622079, guid: 7bd266d70c13543d1aa94815c4cbf0a9,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1879613902948504524, guid: 7bd266d70c13543d1aa94815c4cbf0a9,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 1879613902966470489, guid: 7bd266d70c13543d1aa94815c4cbf0a9,
         type: 3}
       propertyPath: m_Name
@@ -171,6 +195,31 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1879613903069478441, guid: 7bd266d70c13543d1aa94815c4cbf0a9,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1879613903158037181, guid: 7bd266d70c13543d1aa94815c4cbf0a9,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1879613903298125094, guid: 7bd266d70c13543d1aa94815c4cbf0a9,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1879613903400829461, guid: 7bd266d70c13543d1aa94815c4cbf0a9,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1879613903464328059, guid: 7bd266d70c13543d1aa94815c4cbf0a9,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7bd266d70c13543d1aa94815c4cbf0a9, type: 3}
 --- !u!4 &6597499667441587272 stripped
@@ -186,6 +235,26 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 6597499668839043898}
     m_Modifications:
+    - target: {fileID: 775083402769859097, guid: b2d867c2f38b249cfa1c399ce3fd44be,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 775083402820077172, guid: b2d867c2f38b249cfa1c399ce3fd44be,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 775083403131244714, guid: b2d867c2f38b249cfa1c399ce3fd44be,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 775083403504097031, guid: b2d867c2f38b249cfa1c399ce3fd44be,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 775083403697883494, guid: b2d867c2f38b249cfa1c399ce3fd44be,
         type: 3}
       propertyPath: m_RootOrder
@@ -246,6 +315,31 @@ PrefabInstance:
       propertyPath: m_Name
       value: PRE_ROO_Livingroom_16
       objectReference: {fileID: 0}
+    - target: {fileID: 775083403866132517, guid: b2d867c2f38b249cfa1c399ce3fd44be,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 775083404114799184, guid: b2d867c2f38b249cfa1c399ce3fd44be,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 775083404187490378, guid: b2d867c2f38b249cfa1c399ce3fd44be,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 775083404588240953, guid: b2d867c2f38b249cfa1c399ce3fd44be,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 775083404602660675, guid: b2d867c2f38b249cfa1c399ce3fd44be,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b2d867c2f38b249cfa1c399ce3fd44be, type: 3}
 --- !u!4 &6597499667219433765 stripped
@@ -261,6 +355,31 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 6597499668839043898}
     m_Modifications:
+    - target: {fileID: 660785720228415462, guid: d22f173c2f981428f8af8fa3d0319f7a,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 660785720369244127, guid: d22f173c2f981428f8af8fa3d0319f7a,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 660785721182564340, guid: d22f173c2f981428f8af8fa3d0319f7a,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 660785721299275384, guid: d22f173c2f981428f8af8fa3d0319f7a,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 660785721362476170, guid: d22f173c2f981428f8af8fa3d0319f7a,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 660785721524817008, guid: d22f173c2f981428f8af8fa3d0319f7a,
         type: 3}
       propertyPath: m_Name
@@ -320,6 +439,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 660785721716983801, guid: d22f173c2f981428f8af8fa3d0319f7a,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d22f173c2f981428f8af8fa3d0319f7a, type: 3}
@@ -396,6 +520,26 @@ PrefabInstance:
       propertyPath: m_Name
       value: PRE_ROO_Bathroom_16
       objectReference: {fileID: 0}
+    - target: {fileID: 3468113865869631305, guid: 254fcb37553a64c0fbeda33e2448f584,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3468113866583417866, guid: 254fcb37553a64c0fbeda33e2448f584,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3468113866963775037, guid: 254fcb37553a64c0fbeda33e2448f584,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3468113867269628780, guid: 254fcb37553a64c0fbeda33e2448f584,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 254fcb37553a64c0fbeda33e2448f584, type: 3}
 --- !u!4 &6597499668140632732 stripped
@@ -411,6 +555,46 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 6597499668839043898}
     m_Modifications:
+    - target: {fileID: 3221966648402354176, guid: 9c5c26186740d463088a5cc1528a2325,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3221966648451857265, guid: 9c5c26186740d463088a5cc1528a2325,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3221966648595494987, guid: 9c5c26186740d463088a5cc1528a2325,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3221966648678186003, guid: 9c5c26186740d463088a5cc1528a2325,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3221966648750773185, guid: 9c5c26186740d463088a5cc1528a2325,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3221966648776044962, guid: 9c5c26186740d463088a5cc1528a2325,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3221966648786759035, guid: 9c5c26186740d463088a5cc1528a2325,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3221966649155476483, guid: 9c5c26186740d463088a5cc1528a2325,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 3221966649190822592, guid: 9c5c26186740d463088a5cc1528a2325,
         type: 3}
       propertyPath: m_Name
@@ -470,6 +654,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3221966649564579927, guid: 9c5c26186740d463088a5cc1528a2325,
+        type: 3}
+      propertyPath: m_RootOrder
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3221966649874006718, guid: 9c5c26186740d463088a5cc1528a2325,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9c5c26186740d463088a5cc1528a2325, type: 3}

@@ -52,9 +52,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   num_renderings: 0
   finishedChars: 0
-  myPrefab: {fileID: 0}
   prefab: []
   _instance: {fileID: 0}
+  houseTransform: {fileID: 0}
+  object1: {fileID: 0}
+  object2: {fileID: 0}
+  maxDepenetrationVelocity: 0.1
+  time: 0
 --- !u!114 &1038094997822232088
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -100,7 +104,7 @@ MonoBehaviour:
   m_OverrideTileSize: 0
   m_TileSize: 256
   m_OverrideVoxelSize: 0
-  m_VoxelSize: 0.033333335
+  m_VoxelSize: 0.083333336
   m_BuildHeightMesh: 0
   m_NavMeshData: {fileID: 0}
 --- !u!1001 &744674333809470200
@@ -110,6 +114,21 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 1038094999693131894}
     m_Modifications:
+    - target: {fileID: 305559480877506134, guid: a07703d93649f4e34b6443b6608c3f9b,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 305559480926895572, guid: a07703d93649f4e34b6443b6608c3f9b,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 305559481147444791, guid: a07703d93649f4e34b6443b6608c3f9b,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 305559481162432570, guid: a07703d93649f4e34b6443b6608c3f9b,
         type: 3}
       propertyPath: m_Name
@@ -170,6 +189,51 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 305559481319759829, guid: a07703d93649f4e34b6443b6608c3f9b,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 305559481623581433, guid: a07703d93649f4e34b6443b6608c3f9b,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 305559481733563947, guid: a07703d93649f4e34b6443b6608c3f9b,
+        type: 3}
+      propertyPath: m_RootOrder
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 305559481919708452, guid: a07703d93649f4e34b6443b6608c3f9b,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 305559481937531580, guid: a07703d93649f4e34b6443b6608c3f9b,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 305559481973938578, guid: a07703d93649f4e34b6443b6608c3f9b,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 305559482221385164, guid: a07703d93649f4e34b6443b6608c3f9b,
+        type: 3}
+      propertyPath: m_RootOrder
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 305559482269931904, guid: a07703d93649f4e34b6443b6608c3f9b,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 305559482446229968, guid: a07703d93649f4e34b6443b6608c3f9b,
+        type: 3}
+      propertyPath: m_RootOrder
+      value: 4
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a07703d93649f4e34b6443b6608c3f9b, type: 3}
 --- !u!4 &1038094999232768707 stripped
@@ -185,6 +249,21 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 1038094999693131894}
     m_Modifications:
+    - target: {fileID: 2446948559242809089, guid: 0a52eb8642e7e4b74bc5f061fb9312d6,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2446948559736697292, guid: 0a52eb8642e7e4b74bc5f061fb9312d6,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2446948559921414282, guid: 0a52eb8642e7e4b74bc5f061fb9312d6,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 2446948560277174132, guid: 0a52eb8642e7e4b74bc5f061fb9312d6,
         type: 3}
       propertyPath: m_RootOrder
@@ -245,6 +324,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: PRE_ROO_Bathroom_40
       objectReference: {fileID: 0}
+    - target: {fileID: 2446948560382102216, guid: 0a52eb8642e7e4b74bc5f061fb9312d6,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0a52eb8642e7e4b74bc5f061fb9312d6, type: 3}
 --- !u!4 &1038094999267402731 stripped
@@ -260,6 +344,21 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 1038094999693131894}
     m_Modifications:
+    - target: {fileID: 4233900486777312615, guid: 9afe78a2fb3c04e8a97b1bd1644d7516,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4233900487169120073, guid: 9afe78a2fb3c04e8a97b1bd1644d7516,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4233900487461087436, guid: 9afe78a2fb3c04e8a97b1bd1644d7516,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 4233900487476178740, guid: 9afe78a2fb3c04e8a97b1bd1644d7516,
         type: 3}
       propertyPath: m_RootOrder
@@ -320,6 +419,36 @@ PrefabInstance:
       propertyPath: m_Name
       value: PRE_ROO_Livingroom_40
       objectReference: {fileID: 0}
+    - target: {fileID: 4233900487622639981, guid: 9afe78a2fb3c04e8a97b1bd1644d7516,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4233900488129838300, guid: 9afe78a2fb3c04e8a97b1bd1644d7516,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4233900488355610972, guid: 9afe78a2fb3c04e8a97b1bd1644d7516,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4233900488413070381, guid: 9afe78a2fb3c04e8a97b1bd1644d7516,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4233900488486509111, guid: 9afe78a2fb3c04e8a97b1bd1644d7516,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4233900488724691521, guid: 9afe78a2fb3c04e8a97b1bd1644d7516,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9afe78a2fb3c04e8a97b1bd1644d7516, type: 3}
 --- !u!4 &1038094997803389771 stripped
@@ -339,6 +468,36 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Materials.Array.data[0]
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 5324421541146006275, guid: 80b44832db7a94383a2657753590b297,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5324421541623080216, guid: 80b44832db7a94383a2657753590b297,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5324421541716341726, guid: 80b44832db7a94383a2657753590b297,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5324421542028720029, guid: 80b44832db7a94383a2657753590b297,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5324421542269416895, guid: 80b44832db7a94383a2657753590b297,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5324421542815995447, guid: 80b44832db7a94383a2657753590b297,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5324421542900481060, guid: 80b44832db7a94383a2657753590b297,
         type: 3}

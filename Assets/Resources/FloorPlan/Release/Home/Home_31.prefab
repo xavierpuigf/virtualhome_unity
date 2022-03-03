@@ -52,9 +52,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   num_renderings: 0
   finishedChars: 0
-  myPrefab: {fileID: 0}
   prefab: []
   _instance: {fileID: 0}
+  houseTransform: {fileID: 0}
+  object1: {fileID: 0}
+  object2: {fileID: 0}
+  maxDepenetrationVelocity: 0.1
+  time: 0
 --- !u!114 &546799336980264699
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -100,7 +104,7 @@ MonoBehaviour:
   m_OverrideTileSize: 0
   m_TileSize: 256
   m_OverrideVoxelSize: 0
-  m_VoxelSize: 0.033333335
+  m_VoxelSize: 0.083333336
   m_BuildHeightMesh: 0
   m_NavMeshData: {fileID: 0}
 --- !u!1001 &851196147737414235
@@ -110,6 +114,26 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 546799338315899029}
     m_Modifications:
+    - target: {fileID: 884554335434098168, guid: 7717eee8fdb504bbd81432c2d476024c,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 884554335997729176, guid: 7717eee8fdb504bbd81432c2d476024c,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 884554336182731732, guid: 7717eee8fdb504bbd81432c2d476024c,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 884554336195872093, guid: 7717eee8fdb504bbd81432c2d476024c,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 884554336355667782, guid: 7717eee8fdb504bbd81432c2d476024c,
         type: 3}
       propertyPath: m_RootOrder
@@ -185,6 +209,21 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 546799338315899029}
     m_Modifications:
+    - target: {fileID: 600316667460850070, guid: 544c8c30b66064d868d41f77ea0a1911,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 600316668284343875, guid: 544c8c30b66064d868d41f77ea0a1911,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 600316668645154808, guid: 544c8c30b66064d868d41f77ea0a1911,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 600316669181367940, guid: 544c8c30b66064d868d41f77ea0a1911,
         type: 3}
       propertyPath: m_RootOrder
@@ -245,6 +284,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: PRE_ROO_Bathroom_31
       objectReference: {fileID: 0}
+    - target: {fileID: 600316669210530308, guid: 544c8c30b66064d868d41f77ea0a1911,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 544c8c30b66064d868d41f77ea0a1911, type: 3}
 --- !u!4 &546799338076094884 stripped
@@ -260,6 +304,16 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 546799338315899029}
     m_Modifications:
+    - target: {fileID: 1611779391077963905, guid: 50d3747eddea3413d9d1086e6d9d13b4,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1611779392071729360, guid: 50d3747eddea3413d9d1086e6d9d13b4,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 1611779392478598697, guid: 50d3747eddea3413d9d1086e6d9d13b4,
         type: 3}
       propertyPath: m_RootOrder
@@ -320,6 +374,16 @@ PrefabInstance:
       propertyPath: m_Name
       value: PRE_ROO_Livingroom_31
       objectReference: {fileID: 0}
+    - target: {fileID: 1611779392640995303, guid: 50d3747eddea3413d9d1086e6d9d13b4,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1611779392864751912, guid: 50d3747eddea3413d9d1086e6d9d13b4,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 50d3747eddea3413d9d1086e6d9d13b4, type: 3}
 --- !u!4 &546799336900910265 stripped
@@ -335,6 +399,11 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 546799338315899029}
     m_Modifications:
+    - target: {fileID: 2260722295216751437, guid: 7581987472fc041788f1a25e86411913,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 2260722296152744224, guid: 7581987472fc041788f1a25e86411913,
         type: 3}
       propertyPath: m_RootOrder
@@ -394,6 +463,31 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: PRE_ROO_Kitchen_31
+      objectReference: {fileID: 0}
+    - target: {fileID: 2260722296326717953, guid: 7581987472fc041788f1a25e86411913,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2260722296343769426, guid: 7581987472fc041788f1a25e86411913,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2260722296360568996, guid: 7581987472fc041788f1a25e86411913,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2260722296555520691, guid: 7581987472fc041788f1a25e86411913,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2260722296729730543, guid: 7581987472fc041788f1a25e86411913,
+        type: 3}
+      propertyPath: m_CastShadows
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7581987472fc041788f1a25e86411913, type: 3}
