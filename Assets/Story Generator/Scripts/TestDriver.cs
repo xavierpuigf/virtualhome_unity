@@ -1965,7 +1965,7 @@ namespace StoryGenerator
 
                         if (environment >= 0 && environment < 50)
                         {   
-                            GameObject _instance = Instantiate(prefab[environment], new Vector3(0, 0, 0), Quaternion.identity) as GameObject;
+                            GameObject _instance = Instantiate(prefab[environment], new Vector3(0, 0, 0), Quaternion.Euler(0f, 90f, 0f)) as GameObject;
                             houseTransform = _instance.transform;
                             response.success = true;
                             response.message = "";
@@ -1981,7 +1981,7 @@ namespace StoryGenerator
                     }
                     else
                     {
-                        GameObject _instance = Instantiate(prefab[PreviousEnvironment.IndexMemory], new Vector3(0, 0, 0), Quaternion.identity) as GameObject;
+                        GameObject _instance = Instantiate(prefab[PreviousEnvironment.IndexMemory], new Vector3(0, 0, 0), Quaternion.Euler(0f, 90f, 0f)) as GameObject;
                         houseTransform = _instance.transform;
                         response.success = true;
                         response.message = "";
