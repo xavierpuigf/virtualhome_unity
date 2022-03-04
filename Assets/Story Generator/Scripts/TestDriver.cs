@@ -1185,9 +1185,9 @@ namespace StoryGenerator
                     GameObject go = new GameObject("new_camera" + camera_name, typeof(Camera));
                     Camera new_camera = go.GetComponent<Camera>();
 
-                    new_camera.usePhysicalProperties = true;
-                    float focal_length = camera_config.focal_length;
-                    new_camera.focalLength = focal_length;
+                    // new_camera.usePhysicalProperties = true;
+                    float field_view = camera_config.field_view;
+                    new_camera.fieldOfView = field_view;
 
                     new_camera.renderingPath = RenderingPath.UsePlayerSettings;
 
@@ -2702,7 +2702,7 @@ namespace StoryGenerator
     {
         public Vector3 rotation = new Vector3(0.0f, 0.0f, 0.0f);
         public Vector3 position = new Vector3(0.0f, 0.0f, 0.0f);
-        public float focal_length = 30.0f;
+        public float field_view = 40.0f;
         public string camera_name = "default";
 
     }
