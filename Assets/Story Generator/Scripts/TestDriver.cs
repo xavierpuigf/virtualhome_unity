@@ -2043,6 +2043,16 @@ namespace StoryGenerator
 
                 }
 
+                else if (networkRequest.action == "remove_terrain") 
+                {   
+                    GameObject Terrain = GameObject.FindWithTag("Terrain");
+                    Destroy(Terrain);
+
+                    response.message = "";
+                    response.success = true;
+
+                }
+
                 else if (networkRequest.action == "process") 
                 {   
                     cameraInitializer.initialized = false;
