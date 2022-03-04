@@ -2094,18 +2094,18 @@ namespace StoryGenerator
                 {   
                     TimeConfig config = JsonConvert.DeserializeObject<TimeConfig>(networkRequest.stringParams[0]);
 
-                    int hour = config.hour;
-                    int minute = config.minute;
-                    int second = config.second;
+                    int hours = config.hours;
+                    int minutes = config.minutes;
+                    int seconds = config.seconds;
 
-                    hour = hour * 3600;
-                    minute = minute * 60;
-                    second = hour + minute + second;
+                    hours = hours * 3600;
+                    minutes = minutes * 60;
+                    seconds = hours + minutes + seconds;
 
                     GameObject timeObject = GameObject.FindWithTag("Time");
                     LightingManager currentLightingManager = timeObject.GetComponent<LightingManager>();
 
-                    currentLightingManager.SetTime(second);
+                    currentLightingManager.SetTime(seconds);
         
                     response.success = true;
                 }
@@ -2724,9 +2724,9 @@ namespace StoryGenerator
 
     public class TimeConfig
     {
-        public int hour = 0;
-        public int minute = 0;
-        public int second = 0;
+        public int hours = 0;
+        public int minutes = 0;
+        public int seconds = 0;
     }
 
     public class CharacterConfig
