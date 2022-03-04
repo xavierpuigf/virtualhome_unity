@@ -1064,28 +1064,6 @@ namespace StoryGenerator
             }
 
         }
-        // // Convoluted but required object manipulation to make procedural generation work with the testdriver script
-        // void ProceduralGenerationShift()
-        // {   
-        //     // Traverse all objects in the scene
-        //     object[] obj = GameObject.FindObjectsOfType(typeof (GameObject));
-        //     foreach (object o in obj)
-        //     {   
-        //         GameObject g = (GameObject) o;
-
-        //         if (g.name.ToLower().Contains("new"))
-        //         {
-        //             object1 = (GameObject) g;
-        //             Destroy(object1.GetComponent<TestDriver>());
-        //         }
-        //         else if (g.name.ToLower().Contains("generation"))
-        //         {
-        //             object2 = (GameObject) g;
-        //             Destroy(object2);
-        //         }
-        //     }
-        //     object1.AddComponent(typeof(TestDriver));
-        // }
 
         void ProcessHome(bool randomizeExecution)
         {
@@ -2030,10 +2008,14 @@ namespace StoryGenerator
                     // bool random_seed = config.random_seed;
                     // int seed = config.seed;
 
-                    // GameObject ProceduralGenerationObject = GameObject.FindWithTag("Time");
-                    // RuntimeGenerator currentDungeonGenerator = ProceduralGenerationObject.GetComponent<RuntimeGenerator>();
+                    // GameObject ProceduralGenerationObject = GameObject.FindWithTag("Procedural");
+                    // var runtimeDungeon = ProceduralGenerationObject.GetComponent<RuntimeGenerator>();
+                    // var generator = runtimeDungeon.Generator;
 
-                    // DunGen.DungeonGenerator.Seed = 100;
+                    // generator.Seed = 100;
+                    // generator.ShouldRandomizeSeed = false;
+
+                    // generator.Generate();
 
 
                     networkRequest.action = "process";
