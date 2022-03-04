@@ -2003,26 +2003,39 @@ namespace StoryGenerator
 
                 else if (networkRequest.action == "procedural_generation") 
                 {   
-                    // ProceduralGenerationConfig config = JsonConvert.DeserializeObject<ProceduralGenerationConfig>(networkRequest.stringParams[0]);
+                    GameObject ProceduralGenerationObject = GameObject.FindWithTag("Procedural");
+                    var runtimeDungeon = ProceduralGenerationObject.GetComponent<RuntimeDungeon>();
+                    var generator = runtimeDungeon.Generator;
 
-                    // bool random_seed = config.random_seed;
-                    // int seed = config.seed;
+                    if (networkRequest.intParams?.Count > 0)
+                    {
+                        int seed = networkRequest.intParams[0];
 
-                    // GameObject ProceduralGenerationObject = GameObject.FindWithTag("Procedural");
-                    // var runtimeDungeon = ProceduralGenerationObject.GetComponent<RuntimeGenerator>();
-                    // var generator = runtimeDungeon.Generator;
+                        generator.ShouldRandomizeSeed = false;
+                        generator.Seed = seed;
+                        generator.Generate();
+                        networkRequest.action = "process";
+                        PreviousEnvironment.IndexMemory = -1;
+                        response.message = "";
+                        response.success = true;
+                    }
+                    else
+                    {
+                        generator.ShouldRandomizeSeed = true;
+                        generator.Generate();
+                        networkRequest.action = "process";
+                        PreviousEnvironment.IndexMemory = -1;
+                        response.message = "";
+                        response.success = true;
+                    }
 
-                    // generator.Seed = 100;
-                    // generator.ShouldRandomizeSeed = false;
+                }
 
-                    // generator.Generate();
-
-
-                    networkRequest.action = "process";
-                    PreviousEnvironment.IndexMemory = -1;
+                else if (networkRequest.action == "clear_procedural") 
+                {   
                     SceneManager.LoadScene(1);
-                    yield break;
-
+                    response.message = "";
+                    response.success = true;
                 }
 
                 else if (networkRequest.action == "remove_terrain") 
@@ -2714,12 +2727,6 @@ namespace StoryGenerator
         public int hour = 0;
         public int minute = 0;
         public int second = 0;
-    }
-
-    public class ProceduralGenerationConfig
-    {
-        public int seed = 0;
-        // public bool random_seed = true;
     }
 
     public class CharacterConfig
