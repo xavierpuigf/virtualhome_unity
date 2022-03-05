@@ -2066,8 +2066,6 @@ namespace StoryGenerator
                     sExecutors = new List<ScriptExecutor>();
                     CameraExpander.ResetCharacterCameras();
 
-                    //ProceduralGenerationShift();
-
                     yield return null;
 
                     currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
