@@ -1519,7 +1519,7 @@ namespace StoryGenerator
                     List<GameObject> rooms = ScriptUtils.FindAllRooms(houseTransform);
                     foreach (GameObject r in rooms)
                     {
-                        if (r.GetComponent<Properties_room>() != null)
+                        if (r.GetComponent<Properties_room>() == null)
                             r.AddComponent<Properties_room>();
                     }
 
@@ -1943,7 +1943,7 @@ namespace StoryGenerator
 
                         if (environment >= 0 && environment < 50)
                         {   
-                            GameObject _instance = Instantiate(prefab[environment], new Vector3(0, 0, 0), Quaternion.Euler(0f, 90f, 0f)) as GameObject;
+                            GameObject _instance = Instantiate(prefab[environment], new Vector3(0, 0, 0), Quaternion.Euler(0f, 0f, 0f)) as GameObject;
                             houseTransform = _instance.transform;
                             response.success = true;
                             response.message = "";
@@ -1959,7 +1959,7 @@ namespace StoryGenerator
                     }
                     else
                     {
-                        GameObject _instance = Instantiate(prefab[PreviousEnvironment.IndexMemory], new Vector3(0, 0, 0), Quaternion.Euler(0f, 90f, 0f)) as GameObject;
+                        GameObject _instance = Instantiate(prefab[PreviousEnvironment.IndexMemory], new Vector3(0, 0, 0), Quaternion.Euler(0f, 0f, 0f)) as GameObject;
                         houseTransform = _instance.transform;
                         response.success = true;
                         response.message = "";
