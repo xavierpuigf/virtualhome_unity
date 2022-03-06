@@ -54,6 +54,9 @@ namespace StoryGenerator
         private int numCharacters = 0;
         public int finishedChars = 0; // Used to count the number of characters finishing their actions.
 
+        // FOR NSM
+        public bool useNSM = true;
+
 
         Recorder recorder;
         // TODO: should we delete this ^
@@ -116,8 +119,14 @@ namespace StoryGenerator
             if (networkRequest == null) {
                 commServer.UnlockProcessing(); // Allow to proceed with requests
             }
+            CharacterConfig configchar = new CharacterConfig();//JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
+            CharacterControl newchar;
+            newchar = AddCharacter(configchar.character_resource, false, configchar.mode, configchar.character_position, configchar.initial_room);
+
             LightingSetup();
-            StartCoroutine(ProcessNetworkRequest());
+            if (!useNSM){
+                StartCoroutine(ProcessNetworkRequest());
+            } 
         }
         
         private void InitServer()
