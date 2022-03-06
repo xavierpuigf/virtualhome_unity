@@ -17,11 +17,13 @@ public static class Utility {
 			//Debug.Log("Invalid Closest Point Check: " + collider.name + " Parent: " + collider.transform.parent.name + " Type: Trigger");
 			return true;
 		}
+
 		if(collider is MeshCollider) {
-			Debug.Log("Invalid Closest Point Check: " + collider.name + " Parent: " + collider.transform.name + " Parent: " + collider.transform.parent.name + " Type: MeshCollider");
+			// Debug.Log("Invalid Closest Point Check: " + collider.name + " Parent: " + collider.transform.name + " Parent: " + collider.transform.parent.name + " Type: MeshCollider");
 			return true;
 		}
-		return false;
+
+		return true;
 	}
 
 	public static Vector3 GetClosestPointOverlapBox(Vector3 center, Vector3 halfExtents, Quaternion rotation, LayerMask mask, out Collider collider) {
@@ -89,7 +91,7 @@ public static class Utility {
 		float min = x*x + y*y + z*z;
 		collider = colliders[pivot];
 		for(int i=pivot+1; i<colliders.Length; i++) {
-			if(!InvalidClosestPointCheck(colliders[pivot])) {
+			if(!InvalidClosestPointCheck(colliders[i])) {
 				Vector3 candidate = colliders[i].ClosestPoint(center);
 				x = (candidate.x-center.x)*(candidate.x-center.x);
 				y = (candidate.y-center.y)*(candidate.y-center.y);
