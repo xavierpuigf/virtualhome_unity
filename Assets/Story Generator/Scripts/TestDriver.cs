@@ -2014,7 +2014,6 @@ namespace StoryGenerator
                         generator.ShouldRandomizeSeed = false;
                         generator.Seed = seed;
                         generator.Generate();
-                        networkRequest.action = "process";
                         PreviousEnvironment.IndexMemory = -1;
                         response.message = "";
                         response.success = true;
@@ -2023,11 +2022,37 @@ namespace StoryGenerator
                     {
                         generator.ShouldRandomizeSeed = true;
                         generator.Generate();
-                        networkRequest.action = "process";
                         PreviousEnvironment.IndexMemory = -1;
                         response.message = "";
                         response.success = true;
                     }
+
+                    cameraInitializer.initialized = false;
+                    currentGraph = null;
+                    currentGraphCreator = null;
+                    CurrentStateList = new List<State>();
+     
+                    NavMeshSurface nm = GameObject.FindObjectOfType<NavMeshSurface>();
+                    nm.BuildNavMesh();
+
+                    houseTransform = GameObject.Find("Dungeon").transform;
+
+                    yield return null;
+                    ProcessHomeandCameras();
+
+                    numCharacters = 0;
+                    characters = new List<CharacterControl>();
+                    sExecutors = new List<ScriptExecutor>();
+                    CameraExpander.ResetCharacterCameras();
+
+                    yield return null;
+
+                    currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
+                    var graph = currentGraphCreator.CreateGraph(houseTransform);
+                    currentGraph = graph;
+
+                    response.message = "";
+                    response.success = true;
 
                 }
 
