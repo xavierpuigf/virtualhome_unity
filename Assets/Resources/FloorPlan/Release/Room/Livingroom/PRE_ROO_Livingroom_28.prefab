@@ -993,7 +993,7 @@ Light:
     m_Type: 2
     m_Resolution: 2
     m_CustomResolution: -1
-    m_Strength: 1
+    m_Strength: 0.5
     m_Bias: 0
     m_NormalBias: 0.4
     m_NearPlane: 0.049999997
@@ -2684,7 +2684,7 @@ Light:
     m_Type: 2
     m_Resolution: 2
     m_CustomResolution: -1
-    m_Strength: 1
+    m_Strength: 0.5
     m_Bias: 0
     m_NormalBias: 0.4
     m_NearPlane: 0.04
@@ -3600,7 +3600,7 @@ Light:
     m_Type: 2
     m_Resolution: 2
     m_CustomResolution: -1
-    m_Strength: 0.8
+    m_Strength: 0.5
     m_Bias: 0
     m_NormalBias: 0.4
     m_NearPlane: 0.2
@@ -5518,7 +5518,7 @@ Light:
     m_Type: 2
     m_Resolution: 2
     m_CustomResolution: -1
-    m_Strength: 1
+    m_Strength: 0.5
     m_Bias: 0
     m_NormalBias: 0.4
     m_NearPlane: 0.03
@@ -6014,7 +6014,7 @@ Light:
     m_Type: 2
     m_Resolution: 2
     m_CustomResolution: -1
-    m_Strength: 1
+    m_Strength: 0.5
     m_Bias: 0
     m_NormalBias: 0.4
     m_NearPlane: 0.04
@@ -6237,7 +6237,7 @@ Light:
     m_Type: 2
     m_Resolution: 2
     m_CustomResolution: -1
-    m_Strength: 1
+    m_Strength: 0.5
     m_Bias: 0
     m_NormalBias: 0.4
     m_NearPlane: 0.049999997
@@ -6983,7 +6983,7 @@ Light:
     m_Type: 2
     m_Resolution: 2
     m_CustomResolution: -1
-    m_Strength: 1
+    m_Strength: 0.5
     m_Bias: 0
     m_NormalBias: 0.4
     m_NearPlane: 0.03
@@ -8315,7 +8315,7 @@ Light:
     m_Type: 2
     m_Resolution: 2
     m_CustomResolution: -1
-    m_Strength: 1
+    m_Strength: 0.5
     m_Bias: 0
     m_NormalBias: 0.4
     m_NearPlane: 0.03
@@ -11281,7 +11281,7 @@ Light:
     m_Type: 2
     m_Resolution: 2
     m_CustomResolution: -1
-    m_Strength: 1
+    m_Strength: 0.5
     m_Bias: 0
     m_NormalBias: 0.4
     m_NearPlane: 0.03
@@ -11450,7 +11450,7 @@ Light:
     m_Type: 2
     m_Resolution: 2
     m_CustomResolution: -1
-    m_Strength: 1
+    m_Strength: 0.5
     m_Bias: 0
     m_NormalBias: 0.4
     m_NearPlane: 0.049999997
@@ -12344,7 +12344,7 @@ Light:
     m_Type: 2
     m_Resolution: 2
     m_CustomResolution: -1
-    m_Strength: 1
+    m_Strength: 0.5
     m_Bias: 0.05
     m_NormalBias: 0.4
     m_NearPlane: 0.2
@@ -16006,7 +16006,7 @@ Light:
     m_Type: 2
     m_Resolution: 2
     m_CustomResolution: -1
-    m_Strength: 1
+    m_Strength: 0.5
     m_Bias: 0
     m_NormalBias: 0.4
     m_NearPlane: 0.049999997
@@ -17427,6 +17427,39 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 1, y: 0.45703453, z: 1.2520072}
   m_Center: {x: 0, y: 0.62887424, z: -0.027398268}
+--- !u!1 &8352035904874924585
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 100000, guid: 2b697d7c7a2333a4dbfde7c4c8bd82f3,
+    type: 3}
+  m_PrefabInstance: {fileID: 2517748834131105291}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2517748834131496075}
+  m_Layer: 0
+  m_Name: 'mH_ChildShelfDresser (Missing Prefab with guid: 2b697d7c7a2333a4dbfde7c4c8bd82f3)'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2517748834131496075
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 400000, guid: 2b697d7c7a2333a4dbfde7c4c8bd82f3,
+    type: 3}
+  m_PrefabInstance: {fileID: 2517748834131105291}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8352035904874924585}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4906674311212316190}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2517748834131105291
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17504,12 +17537,6 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 4a06b560d0a70064a97f4cdb53ad3830, type: 2}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 2b697d7c7a2333a4dbfde7c4c8bd82f3, type: 3}
---- !u!4 &2517748834131496075 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 400000, guid: 2b697d7c7a2333a4dbfde7c4c8bd82f3,
-    type: 3}
-  m_PrefabInstance: {fileID: 2517748834131105291}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &4906674310962169972
 PrefabInstance:
   m_ObjectHideFlags: 0

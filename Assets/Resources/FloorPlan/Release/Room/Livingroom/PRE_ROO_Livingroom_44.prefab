@@ -6127,7 +6127,7 @@ MeshRenderer:
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: d725f5291eb749a40a9ec6338766d0ce, type: 2}
-  - {fileID: 2100000, guid: 01fbdd5299bec9b44aeeff4540c03986, type: 2}
+  - {fileID: 2100000, guid: 40a3394db3145594c822bef60c53fbf4, type: 2}
   - {fileID: 2100000, guid: de9cc44aeefbca0418101edd5fe3c00e, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
@@ -10559,7 +10559,7 @@ Light:
     m_Type: 2
     m_Resolution: 2
     m_CustomResolution: -1
-    m_Strength: 0.8
+    m_Strength: 0.5
     m_Bias: 0
     m_NormalBias: 0.4
     m_NearPlane: 0.2
@@ -13816,7 +13816,7 @@ PrefabInstance:
     - target: {fileID: 2303368, guid: 9570c66472073f44cbcf97af65f250be, type: 3}
       propertyPath: m_Materials.Array.data[1]
       value: 
-      objectReference: {fileID: 2100000, guid: 01fbdd5299bec9b44aeeff4540c03986, type: 2}
+      objectReference: {fileID: 2100000, guid: b061f377975aa5345b9627ab346ea1a9, type: 2}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9570c66472073f44cbcf97af65f250be, type: 3}
 --- !u!4 &8776199984708935633 stripped
@@ -14252,6 +14252,14 @@ PrefabInstance:
     - target: {fileID: 10800000, guid: ea473ca90767f3d4c9b1c3a6202e839e, type: 3}
       propertyPath: m_Intensity
       value: 1.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 10800000, guid: ea473ca90767f3d4c9b1c3a6202e839e, type: 3}
+      propertyPath: m_Shadows.m_Type
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 10800000, guid: ea473ca90767f3d4c9b1c3a6202e839e, type: 3}
+      propertyPath: m_Shadows.m_Strength
+      value: 0.5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ea473ca90767f3d4c9b1c3a6202e839e, type: 3}
