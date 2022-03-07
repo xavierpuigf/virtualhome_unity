@@ -10,7 +10,6 @@ We use the following assets in VirtualHome, which you will need to purchase to d
 | Asset Name  | Description | Price|
 | ----------- | ---------   |------|
 | [Complete Home Interior Pack](https://assetstore.unity.com/packages/3d/props/interior/complete-home-interior-pack-31049)      |  Contains 3D models of objects to populate the scenes, as well as the apartment layouts       |     35$      |
-| [Modern House Interior Pack](https://assetstore.unity.com/packages/3d/props/interior/modern-house-interior-props-48564)   | Contains objects to populate the scene       |    35$       |
 | [Final IK](https://assetstore.unity.com/packages/tools/animation/final-ik-14290) | Contains character animations, and tools to make the agent motions and object interactions more realistic. | 90$ |
 | [DunGen](https://assetstore.unity.com/packages/tools/utilities/dungen-15682) | Contains procedural generation tools to create new environments during runtime. | 75$ |
 
