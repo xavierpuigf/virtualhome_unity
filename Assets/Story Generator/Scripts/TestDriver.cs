@@ -1969,7 +1969,6 @@ namespace StoryGenerator
                     NavMeshSurface nm = GameObject.FindObjectOfType<NavMeshSurface>();
                     nm.BuildNavMesh();
 
-
                     // environment_graph
                     currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
                     var graph = currentGraphCreator.CreateGraph(houseTransform);
