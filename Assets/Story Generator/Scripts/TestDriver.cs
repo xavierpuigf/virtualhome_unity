@@ -1181,7 +1181,36 @@ namespace StoryGenerator
                     cameraInitializer.initialized = false;
                     CameraUtils.DeactivateCameras(cameras);
                 }
-                
+
+                else if (networkRequest.action == "update_camera")
+                {
+                    CameraConfig camera_config = JsonConvert.DeserializeObject<CameraConfig>(networkRequest.stringParams[0]);
+                    IList<int> indexes = networkRequest.intParams;
+                    int index = indexes[0];
+                    if (index >= cameras.Count())
+                    {
+                        response.message = "The camera index is not valid, there are only "+cameras.Count().ToString()+" cameras";
+                    }
+                    else
+                    {
+                        Camera camera = cameras[index];
+                        float field_view = camera_config.field_view;
+                        camera.fieldOfView = field_view;
+                        camera.renderingPath = RenderingPath.UsePlayerSettings;
+
+                        Vector3 position_vec = camera_config.position;
+                        Vector3 rotation_vec = camera_config.rotation;
+                        GameObject go = camera.gameObject;
+                        go.transform.localPosition = position_vec;
+                        go.transform.localEulerAngles = rotation_vec;
+
+                        response.message = "Camera updated";
+                        response.success = true;
+
+                    }
+
+                }
+
                 else if (networkRequest.action == "add_character_camera")
                 {
                     CameraConfig camera_config = JsonConvert.DeserializeObject<CameraConfig>(networkRequest.stringParams[0]);
@@ -1208,6 +1237,31 @@ namespace StoryGenerator
                             response.message = "Error: a camera with this name already exists";
                         }
                     }
+                }
+
+                else if (networkRequest.action == "update_character_camera")
+                {
+                    CameraConfig camera_config = JsonConvert.DeserializeObject<CameraConfig>(networkRequest.stringParams[0]);
+                    String camera_name = camera_config.camera_name;
+                    Quaternion rotation = new Quaternion();
+                    rotation.eulerAngles = camera_config.rotation;
+
+                    CharacterCamera char_cam;
+                    bool camera_found = CameraExpander.char_cams.TryGetValue(camera_name, out char_cam);
+                    if (camera_found)
+                    {
+                        char_cam.localPosition = camera_config.position;
+                        char_cam.localRotation = rotation;
+                        response.success = true;
+                        response.message = "Camera successfully updated."
+                              
+                    }
+                    else
+                    {
+                        response.success = false;
+                        response.message = "Error: camera does not exist."
+                    }
+                    
                 }
 
                 else if (networkRequest.action == "camera_image") 
