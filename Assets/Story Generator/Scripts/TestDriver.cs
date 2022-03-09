@@ -1253,13 +1253,13 @@ namespace StoryGenerator
                         char_cam.localPosition = camera_config.position;
                         char_cam.localRotation = rotation;
                         response.success = true;
-                        response.message = "Camera successfully updated."
+                        response.message = "Camera successfully updated.";
                               
                     }
                     else
                     {
                         response.success = false;
-                        response.message = "Error: camera does not exist."
+                        response.message = "Error: camera does not exist.";
                     }
                     
                 }
