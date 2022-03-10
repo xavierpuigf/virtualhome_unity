@@ -1310,62 +1310,49 @@ namespace StoryGenerator
 
                 else if (networkRequest.action == "fast_reset")
                 {
-                    System.Diagnostics.Stopwatch resetStopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-                    // Reset without reloading scene
                     cameraInitializer.initialized = false;
-                    networkRequest.action = "environment_graph"; // return result after scene reload
-                    //currentGraph = null;
-                    //currentGraphCreator = null;
-                    var graph = currentGraph;
+                    currentGraph = null;
+                    currentGraphCreator = null;
                     CurrentStateList = new List<State>();
-
-                    foreach (GameObject go in currentGraphCreator.objectNodeMap.Keys)
-                    {
-                        if (go == null)
-                        {
-                            continue;
-                        }
-                        HandInteraction higo = go.GetComponent<HandInteraction>();
-                        if (higo != null && higo.invisibleCpy != null)
-                        {
-                            bool added_rt = higo.added_runtime;
-                            Destroy(higo);
-                            if (!added_rt)
-                            {
-                                go.AddComponent<HandInteraction>();
-                            }
-                            // Do we need to specify that the invisible copy is not null?
-                        }
-                    }
-                    // Remove characters and objects they may have
-                    for (int i = 0; i < characters.Count; i++)
-                    {
-                        EnvironmentObject character_env_obj = currentGraphCreator.objectNodeMap[characters[i].gameObject];
-                        if (currentGraphCreator.characters[character_env_obj].grabbed_left != null)
-                        {
-                            currentGraphCreator.RemoveObject(currentGraphCreator.characters[character_env_obj].grabbed_left);
-                        }
-                        if (currentGraphCreator.characters[character_env_obj].grabbed_right != null)
-                        {
-                            currentGraphCreator.RemoveObject(currentGraphCreator.characters[character_env_obj].grabbed_right);
-                        }
-                        currentGraphCreator.RemoveObject(character_env_obj);
-                        Destroy(characters[i].gameObject);
-                    }
-                    currentGraphCreator.characters.Clear();
-
-                    characters = new List<CharacterControl>();
                     numCharacters = 0;
+                    characters = new List<CharacterControl>();
                     sExecutors = new List<ScriptExecutor>();
-                    cameras = cameras.GetRange(0, numSceneCameras);
+                    CameraExpander.ResetCharacterCameras();
+        
+                    GameObject _preload = GameObject.FindWithTag("Home");
+                    Destroy(_preload);
 
-                    //Start();
-                    response.success = true;
-                    response.message = "";
+                    if (networkRequest.intParams?.Count > 0)
+                    {
+                        int environment = networkRequest.intParams[0];
 
-                    resetStopwatch.Stop();
-                    Debug.Log(String.Format("fast reset time: {0}", resetStopwatch.ElapsedMilliseconds));
+                        PreviousEnvironment.IndexMemory = environment;
+
+                        if (environment >= 0 && environment < 50)
+                        {   
+                            GameObject _instance = Instantiate(prefab[environment], new Vector3(0, 0, 0), Quaternion.Euler(0f, 0f, 0f)) as GameObject;
+                            houseTransform = _instance.transform;
+                            response.success = true;
+                            response.message = "";
+                            ProcessHomeandCameras();
+                        }
+
+                        NavMeshSurface nm = GameObject.FindObjectOfType<NavMeshSurface>();
+                        nm.BuildNavMesh();
+
+                        // environment_graph
+                        currentGraphCreator = new EnvironmentGraphCreator(dataProviders);
+                        var graph = currentGraphCreator.CreateGraph(houseTransform);
+                        currentGraph = graph;
+                        response.message = "";
+                        response.success = true;
+                    }
+                    else
+                    {
+                        response.success = false;
+                        response.message = "";
+                    }
+
                 }
 
                 else if (networkRequest.action == "idle") 
