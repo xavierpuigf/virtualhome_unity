@@ -378,7 +378,7 @@ public class SIGGRAPH_Asia_2019 : NeuralAnimation {
 
 	public void SetPos(Vector3 pos) {
 		GameObject goal = new GameObject("WALKING_GOAL");
-		goal.transform.position = pos;
+		goal.transform.position = new Vector3(pos[0], 0.0f, pos[2]);
 		goal.AddComponent<Interaction>();
 		WalkingInteraction = goal.GetComponent<Interaction>();
 	}
@@ -417,9 +417,10 @@ public class SIGGRAPH_Asia_2019 : NeuralAnimation {
 	private IEnumerator Walk(Vector3 pos) {
 		IsWalking = true;
 		// while (Controller.ProjectionActive) {
-		while (WalkingInteraction != null && Vector3.Distance(WalkingInteraction.GetCenter().GetPosition(), Actor.GetRoot().position) > .5f) {
+		Vector3 ActorCenter = Actor.GetRoot().position;// + new Vector3(0.0f,-1.0f,0.0f);
+		while (WalkingInteraction != null && Vector3.Distance(WalkingInteraction.GetCenter().GetPosition(), ActorCenter) > .2f) {
 			// Controller.SetPosition(pos);
-			ApplyStaticGoal(WalkingInteraction.GetCenter().GetPosition(), Vector3.ProjectOnPlane(WalkingInteraction.GetCenter().GetPosition()-transform.position, Vector3.up).normalized, Signals);
+			ApplyStaticGoal(WalkingInteraction.GetCenter().GetPosition(), Vector3.ProjectOnPlane(WalkingInteraction.GetCenter().GetPosition()-ActorCenter, Vector3.up).normalized, Signals);
 			Geometry.Setup(Geometry.Resolution);
 			// Geometry.Sense(RootSeries.Transformations[TimeSeries.Pivot], LayerMask.GetMask("Default", "Interaction"), Vector3.zero, InteractionSmoothing);
 			Geometry.Sense(WalkingInteraction.GetCenter(), LayerMask.GetMask("Interaction"), WalkingInteraction.GetExtents(), InteractionSmoothing);
@@ -443,7 +444,6 @@ public class SIGGRAPH_Asia_2019 : NeuralAnimation {
 		WalkingInteraction = null;
 		GameObject goal = GameObject.Find("WALKING_GOAL");
 		GameObject.Destroy(goal);
-
 	}
 
 	private IEnumerator Carry() {

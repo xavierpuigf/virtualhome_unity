@@ -23,7 +23,7 @@ public static class Utility {
 			return true;
 		}
 
-		return true;
+		return false;
 	}
 
 	public static Vector3 GetClosestPointOverlapBox(Vector3 center, Vector3 halfExtents, Quaternion rotation, LayerMask mask, out Collider collider) {
