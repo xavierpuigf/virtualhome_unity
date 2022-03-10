@@ -34,7 +34,7 @@ If you use VirtualHome in your research, please consider citing the following pa
 
 ## Setup
 ### Install Unity
-We have been using **Unity 2019.4.** for development. We recommend to install it through [Unity Hub](https://store.unity.com/download). 
+We have been using **Unity 2021.2.** for development. We recommend to install it through [Unity Hub](https://store.unity.com/download). 
 
 ### Clone the repository
 Clone the repository with the Unity Source Code.
