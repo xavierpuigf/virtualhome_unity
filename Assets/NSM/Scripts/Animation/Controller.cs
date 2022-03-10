@@ -78,13 +78,6 @@ public class Controller {
 		LastMousePosition = Input.mousePosition;
 	}
 
-	public void SetPosition() {
-		ProjectionValid = true;
-		ProjectionActive = true;
-		Projection = new RaycastHit();
-		Projection.point = new Vector3(2,0,0);
-	}
-
 	private void Move() {
 		if(Operation == OPERATION.Translate) {
 			float screenDistance = Camera.main.WorldToScreenPoint(SelectedInteraction.transform.position).z;

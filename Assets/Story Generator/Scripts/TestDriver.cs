@@ -21,6 +21,9 @@ using System.Threading.Tasks;
 using StoryGenerator.CharInteraction;
 using Unity.Profiling;
 using RootMotion.FinalIK;
+// using NSM.Scripts.SIGGRAPH_Asia_2019;
+// using NSM.Scripts.Animation.Controller;
+// using 
 
 
 namespace StoryGenerator
@@ -124,9 +127,9 @@ namespace StoryGenerator
             newchar = AddCharacter(configchar.character_resource, false, configchar.mode, configchar.character_position, configchar.initial_room);
 
             LightingSetup();
-            if (!useNSM){
-                StartCoroutine(ProcessNetworkRequest());
-            } 
+            // if (!useNSM){
+            StartCoroutine(ProcessNetworkRequest());
+            // } 
         }
         
         private void InitServer()
@@ -658,34 +661,40 @@ namespace StoryGenerator
                     Vector3 position = config.character_position;
                     int char_index = config.char_index;
                     Debug.Log($"move_char to : {position}");
-
-
-                    List<GameObject> rooms = ScriptUtils.FindAllRooms(transform);
-                    foreach (GameObject r in rooms)
-                    {
-                        if (r.GetComponent<Properties_room>() != null)
-                            r.AddComponent<Properties_room>();
-                    }
-
-                    bool contained_somewhere = false;
-                    for (int i = 0; i < rooms.Count; i++)
-                    {
-                        if (GameObjectUtils.GetRoomBounds(rooms[i]).Contains(position))
+                    if (useNSM) {
+                        GameObject nsm = GameObject.Find("NSM-SMPL-mapped");
+                        SIGGRAPH_Asia_2019 script = nsm.GetComponent<SIGGRAPH_Asia_2019>();
+                        script.SetPos(position);
+                        script.WalkingPos = position;
+                        script.IsWalking = true;
+                    } 
+                    else {
+                        List<GameObject> rooms = ScriptUtils.FindAllRooms(transform);
+                        foreach (GameObject r in rooms)
                         {
-                            contained_somewhere = true;
+                            if (r.GetComponent<Properties_room>() != null)
+                                r.AddComponent<Properties_room>();
+                        }
+
+                        bool contained_somewhere = false;
+                        for (int i = 0; i < rooms.Count; i++)
+                        {
+                            if (GameObjectUtils.GetRoomBounds(rooms[i]).Contains(position))
+                            {
+                                contained_somewhere = true;
+                            }
+                        }
+                        if (!contained_somewhere)
+                        {
+                            response.success = false;
+                        }
+                        else
+                        {
+                            response.success = true;
+                            var nma = characters[char_index].gameObject.GetComponent<NavMeshAgent>();
+                            nma.Warp(position);
                         }
                     }
-                    if (!contained_somewhere)
-                    {
-                        response.success = false;
-                    }
-                    else
-                    {
-                        response.success = true;
-                        var nma = characters[char_index].gameObject.GetComponent<NavMeshAgent>();
-                        nma.Warp(position);
-                    }
-
                 }
                 // TODO: remove character as well
 

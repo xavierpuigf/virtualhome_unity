@@ -31,7 +31,9 @@ public class SIGGRAPH_Asia_2019 : NeuralAnimation {
 	private Matrix4x4[] GoalPrediction;
 
 	private float[] Signals = new float[0];
-	private bool IsWalking = false;
+	public bool IsWalking = false;
+	private Interaction WalkingInteraction;
+	public Vector3 WalkingPos = new Vector3(0,0,0);
     private float UserControl = 0f;
 	private float NetworkControl = 0f;
 
@@ -148,7 +150,7 @@ public class SIGGRAPH_Asia_2019 : NeuralAnimation {
 
 		//Control Cycle
 		if (IsWalking) {
-			StartCoroutine(Open());
+			StartCoroutine(Walk(WalkingPos));
 		} else {
 			Signals = Controller.PoolSignals();
 			// Debug.Log(Signals);
@@ -160,8 +162,9 @@ public class SIGGRAPH_Asia_2019 : NeuralAnimation {
 				StartCoroutine(Sit());
 			} else if(Controller.QuerySignal("Carry")) {
 				StartCoroutine(Carry());
-			} else if(Controller.QuerySignal("Open")) {
-				StartCoroutine(Open());
+			// } else if(Controller.QuerySignal("Open")) {
+			// 	StartCoroutine(Open(WalkingPos));
+			// 
 			} else {
 				Default();
 			}
@@ -373,6 +376,12 @@ public class SIGGRAPH_Asia_2019 : NeuralAnimation {
 		Geometry.Sense(RootSeries.Transformations[TimeSeries.Pivot], LayerMask.GetMask("Interaction"), Vector3.zero, InteractionSmoothing);
 	}
 
+	public void SetPos(Vector3 pos) {
+		GameObject goal = new GameObject("WALKING_GOAL");
+		goal.transform.position = pos;
+		goal.AddComponent<Interaction>();
+		WalkingInteraction = goal.GetComponent<Interaction>();
+	}
 
 	private IEnumerator Sit() {
 		Controller.Signal signal = Controller.GetSignal("Sit");
@@ -405,36 +414,36 @@ public class SIGGRAPH_Asia_2019 : NeuralAnimation {
 		}
 	}
 
-	private IEnumerator Open() {
-		// Controller.Signal signal = Controller.GetSignal("Sit");
-		Controller.SetPosition();
+	private IEnumerator Walk(Vector3 pos) {
 		IsWalking = true;
 		// while (Controller.ProjectionActive) {
-		while (Vector3.Distance(Controller.Projection.point, Actor.GetRoot().position) > .5f) {
-			Controller.SetPosition();
-			ApplyStaticGoal(Controller.Projection.point, Vector3.ProjectOnPlane(Controller.Projection.point-transform.position, Vector3.up).normalized, Signals);
+		while (WalkingInteraction != null && Vector3.Distance(WalkingInteraction.GetCenter().GetPosition(), Actor.GetRoot().position) > .5f) {
+			// Controller.SetPosition(pos);
+			ApplyStaticGoal(WalkingInteraction.GetCenter().GetPosition(), Vector3.ProjectOnPlane(WalkingInteraction.GetCenter().GetPosition()-transform.position, Vector3.up).normalized, Signals);
 			Geometry.Setup(Geometry.Resolution);
-			Geometry.Sense(RootSeries.Transformations[TimeSeries.Pivot], LayerMask.GetMask("Interaction"), Vector3.zero, InteractionSmoothing);
+			// Geometry.Sense(RootSeries.Transformations[TimeSeries.Pivot], LayerMask.GetMask("Default", "Interaction"), Vector3.zero, InteractionSmoothing);
+			Geometry.Sense(WalkingInteraction.GetCenter(), LayerMask.GetMask("Interaction"), WalkingInteraction.GetExtents(), InteractionSmoothing);
 			IsInteracting = true;
 			yield return new WaitForSeconds(0f);
 		}
+		// Controller.SetPosition(pos);
+		// IsWalking = true;
+		// // while (Controller.ProjectionActive) {
+		// while (Vector3.Distance(Controller.Projection.point, Actor.GetRoot().position) > .5f) {
+		// 	Controller.SetPosition(pos);
+		// 	ApplyStaticGoal(Controller.Projection.point, Vector3.ProjectOnPlane(Controller.Projection.point-transform.position, Vector3.up).normalized, Signals);
+		// 	Geometry.Setup(Geometry.Resolution);
+		// 	// Geometry.Sense(RootSeries.Transformations[TimeSeries.Pivot], LayerMask.GetMask("Default", "Interaction"), Vector3.zero, InteractionSmoothing);
+		// 	Geometry.Sense(interaction.GetCenter(), LayerMask.GetMask("Interaction"), interaction.GetExtents(), InteractionSmoothing);
+		// 	IsInteracting = true;
+		// 	yield return new WaitForSeconds(0f);
+		// }
 		IsInteracting = false;
 		IsWalking = false;
-		// Controller.Signal signal = Controller.GetSignal("Open");
-		// Interaction interaction = Controller.ProjectionInteraction != null ? Controller.ProjectionInteraction : Controller.GetClosestInteraction(transform);
+		WalkingInteraction = null;
+		GameObject goal = GameObject.Find("WALKING_GOAL");
+		GameObject.Destroy(goal);
 
-		// if(interaction != null) {
-		// 	Controller.ActiveInteraction = interaction;
-		// 	IsInteracting = true;
-		// 	while(signal.Query()) {
-		// 		ApplyStaticGoal(interaction.GetCenter().GetPosition(), interaction.GetCenter().GetForward(), Signals);
-		// 		Geometry.Setup(Geometry.Resolution);
-		// 		Geometry.Sense(interaction.GetCenter(), LayerMask.GetMask("Interaction"), interaction.GetExtents(), InteractionSmoothing);
-		// 		yield return new WaitForSeconds(0f);
-		// 	}
-		// 	IsInteracting = false;
-		// 	Controller.ActiveInteraction = null;
-		// }
 	}
 
 	private IEnumerator Carry() {
