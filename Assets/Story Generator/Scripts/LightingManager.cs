@@ -7,7 +7,7 @@ public class LightingManager : MonoBehaviour
 {
     [SerializeField] private Light DirectionalLight;
     [SerializeField] private LightingPreset Preset;
-    [SerializeField, Range(0, 86400)] public float TimeOfDay;
+    [SerializeField, Range(0, 86400)] private float TimeOfDay;
 
 
     private void Update()
@@ -45,9 +45,9 @@ public class LightingManager : MonoBehaviour
 
     }
 
-    public void SetTime(int second)
+    public void SetTime(int seconds)
     {
-        TimeOfDay = second;
+        TimeOfDay = seconds;
     }
 
     private void OnValidate()
