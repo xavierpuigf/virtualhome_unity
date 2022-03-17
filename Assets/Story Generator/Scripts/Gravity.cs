@@ -625,17 +625,17 @@ public class Gravity : MonoBehaviour
             }
             else if (g.name.ToLower().Contains("folder"))
             { 
-                g.AddComponent(typeof(MeshCollider));
-                g.GetComponent<MeshCollider>().convex = true;
-                Destroy(g.GetComponent<BoxCollider>());
+                // g.AddComponent(typeof(MeshCollider));
+                // g.GetComponent<MeshCollider>().convex = true;
+                // Destroy(g.GetComponent<BoxCollider>());
                 g.AddComponent(typeof(Rigidbody));
                 for (int i = 0; i < g.transform.childCount; i++)
                 {
-                    GameObject child = g.transform.GetChild(i).gameObject;
-                    if (child.name.ToLower().Contains("collider"))
-                    {
-                        Destroy(child);
-                    }
+                    // GameObject child = g.transform.GetChild(i).gameObject;
+                    // if (child.name.ToLower().Contains("collider"))
+                    // {
+                    //     Destroy(child);
+                    // }
                 }
             }
             // else if (g.name.ToLower().Contains("paper_"))
@@ -818,21 +818,6 @@ public class Gravity : MonoBehaviour
                 }
             }
             else if (g.name.ToLower().Contains("soap"))
-            { 
-                g.AddComponent(typeof(MeshCollider));
-                g.GetComponent<MeshCollider>().convex = true;
-                Destroy(g.GetComponent<BoxCollider>());
-                g.AddComponent(typeof(Rigidbody));
-                for (int i = 0; i < g.transform.childCount; i++)
-                {
-                    GameObject child = g.transform.GetChild(i).gameObject;
-                    if (child.name.ToLower().Contains("collider"))
-                    {
-                        Destroy(child);
-                    }
-                }
-            }
-            else if (g.name.ToLower().Contains("towel"))
             { 
                 g.AddComponent(typeof(MeshCollider));
                 g.GetComponent<MeshCollider>().convex = true;
