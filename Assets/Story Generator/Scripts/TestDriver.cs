@@ -59,6 +59,8 @@ namespace StoryGenerator
 
         // FOR NSM
         public bool useNSM = true;
+        private GameObject nsmCharacter;
+        private GameObject parentCharacter;
 
 
         Recorder recorder;
@@ -127,9 +129,7 @@ namespace StoryGenerator
             newchar = AddCharacter(configchar.character_resource, false, configchar.mode, configchar.character_position, configchar.initial_room);
 
             LightingSetup();
-            // if (!useNSM){
             StartCoroutine(ProcessNetworkRequest());
-            // } 
         }
         
         private void InitServer()
@@ -622,6 +622,7 @@ namespace StoryGenerator
                     CharacterConfig config = JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
                     CharacterControl newchar;
                     newchar = AddCharacter(config.character_resource, false, config.mode, config.character_position, config.initial_room);
+                    
 
                     if (newchar != null)
                     {
@@ -662,8 +663,11 @@ namespace StoryGenerator
                     int char_index = config.char_index;
                     Debug.Log($"move_char to : {position}");
                     if (useNSM) {
-                        GameObject nsm = GameObject.Find("NSM-SMPL-mapped");
-                        SIGGRAPH_Asia_2019 script = nsm.GetComponent<SIGGRAPH_Asia_2019>();
+                        // Start walking
+                        // nsmCharacter = GameObject.Find("NSM-SMPL-mapped");
+                        parentCharacter.SetActive(false);
+                        nsmCharacter.SetActive(true);
+                        SIGGRAPH_Asia_2019 script = nsmCharacter.GetComponent<SIGGRAPH_Asia_2019>();
                         script.SetPos(position);
                         script.WalkingPos = position;
                         script.IsWalking = true;
@@ -1614,6 +1618,18 @@ namespace StoryGenerator
                     State_char sc = newCharacter.AddComponent<State_char>();
                     sc.Initialize(rooms, recorder.sceneStateSequence);
                     cc.stateChar = sc;
+                }
+
+                if (useNSM) {
+                    path = "Chars/NSM-SMPL-mapped";
+                    parentCharacter = newCharacter;
+                    Transform initialLocation = new GameObject().transform;
+                    initialLocation.position = position;
+                    GameObject nsmFigure = Resources.Load(ScriptUtils.TransformResourceFileName(path)) as GameObject;
+                    nsmCharacter = Instantiate(nsmFigure) as GameObject;
+                    nsmCharacter.transform.position = new Vector3(newCharacter.transform.position[0], 0, newCharacter.transform.position[2]);
+                    nsmCharacter.transform.rotation = newCharacter.transform.rotation;
+                    nsmCharacter.SetActive(false);
                 }
 
                 return cc;
