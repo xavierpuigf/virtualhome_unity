@@ -43,6 +43,8 @@ public class SIGGRAPH_Asia_2019 : NeuralAnimation {
 
 	private UltimateIK.Model RightFootIK, LeftFootIK;
 
+	public Actor CurrentActor;
+
 	public Controller GetController() {
 		return Controller;
 	}
@@ -109,6 +111,7 @@ public class SIGGRAPH_Asia_2019 : NeuralAnimation {
 		// move.UserControl = .25f;
 		// move.NetworkControl = .25f;
 
+		CurrentActor = Actor;
 		
 
 		Environment = new CylinderMap(4f, 9, 9, true);

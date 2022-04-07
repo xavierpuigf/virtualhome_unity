@@ -672,6 +672,13 @@ namespace StoryGenerator
                         script.SetPos(position);
                         script.WalkingPos = position;
                         script.IsWalking = true;
+                        while (script.IsWalking) {
+                            yield return new WaitForSeconds(1);
+                        }
+                        parentCharacter.transform.position = position;
+                        parentCharacter.transform.rotation = script.Actor.GetRoot().rotation;
+                        parentCharacter.SetActive(true);
+                        nsmCharacter.SetActive(false);
                     } 
                     else {
                         List<GameObject> rooms = ScriptUtils.FindAllRooms(transform);
