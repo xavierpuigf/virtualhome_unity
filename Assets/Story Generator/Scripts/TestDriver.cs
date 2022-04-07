@@ -667,6 +667,7 @@ namespace StoryGenerator
                         // nsmCharacter = GameObject.Find("NSM-SMPL-mapped");
                         parentCharacter.SetActive(false);
                         nsmCharacter.SetActive(true);
+                        yield return new WaitForSeconds(1);
                         SIGGRAPH_Asia_2019 script = nsmCharacter.GetComponent<SIGGRAPH_Asia_2019>();
                         script.SetPos(position);
                         script.WalkingPos = position;
@@ -1623,10 +1624,7 @@ namespace StoryGenerator
                 if (useNSM) {
                     path = "Chars/NSM-SMPL-mapped";
                     parentCharacter = newCharacter;
-                    Transform initialLocation = new GameObject().transform;
-                    initialLocation.position = position;
-                    GameObject nsmFigure = Resources.Load(ScriptUtils.TransformResourceFileName(path)) as GameObject;
-                    nsmCharacter = Instantiate(nsmFigure) as GameObject;
+                    nsmCharacter = Instantiate(Resources.Load(ScriptUtils.TransformResourceFileName(path)) as GameObject);
                     nsmCharacter.transform.position = new Vector3(newCharacter.transform.position[0], 0, newCharacter.transform.position[2]);
                     nsmCharacter.transform.rotation = newCharacter.transform.rotation;
                     nsmCharacter.SetActive(false);
@@ -1635,6 +1633,8 @@ namespace StoryGenerator
                 return cc;
             }
         }
+
+
 
         public void PlaceCharacter(GameObject character, List<GameObject> rooms)
         {
