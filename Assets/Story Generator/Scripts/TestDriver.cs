@@ -668,14 +668,18 @@ namespace StoryGenerator
                         parentCharacter.SetActive(false);
                         nsmCharacter.SetActive(true);
                         yield return new WaitForSeconds(1);
+                        // Somehow get list of points to be able to go towards goal point
+                        List<Vector3> goalPoints = new List<Vector3>() {new Vector3(1, 1f, 1), new Vector3(2, 1f, 2), new Vector3(4, 1f, 2)};
                         SIGGRAPH_Asia_2019 script = nsmCharacter.GetComponent<SIGGRAPH_Asia_2019>();
-                        script.SetPos(position);
-                        script.WalkingPos = position;
-                        script.IsWalking = true;
-                        while (script.IsWalking) {
-                            yield return new WaitForSeconds(1);
+                        foreach (Vector3 goalPoint in goalPoints) {
+                            script.SetPos(goalPoint);
+                            script.WalkingPos = goalPoint;
+                            script.IsWalking = true;
+                            while (script.IsWalking) {
+                                yield return new WaitForSeconds(.2f);
+                            }
                         }
-                        parentCharacter.transform.position = position;
+                        parentCharacter.transform.position = goalPoints[goalPoints.Count-1];
                         parentCharacter.transform.rotation = script.Actor.GetRoot().rotation;
                         parentCharacter.SetActive(true);
                         nsmCharacter.SetActive(false);

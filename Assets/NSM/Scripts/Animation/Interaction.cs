@@ -31,6 +31,7 @@ public class Interaction : MonoBehaviour {
 
 	void Awake() {
 		if(Application.isPlaying) {
+			Geometry = gameObject.GetComponent<VoxelCollider>();
 			BoxCollider trigger = gameObject.AddComponent<BoxCollider>();
 			trigger.isTrigger = true;
 			trigger.size = 2f*Geometry.GetExtents();

@@ -382,6 +382,7 @@ public class SIGGRAPH_Asia_2019 : NeuralAnimation {
 	public void SetPos(Vector3 pos) {
 		GameObject goal = new GameObject("WALKING_GOAL");
 		goal.transform.position = new Vector3(pos[0], 0.0f, pos[2]);
+		goal.AddComponent<VoxelCollider>();
 		goal.AddComponent<Interaction>();
 		WalkingInteraction = goal.GetComponent<Interaction>();
 	}
@@ -421,7 +422,7 @@ public class SIGGRAPH_Asia_2019 : NeuralAnimation {
 		IsWalking = true;
 		// while (Controller.ProjectionActive) {
 		Vector3 ActorCenter = Actor.GetRoot().position;// + new Vector3(0.0f,-1.0f,0.0f);
-		while (WalkingInteraction != null && Vector3.Distance(WalkingInteraction.GetCenter().GetPosition(), ActorCenter) > .2f) {
+		while (WalkingInteraction != null && Vector3.Distance(WalkingInteraction.GetCenter().GetPosition(), ActorCenter) > .7f) {
 			// Controller.SetPosition(pos);
 			ApplyStaticGoal(WalkingInteraction.GetCenter().GetPosition(), Vector3.ProjectOnPlane(WalkingInteraction.GetCenter().GetPosition()-ActorCenter, Vector3.up).normalized, Signals);
 			Geometry.Setup(Geometry.Resolution);
