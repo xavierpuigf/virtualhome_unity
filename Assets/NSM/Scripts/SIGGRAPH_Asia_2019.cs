@@ -381,7 +381,8 @@ public class SIGGRAPH_Asia_2019 : NeuralAnimation {
 
 	public void SetPos(Vector3 pos) {
 		GameObject goal = new GameObject("WALKING_GOAL");
-		goal.transform.position = new Vector3(pos[0], 0.0f, pos[2]);
+		// goal.transform.position = new Vector3(pos[0], 0.0f, pos[2]);
+		goal.transform.position = pos;
 		goal.AddComponent<VoxelCollider>();
 		goal.AddComponent<Interaction>();
 		WalkingInteraction = goal.GetComponent<Interaction>();
