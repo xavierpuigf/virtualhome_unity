@@ -2935,7 +2935,14 @@ namespace StoryGenerator.Utilities
                 hi.allowPickUp = true;
                 hi.grabHandPose = GetGrabPose(go).Value; // HandInteraction.HandPose.GrabVertical;
                 hi.Initialize();
+                hi.isGoingtoPick = true;
             }
+            else
+            {
+                HandInteraction hi = go.GetComponent<HandInteraction>();
+                hi.isGoingtoPick = true;
+            }
+            
             recorder.MarkActionStart(InteractionType.GRAB, ga.ScriptLine);
             if (cameraControls != null)
             {
@@ -3040,7 +3047,9 @@ namespace StoryGenerator.Utilities
             IAction ga = s.Action;
             GameObject go = s.GetScriptGameObject(ga.Name);
             Vector3 putPosition = (Vector3)s.GetObject("PUT_POSITION");
-            var goi = go.GetComponent<HandInteraction>().invisibleCpy;
+            HandInteraction hi = go.GetComponent<HandInteraction>();
+            hi.isGoingtoPick = false;
+            var goi = hi.invisibleCpy;
             Bounds focusBounds;
 
             if (s.Action is PutAction)

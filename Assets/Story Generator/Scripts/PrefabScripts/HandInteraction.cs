@@ -37,6 +37,9 @@ namespace StoryGenerator.CharInteraction
 
         bool isPickedUp = false;
 
+        // Check if the charactrer will pick or palce the object
+        public bool isGoingtoPick = false;
+
         // Whether the hand interaction is added when running the script
         public bool added_runtime = false;
 
@@ -49,7 +52,11 @@ namespace StoryGenerator.CharInteraction
 
         // The transform of a character that will pick up this GameObject. It's used to genenerate textual GTs regarding which will new parent of this GameObject upon picked up.
         Transform m_tsfm_char;
-        
+
+
+        //// The transform of a character that was picking up this GameObject. It's used to check whether the object is being placed, or picked up from a new character.
+        //Transform m_tsfm_char_current;
+
         // Save which hand is used when m_io_grab is requested so that we know which field of State_char to update.
         FullBodyBipedEffector grabHand;
 
@@ -1164,7 +1171,7 @@ namespace StoryGenerator.CharInteraction
             string objType = "";
             // If this GameObject was previously picked up,
             // reaching here means the character is putting it back.
-            if (isPickedUp)
+            if (isPickedUp && !isGoingtoPick)
             {
                 // Set to null so that State_object will extract parent info instead.
                 charTsfm = null;
@@ -1199,7 +1206,7 @@ namespace StoryGenerator.CharInteraction
                     sc.UpdateHandRight(objType);
                 }
             }
-            isPickedUp = ! isPickedUp;
+            isPickedUp = isGoingtoPick;
         }
 
         // This method is called by InteractionObject which handles interaction (Resources/Chars/HandPoses/Male1/)
