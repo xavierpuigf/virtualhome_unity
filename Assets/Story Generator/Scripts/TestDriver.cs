@@ -124,9 +124,9 @@ namespace StoryGenerator
             if (networkRequest == null) {
                 commServer.UnlockProcessing(); // Allow to proceed with requests
             }
-            CharacterConfig configchar = new CharacterConfig();//JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
-            CharacterControl newchar;
-            newchar = AddCharacter(configchar.character_resource, false, configchar.mode, configchar.character_position, configchar.initial_room);
+            // CharacterConfig configchar = new CharacterConfig();//JsonConvert.DeserializeObject<CharacterConfig>(networkRequest.stringParams[0]);
+            // CharacterControl newchar;
+            // newchar = AddCharacter(configchar.character_resource, false, configchar.mode, configchar.character_position, configchar.initial_room);
 
             LightingSetup();
             StartCoroutine(ProcessNetworkRequest());
@@ -665,7 +665,7 @@ namespace StoryGenerator
                     if (useNSM) {
                         // Get path
                         NavMeshPath path = new NavMeshPath();
-                        NavMesh.CalculatePath(parentCharacter.transform.position, position, NavMesh.AllAreas, path);                        
+                        NavMesh.CalculatePath(parentCharacter.transform.position, position, NavMesh.AllAreas, path); 
 
                         // Start walking
                         parentCharacter.SetActive(false);
@@ -679,8 +679,8 @@ namespace StoryGenerator
                             while (script.IsWalking) {
                                 yield return new WaitForSeconds(.2f);
                             }
+                            parentCharacter.transform.position = goalPoint;
                         }
-                        parentCharacter.transform.position = path.corners[path.corners.Length-1];
                         parentCharacter.transform.rotation = script.Actor.GetRoot().rotation;
                         parentCharacter.SetActive(true);
                         nsmCharacter.SetActive(false);
@@ -1526,6 +1526,7 @@ namespace StoryGenerator
         // - Character is "randomized" if randomizeExecution = true 
         private CharacterControl AddCharacter(string path, bool randomizeExecution, string mode, Vector3 position, string initial_room)
         {
+            path = "Chars/Female1";
             GameObject loadedObj = Resources.Load(ScriptUtils.TransformResourceFileName(path)) as GameObject;
             List<GameObject> sceneCharacters = ScriptUtils.FindAllCharacters(transform);
 

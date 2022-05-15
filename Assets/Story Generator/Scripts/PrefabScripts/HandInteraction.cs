@@ -1030,6 +1030,9 @@ namespace StoryGenerator.CharInteraction
                     go_handPose_right.transform.localScale = adjustedScale;
                 }
                 m_io_grab.Initiate();
+                if (transform.name.ToLower().Contains("mug")) {
+                    Debug.Log("hadf");
+                }
             }
 
             // Proceed only if this object is interact-able (has ActivationSwitch)
@@ -1052,7 +1055,7 @@ namespace StoryGenerator.CharInteraction
                         handPoseParentWorldPos = s.switchTransform.TransformPoint(s.switchPosition);
                     }
                     else
-                    {
+                    {            
                         handPoseParent = new GameObject(PREFIX_SWITCH_GAMEOBJECT + i).transform;
                         handPoseParent.SetParent(transform, false);
                         handPoseParent.localPosition = s.switchPosition;
@@ -1162,6 +1165,9 @@ namespace StoryGenerator.CharInteraction
             ToggleCollider();
             Transform charTsfm = m_tsfm_char;
             string objType = "";
+            if (transform.name.ToLower().Contains("mug")) {
+                Debug.Log("hadf");
+            }
             // If this GameObject was previously picked up,
             // reaching here means the character is putting it back.
             if (isPickedUp)
