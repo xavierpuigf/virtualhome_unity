@@ -42,6 +42,7 @@ namespace StoryGenerator.Recording
         List<ActionRange> actionRanges = new List<ActionRange>();
         List<CameraData> cameraData = new List<CameraData>();
         List<PoseData> poseData = new List<PoseData>();
+        List<MeshData> meshData = new List<MeshData>();
         int frameRate = 20;
         int frameNum = 0;
         public int currentframeNum = 0;
@@ -135,6 +136,77 @@ namespace StoryGenerator.Recording
                     sb.Append(' '); sb.Append(v.x);
                     sb.Append(' '); sb.Append(v.y);
                     sb.Append(' '); sb.Append(v.z);
+                }
+                return sb.ToString();
+            }
+        }
+
+        private class MeshData
+        {
+            // TODO: Compute mesh weights through this https://forum.unity.com/threads/get-skinned-vertices-in-real-time.15685/
+            private static HumanBodyBones[] bones = (HumanBodyBones[])Enum.GetValues(typeof(HumanBodyBones));
+
+            int frameNumber;
+            private List<List<Vector3> > meshVertices;
+            private List<string> meshNames;
+
+            private List<List<Vector2> > meshUVs;
+
+            public MeshData(int frameNumber, Animator animator)
+            {
+                this.frameNumber = frameNumber;
+                
+                SkinnedMeshRenderer[] smrs = animator.gameObject.GetComponentsInChildren<SkinnedMeshRenderer>();
+                Debug.Log(smrs.Length);
+                meshNames = new List<string>();
+                meshVertices = new List<List<Vector3> > ();
+                meshUVs = new List<List<Vector2> > ();
+                foreach (SkinnedMeshRenderer smr in smrs)
+                {
+                    
+                    Mesh current_mesh = smr.sharedMesh;
+                    meshNames.Add(current_mesh.name);
+                    Debug.Log(current_mesh.name);
+                    meshVertices.Add(new List<Vector3>(current_mesh.vertices));
+                    meshUVs.Add(new List<Vector2> (current_mesh.uv));
+                }
+                //for (int i = 0; i < vertices.Length; i++)
+                //{
+                //    if (bones[i] < 0 || bones[i] >= HumanBodyBones.LastBone)
+                //    {
+                //        continue;
+                //    }
+                //    Transform bt = animator.GetBoneTransform(bones[i]);
+
+                //    if (bt != null)
+                //        boneVectors[i] = bt.position;
+                //}
+                //mesh.getUVs(0, meshUV);
+                
+            }
+            public string MeshNamesToString()
+            {
+                return String.Join(" ", meshNames.ToArray());
+            }
+            override public string ToString()
+            {
+                StringBuilder sb = new StringBuilder();
+
+                sb.Append(frameNumber);
+                for (int j = 0; j < meshNames.Count; j++)
+                {
+                    for (int i = 0; i < meshVertices[j].Count; i++)
+                    {
+                        Vector3 v = meshVertices[j][i];
+                        Vector2 uv = meshUVs[j][i];
+                        sb.Append(' '); sb.Append(v.x);
+                        sb.Append(' '); sb.Append(v.y);
+                        sb.Append(' '); sb.Append(v.z);
+                        sb.Append(' '); sb.Append(uv.x);
+                        sb.Append(' '); sb.Append(uv.y);
+                        sb.Append(',');
+                    }
+                    sb.Append(';');
                 }
                 return sb.ToString();
             }
@@ -279,6 +351,7 @@ namespace StoryGenerator.Recording
                     }
                     if (savePoseData) {
                         UpdatePoseData(frameNum);
+                        UpdateMeshData(frameNum);
                     }
                     if (saveSceneStates) {
                         sceneStateSequence.SetFrameNum(frameNum);
@@ -377,6 +450,7 @@ namespace StoryGenerator.Recording
             const string PREFIX_ACTION = "ftaa_";
             const string PREFIX_CAMERA = "cd_";
             const string PREFIX_POSE = "pd_";
+            const string PREFIX_MESH = "mesh_";
             const string PREFIX_SCENE_STATE = "ss_";
             const string FILE_EXT_TXT = ".txt";
             const string FILE_EXT_JSON = ".json";
@@ -418,6 +492,20 @@ namespace StoryGenerator.Recording
                 }
             }
 
+            currentFileName = Path.Combine(OutputDirectory, PREFIX_MESH) + FileName + FILE_EXT_TXT;
+
+            if (meshData.Count == 0){
+                File.Delete(currentFileName);
+            }
+            else {
+                using (StreamWriter sw = new StreamWriter(currentFileName)) {
+                     sw.WriteLine(meshData[0].MeshNamesToString());
+                    foreach (MeshData md in meshData) {
+                        sw.WriteLine(md.ToString());
+                    }
+                }
+            }
+
             currentFileName = Path.Combine(OutputDirectory, PREFIX_SCENE_STATE) + FileName + FILE_EXT_JSON;
 
             if (sceneStateSequence.states.Count == 0) {
@@ -442,6 +530,11 @@ namespace StoryGenerator.Recording
         {
             if (Animator != null)
                 poseData.Add(new PoseData(actualFrameNum, Animator));
+        }
+        void UpdateMeshData(int actualFrameNum)
+        {
+            if (Animator != null)
+                meshData.Add(new MeshData(actualFrameNum, Animator));
         }
 
     }
